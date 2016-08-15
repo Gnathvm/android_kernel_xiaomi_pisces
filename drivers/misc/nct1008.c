@@ -4,6 +4,7 @@
  * Driver for NCT1008, temperature monitoring device from ON Semiconductors
  *
  * Copyright (c) 2010-2013, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +34,8 @@
 #include <linux/thermal.h>
 #include <linux/regulator/consumer.h>
 
+#define  FALSE          0
+#define  TRUE           1
 /* Register Addresses */
 #define LOCAL_TEMP_RD			0x00
 #define EXT_TEMP_RD_HI			0x01
@@ -98,6 +101,7 @@ struct nct1008_data {
 	long etemp;
 	int nct_disabled;
 	int stop_workqueue;
+	int resume_flag;
 	struct thermal_zone_device *nct_int;
 	struct thermal_zone_device *nct_ext;
 };
@@ -464,29 +468,33 @@ static int nct1008_thermal_set_limits(struct nct1008_data *data,
 	if (lo_limit >= hi_limit)
 		return -EINVAL;
 
-	if (data->current_lo_limit != lo_limit) {
+	if ((data->current_lo_limit != lo_limit) || (data->resume_flag == TRUE)) {
 		value = temperature_to_value(extended_range, lo_limit);
 		pr_debug("%s: set lo_limit %ld\n", __func__, lo_limit);
 		err = nct1008_write_reg(data->client,
 				EXT_TEMP_LO_LIMIT_HI_BYTE_WR, value);
 		if (err)
-			return err;
+			goto error;
 
 		data->current_lo_limit = lo_limit;
 	}
 
-	if (data->current_hi_limit != hi_limit) {
+	if ((data->current_hi_limit != hi_limit) || (data->resume_flag == TRUE)) {
+
 		value = temperature_to_value(extended_range, hi_limit);
 		pr_debug("%s: set hi_limit %ld\n", __func__, hi_limit);
 		err = nct1008_write_reg(data->client,
 				EXT_TEMP_HI_LIMIT_HI_BYTE_WR, value);
 		if (err)
-			return err;
+			goto error;
 
 		data->current_hi_limit = hi_limit;
 	}
+	err = 0;
 
-	return 0;
+error:
+	data->resume_flag = FALSE;
+	return err;
 }
 
 #ifdef CONFIG_THERMAL
@@ -1089,6 +1097,7 @@ static int __devinit nct1008_probe(struct i2c_client *client,
 	if (!data)
 		return -ENOMEM;
 
+	data->resume_flag = FALSE;
 	data->client = client;
 	data->chip = id->driver_data;
 	memcpy(&data->plat_data, client->dev.platform_data,
@@ -1233,6 +1242,36 @@ static void nct1008_shutdown(struct i2c_client *client)
 	data->nct_disabled = 1;
 	mutex_unlock(&data->mutex);
 }
+
+#ifdef CONFIG_TEGRA_I2C_RECOVERY
+static int nct1008_reset(struct i2c_client *client)
+{
+	int err;
+	struct nct1008_data *data = i2c_get_clientdata(client);
+
+	disable_irq(client->irq);
+
+	err = nct1008_power_control(data, false);
+	if (err < 0) {
+		dev_err(&client->dev, "%s: Failed to disable power, %d\n",
+			__func__, err);
+		return err;
+	}
+	mdelay(5);
+	err = nct1008_power_control(data, true);
+	if (err < 0) {
+		dev_err(&client->dev, "%s: Failed to enable power, %d\n",
+			__func__, err);
+		return err;
+	}
+
+	dev_info(&client->dev, "%s: %s reset successfully\n", __func__,
+		 client->name);
+
+	return err;
+}
+
+#endif
 
 #ifdef CONFIG_PM_SLEEP
 static int nct1008_suspend_powerdown(struct device *dev)
@@ -1390,6 +1429,7 @@ static int nct1008_resume(struct device *dev)
 	if (err)
 		return err;
 
+	data->resume_flag = TRUE;
 	nct1008_update(data);
 	mutex_lock(&data->mutex);
 	data->stop_workqueue = 0;
@@ -1419,6 +1459,9 @@ static struct i2c_driver nct1008_driver = {
 	.remove		= __devexit_p(nct1008_remove),
 	.id_table	= nct1008_id,
 	.shutdown	= nct1008_shutdown,
+#ifdef CONFIG_TEGRA_I2C_RECOVERY
+	.reset = nct1008_reset,
+#endif
 };
 
 static int __init nct1008_init(void)
