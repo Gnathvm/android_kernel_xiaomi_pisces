@@ -3,6 +3,7 @@
  * Android IPC Subsystem
  *
  * Copyright (C) 2007-2008 Google, Inc.
+ * Copyright (C) 2016 XiaoMi, Inc.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -3612,6 +3613,7 @@ static int binder_proc_show(struct seq_file *m, void *unused)
 
 	if (do_lock)
 		binder_lock(__func__);
+
 	hlist_for_each_entry(itr, pos, &binder_procs, proc_node) {
 		if (itr == proc) {
 			valid_proc = true;
