@@ -68,6 +68,13 @@ config VIDEO_IMX091
           This is a driver for the IMX091 camera sensor
           for use with the tegra isp.
 
+config VIDEO_IMX135
+        tristate "IMX135 camera sensor support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the IMX135 camera sensor
+          for use with the tegra isp.
+
 config VIDEO_IMX132
         tristate "IMX132 camera sensor support"
         depends on I2C && ARCH_TEGRA
@@ -80,6 +87,27 @@ config VIDEO_OV9772
         ---help---
           This is a driver for the OV9772 camera sensor
           for use with the tegra isp.
+
+config VIDEO_OV5693
+        tristate "OV5693 camera sensor support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the OV5693 camera sensor
+          for use with the tegra isp.
+
+config VIDEO_OV7695
+        tristate "OV7695 camera sensor support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the OV7695 YUV camera sensor device
+          This sensor has external ISP, it isn't using tegra ISP.
+
+config VIDEO_MT9M114
+        tristate "MT9M114 camera sensor support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the MT9M114 YUV camera sensor device
+          This sensor has external ISP, it isn't using tegra ISP.
 
 config TORCH_SSL3250A
         tristate "SSL3250A flash/torch support"
@@ -99,6 +127,13 @@ config MAX77665_FLASH
         select MFD_MAX77665
         ---help---
           This is a driver for the MAX77665 flash/torch camera device
+
+config TORCH_MAX77387
+        tristate "MAX77387 flash/torch support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the MAX77387 flash/torch camera device
+          for use with the tegra isp.
 
 config TORCH_AS364X
         tristate "AS364X flash/torch support"
@@ -120,9 +155,30 @@ config VIDEO_AD5820
           This is a driver for the AD5820 focuser
           for use with the tegra isp.
 
+config VIDEO_AD5823
+        tristate "AD5823 focuser support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the AD5823 focuser
+          for use with the tegra isp.
+
 config VIDEO_AD5816
         tristate "AD5816 focuser support"
         depends on I2C && ARCH_TEGRA
         ---help---
           This is a driver for the AD5816 focuser
+          for use with the tegra isp.
+
+config VIDEO_AR0833
+        tristate "AR0833 camera sensor support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the AR0833 camera sensor
+          for use with the tegra isp.
+
+config VIDEO_DW9718
+        tristate "DW9718 focuser support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the DW9718 focuser
           for use with the tegra isp.

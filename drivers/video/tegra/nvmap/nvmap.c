@@ -43,25 +43,24 @@
 #define NVMAP_HANDLE_VISITED (0x1ul << 31)
 
 /* map the backing pages for a heap_pgalloc handle into its IOVMM area */
-static void map_iovmm_area(struct nvmap_handle *h)
+static int map_iovmm_area(struct nvmap_handle *h)
 {
-	tegra_iovmm_addr_t va;
-	unsigned long i;
+	int err;
 
 	BUG_ON(!h->heap_pgalloc || !h->pgalloc.area);
 	BUG_ON(h->size & ~PAGE_MASK);
 	WARN_ON(!h->pgalloc.dirty);
 
-	for (va = h->pgalloc.area->iovm_start, i = 0;
-	     va < (h->pgalloc.area->iovm_start + h->size);
-	     i++, va += PAGE_SIZE) {
-		unsigned long pfn;
-
-		pfn = page_to_pfn(h->pgalloc.pages[i]);
-		BUG_ON(!pfn_valid(pfn));
-		tegra_iovmm_vm_insert_pfn(h->pgalloc.area, va, pfn);
+	err = tegra_iovmm_vm_insert_pages(h->pgalloc.area,
+					  h->pgalloc.area->iovm_start,
+					  h->pgalloc.pages,
+					  h->size >> PAGE_SHIFT);
+	if (err) {
+		tegra_iovmm_zap_vm(h->pgalloc.area);
+		return err;
 	}
 	h->pgalloc.dirty = false;
+	return 0;
 }
 
 /* must be called inside nvmap_pin_lock, to ensure that an entire stream
@@ -271,7 +270,7 @@ int nvmap_pin_ids(struct nvmap_client *client,
 		  unsigned int nr, const unsigned long *ids)
 {
 	int ret = 0;
-	unsigned int i;
+	int i;
 	struct nvmap_handle **h = (struct nvmap_handle **)ids;
 	struct nvmap_handle_ref *ref;
 
@@ -328,8 +327,11 @@ int nvmap_pin_ids(struct nvmap_client *client,
 		ret = -EINTR;
 	} else {
 		for (i = 0; i < nr; i++) {
-			if (h[i]->heap_pgalloc && h[i]->pgalloc.dirty)
-				map_iovmm_area(h[i]);
+			if (h[i]->heap_pgalloc && h[i]->pgalloc.dirty) {
+				ret = map_iovmm_area(h[i]);
+				while (ret && --i >= 0)
+					tegra_iovmm_zap_vm(h[i]->pgalloc.area);
+			}
 		}
 	}
 
@@ -489,24 +491,43 @@ int nvmap_pin_array(struct nvmap_client *client,
 	mutex_unlock(&client->share->pin_lock);
 
 	if (WARN_ON(ret)) {
-		for (i = 0; i < count; i++) {
-			/* pin ref */
-			nvmap_handle_put(unique_arr[i]);
-			/* remove duplicate */
-			atomic_dec(&unique_arr_refs[i]->dupes);
-			nvmap_handle_put(unique_arr[i]);
-		}
-		return ret;
+		goto err_out;
 	} else {
 		for (i = 0; i < count; i++) {
 			if (unique_arr[i]->heap_pgalloc &&
-			    unique_arr[i]->pgalloc.dirty)
-				map_iovmm_area(unique_arr[i]);
+			    unique_arr[i]->pgalloc.dirty) {
+				ret = map_iovmm_area(unique_arr[i]);
+				while (ret && --i >= 0) {
+					tegra_iovmm_zap_vm(
+						unique_arr[i]->pgalloc.area);
+					atomic_dec(&unique_arr_refs[i]->pin);
+				}
+				if (ret)
+					goto err_out_unpin;
+			}
 
 			atomic_inc(&unique_arr_refs[i]->pin);
 		}
 	}
 	return count;
+
+err_out_unpin:
+	for (i = 0; i < count; i++) {
+		/* inc ref counter, because handle_unpin decrements it */
+		nvmap_handle_get(unique_arr[i]);
+		/* unpin handles and free vm */
+		handle_unpin(client, unique_arr[i], true);
+	}
+err_out:
+	for (i = 0; i < count; i++) {
+		/* pin ref */
+		nvmap_handle_put(unique_arr[i]);
+		/* remove duplicate */
+		atomic_dec(&unique_arr_refs[i]->dupes);
+		nvmap_handle_put(unique_arr[i]);
+	}
+
+	return ret;
 }
 
 static phys_addr_t handle_phys(struct nvmap_handle *h)
@@ -565,15 +586,24 @@ phys_addr_t _nvmap_pin(struct nvmap_client *client,
 	}
 
 	if (ret) {
-		atomic_dec(&ref->pin);
-		nvmap_handle_put(h);
+		goto err_out;
 	} else {
 		if (h->heap_pgalloc && h->pgalloc.dirty)
-			map_iovmm_area(h);
+			ret = map_iovmm_area(h);
+		if (ret)
+			goto err_out_unpin;
 		phys = handle_phys(h);
 	}
 
-	return ret ?: phys;
+	return phys;
+
+err_out_unpin:
+	nvmap_handle_get(h);
+	handle_unpin(client, h, true);
+err_out:
+	atomic_dec(&ref->pin);
+	nvmap_handle_put(h);
+	return ret;
 }
 
 phys_addr_t nvmap_pin(struct nvmap_client *client,
@@ -663,7 +693,7 @@ void *nvmap_kmap(struct nvmap_handle_ref *ref, unsigned int pagenum)
 
 	set_pte_at(&init_mm, kaddr, *pte,
 				pfn_pte(__phys_to_pfn(paddr), prot));
-	flush_tlb_kernel_page(kaddr);
+	nvmap_flush_tlb_kernel_page(kaddr);
 	return (void *)kaddr;
 out:
 	nvmap_handle_put(ref->handle);
@@ -761,7 +791,7 @@ void *nvmap_mmap(struct nvmap_handle_ref *ref)
 		if (!pte)
 			break;
 		set_pte_at(&init_mm, addr, pte, pfn_pte(pfn, prot));
-		flush_tlb_kernel_page(addr);
+		nvmap_flush_tlb_kernel_page(addr);
 	}
 
 	if (offs != adj_size) {

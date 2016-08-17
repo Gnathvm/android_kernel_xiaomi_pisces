@@ -61,6 +61,10 @@
 #define MAX77663_IRQ_END	(MAX77663_IRQ_BASE + MAX77663_IRQ_NR)
 #define MAX77663_IRQ_ACOK_RISING MAX77663_IRQ_ONOFF_ACOK_RISING
 
+/* PMC Wake status registers */
+#define PMC_WAKE_STATUS		0x14
+#define PMC_WAKE2_STATUS	0x168
+
 /* I2C related GPIOs */
 #define TEGRA_GPIO_I2C1_SCL		TEGRA_GPIO_PC4
 #define TEGRA_GPIO_I2C1_SDA             TEGRA_GPIO_PC5
@@ -92,16 +96,11 @@
 #define MPU_GYRO_ADDR           0x69
 #define MPU_GYRO_BUS_NUM        0
 #define MPU_GYRO_ORIENTATION	{ -1, 0, 0, 0, 1, 0, 0, 0, -1 }
-#define MPU_ACCEL_NAME          "kxtf9"
-#define MPU_ACCEL_IRQ_GPIO      0 /* DISABLE ACCELIRQ:  TEGRA_GPIO_PJ2 */
-#define MPU_ACCEL_ADDR          0x0F
-#define MPU_ACCEL_BUS_NUM       0
-#define MPU_ACCEL_ORIENTATION   { 0, 1, 0, -1, 0, 0, 0, 0, 1 }
 #define MPU_COMPASS_NAME        "ak8975"
 #define MPU_COMPASS_IRQ_GPIO    0
 #define MPU_COMPASS_ADDR        0x0D
 #define MPU_COMPASS_BUS_NUM     0
-#define MPU_COMPASS_ORIENTATION { 0, 1, 0, -1, 0, 0, 0, 0, 1 }
+#define MPU_COMPASS_ORIENTATION { 0, -1, 0, 1, 0, 0, 0, 0, 1 }
 
 /* Modem related GPIOs */
 #define MODEM_EN		TEGRA_GPIO_PP2

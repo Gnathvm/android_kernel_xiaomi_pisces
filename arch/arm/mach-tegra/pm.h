@@ -2,20 +2,23 @@
  * arch/arm/mach-tegra/include/mach/pm.h
  *
  * Copyright (C) 2010 Google, Inc.
- * Copyright (c) 2010-2012, NVIDIA CORPORATION.  All rights reserved.
  *
  * Author:
  *	Colin Cross <ccross@google.com>
  *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
+ * Copyright (c) 2010-2013, NVIDIA CORPORATION.  All rights reserved.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
  *
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -58,6 +61,7 @@ struct tegra_suspend_platform_data {
 	unsigned long core_off_timer;	/* core power off time ticks, LP0 */
 	bool corereq_high;         /* Core power request active-high */
 	bool sysclkreq_high;       /* System clock request is active-high */
+	bool sysclkreq_gpio;       /* if System clock request is set to gpio */
 	bool combined_req;         /* if core & CPU power requests are combined */
 	enum tegra_suspend_mode suspend_mode;
 	unsigned long cpu_lp2_min_residency; /* Min LP2 state residency in us */
@@ -65,11 +69,12 @@ struct tegra_suspend_platform_data {
 	/* lp_state = 0 for LP0 state, 1 for LP1 state, 2 for LP2 state */
 	void (*board_resume)(int lp_state, enum resume_stage stg);
 	unsigned int cpu_resume_boost;	/* CPU frequency resume boost in kHz */
-#ifdef CONFIG_TEGRA_LP1_950
+#ifdef CONFIG_TEGRA_LP1_LOW_COREVOLTAGE
 	bool lp1_lowvolt_support;
 	unsigned int i2c_base_addr;
 	unsigned int pmuslave_addr;
 	unsigned int core_reg_addr;
+	unsigned int lp1_core_volt_low_cold;
 	unsigned int lp1_core_volt_low;
 	unsigned int lp1_core_volt_high;
 #endif
@@ -79,6 +84,8 @@ struct tegra_suspend_platform_data {
 	unsigned long min_residency_ncpu_fast;
 	unsigned long min_residency_crail;
 #endif
+	bool usb_vbus_internal_wake; /* support for internal vbus wake */
+	bool usb_id_internal_wake; /* support for internal id wake */
 };
 
 /* clears io dpd settings before kernel code */
@@ -96,6 +103,9 @@ void tegra_clear_cpu_in_pd(int cpu);
 bool tegra_set_cpu_in_pd(int cpu);
 
 int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags);
+#ifdef CONFIG_TEGRA_LP1_LOW_COREVOLTAGE
+int tegra_is_lp1_suspend_mode(void);
+#endif
 
 #define FLOW_CTRL_CPU_PWR_CSR \
 	(IO_ADDRESS(TEGRA_FLOW_CTRL_BASE) + 0x38)
@@ -153,7 +163,7 @@ static inline unsigned int is_lp_cluster(void)
 	    "ubfx	%0, %0, #8, #4"
 	    : "=r" (reg)
 	    :
-	    : "cc");
+	    : "cc","memory");
 	return reg ; /* 0 == G, 1 == LP*/
 }
 int tegra_cluster_control(unsigned int us, unsigned int flags);

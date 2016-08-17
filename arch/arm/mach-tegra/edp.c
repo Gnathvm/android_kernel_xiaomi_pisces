@@ -1,21 +1,19 @@
 /*
  * arch/arm/mach-tegra/edp.c
  *
- * Copyright (C) 2011-2013, NVIDIA CORPORATION. All Rights Reserved.
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION. All Rights Reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
- * 02111-1307, USA
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <linux/kernel.h>
@@ -24,6 +22,7 @@
 #include <linux/slab.h>
 #include <linux/module.h>
 #include <linux/uaccess.h>
+#include <linux/edp.h>
 #include <mach/edp.h>
 
 #include "fuse.h"
@@ -339,113 +338,14 @@ static struct tegra_system_edp_entry power_edp_default_limits[] = {
 static const int temperatures[] = { /* degree celcius (C) */
 	23, 40, 50, 60, 68, 74, 78, 82, 86, 90, 94, 98, 102,
 };
-static const int power_cap_levels[] = { /* milliwatts (mW) */
-	500, 1000, 1500, 2000, 2500, 3000, 3500,
-	4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500,
-	8000, 8500, 9000, 9500, 10000, 10500, 11000, 11500,
-	12000, 12500, 13000, 13500, 14000, 14500, 15000, 15500,
-	16000, 16500, 17000,
-};
 
-static struct tegra_edp_cpu_leakage_params leakage_params[] = {
-	{
-		.cpu_speedo_id	    = 0, /* A01 CPU */
-		.dyn_consts_n       = { 1091747, 2035205, 2978661, 3922119 },
-		.leakage_consts_n   = {  538991,  752463,  959441, 1150000 },
-		.leakage_consts_ijk = {
-			 /* i = 0 */
-			 { {  -42746668,   -5458429,   164998,  -1711, },
-			   {  178262421,   13375684,  -411791,   4590, },
-			   { -228866784,  -10482993,   331248,  -4062, },
-			   {   94301550,    2618719,   -85983,   1193, },
-			 },
-			 /* i = 1 */
-			 { { -256611791,   49677413, -1655785,  14917, },
-			   {  584675433, -132620939,  4541560, -41812, },
-			   { -398106336,  115987156, -4102328,  38737, },
-			   {   68897184,  -33030745,  1217839, -11801, },
-			 },
-			 /* i = 2 */
-			 { {  186324676,  -36019083,  1177969, -10669, },
-			   { -439237936,   98429131, -3276444,  30301, },
-			   {  315060898,  -88635036,  3004777, -28474, },
-			   {  -60854399,   26267188,  -907121,   8844, },
-			 },
-			 /* i = 3 */
-			 { {  -35432997,    6154621,  -202200,   1830, },
-			   {   87402153,  -16908683,   565152,  -5220, },
-			   {  -67775314,   15326770,  -521221,   4927, },
-			   {   15618709,   -4576116,   158401,  -1538, },
-			 },
-		 },
-		.volt_temp_cap = { 68, 1240 },
-	},
-	{
-		.cpu_speedo_id	    = 1, /* A01P+ CPU */
-		.dyn_consts_n       = { 1091747, 2035205, 2978661, 3922119 },
-		.leakage_consts_n   = {  538991,  752463,  959441, 1150000 },
-		.leakage_consts_ijk = {
-			 /* i = 0 */
-			 { {  -42746668,   -5458429,   164998,  -1711, },
-			   {  178262421,   13375684,  -411791,   4590, },
-			   { -228866784,  -10482993,   331248,  -4062, },
-			   {   94301550,    2618719,   -85983,   1193, },
-			 },
-			 /* i = 1 */
-			 { { -256611791,   49677413, -1655785,  14917, },
-			   {  584675433, -132620939,  4541560, -41812, },
-			   { -398106336,  115987156, -4102328,  38737, },
-			   {   68897184,  -33030745,  1217839, -11801, },
-			 },
-			 /* i = 2 */
-			 { {  186324676,  -36019083,  1177969, -10669, },
-			   { -439237936,   98429131, -3276444,  30301, },
-			   {  315060898,  -88635036,  3004777, -28474, },
-			   {  -60854399,   26267188,  -907121,   8844, },
-			 },
-			 /* i = 3 */
-			 { {  -35432997,    6154621,  -202200,   1830, },
-			   {   87402153,  -16908683,   565152,  -5220, },
-			   {  -67775314,   15326770,  -521221,   4927, },
-			   {   15618709,   -4576116,   158401,  -1538, },
-			 },
-		 },
-		.safety_cap = { 1810500, 1810500, 1606500, 1606500 },
-		.volt_temp_cap = { 68, 1240 },
-	},
-	{
-		.cpu_speedo_id	    = 2, /* A01P+ fast CPU */
-		.dyn_consts_n       = { 1091747, 2035205, 2978661, 3922119 },
-		.leakage_consts_n   = {  538991,  752463,  959441, 1150000 },
-		.leakage_consts_ijk = {
-			 /* i = 0 */
-			 { {  -42746668,   -5458429,   164998,  -1711, },
-			   {  178262421,   13375684,  -411791,   4590, },
-			   { -228866784,  -10482993,   331248,  -4062, },
-			   {   94301550,    2618719,   -85983,   1193, },
-			 },
-			 /* i = 1 */
-			 { { -256611791,   49677413, -1655785,  14917, },
-			   {  584675433, -132620939,  4541560, -41812, },
-			   { -398106336,  115987156, -4102328,  38737, },
-			   {   68897184,  -33030745,  1217839, -11801, },
-			 },
-			 /* i = 2 */
-			 { {  186324676,  -36019083,  1177969, -10669, },
-			   { -439237936,   98429131, -3276444,  30301, },
-			   {  315060898,  -88635036,  3004777, -28474, },
-			   {  -60854399,   26267188,  -907121,   8844, },
-			 },
-			 /* i = 3 */
-			 { {  -35432997,    6154621,  -202200,   1830, },
-			   {   87402153,  -16908683,   565152,  -5220, },
-			   {  -67775314,   15326770,  -521221,   4927, },
-			   {   15618709,   -4576116,   158401,  -1538, },
-			 },
-		 },
-		.safety_cap = { 1912500, 1912500, 1912500, 1912500 },
-		.volt_temp_cap = { 68, 1240 },
-	},
+static const int power_cap_levels[] = { /* milliwatts (mW) */
+	  700,  1700,  2700,  3700,  3800,  3900,  4500,  4600,
+	 4700,  4800,  4900,  5200,  5300,  5400,  5500,  5800,
+	 5900,  6200,  6400,  6500,  6800,  7200,  7500,  8200,
+	 8500,  9200,  9500, 10200, 10500, 11200, 11500, 12200,
+	12500, 13200, 13500, 14200, 14500, 15200, 15500, 16500,
+	17500
 };
 
 static struct tegra_edp_freq_voltage_table *freq_voltage_lut_saved;
@@ -457,7 +357,7 @@ static inline s64 edp_pow(s64 val, int pwr)
 {
 	s64 retval = 1;
 
-	while (pwr) {
+	while (val && pwr) {
 		if (pwr & 1)
 			retval *= val;
 		pwr >>= 1;
@@ -468,11 +368,43 @@ static inline s64 edp_pow(s64 val, int pwr)
 	return retval;
 }
 
+
+#ifdef CONFIG_TEGRA_CPU_EDP_FIXED_LIMITS
+static inline unsigned int edp_apply_fixed_limits(
+				unsigned int in_freq_KHz,
+				struct tegra_edp_cpu_leakage_params *params,
+				unsigned int cur_effective,
+				int temp_C, int n_cores_idx)
+{
+	unsigned int out_freq_KHz = in_freq_KHz;
+	unsigned int max_cur, max_temp, max_freq;
+	int i;
+
+	/* Apply any additional fixed limits */
+	for (i = 0; i < 8; i++) {
+		max_cur = params->max_current_cap[i].max_cur;
+		if (max_cur != 0 && cur_effective <= max_cur) {
+			max_temp = params->max_current_cap[i].max_temp;
+			if (max_temp != 0 && temp_C > max_temp) {
+				max_freq = params->max_current_cap[i].
+					max_freq[n_cores_idx];
+				if (max_freq && max_freq < out_freq_KHz)
+					out_freq_KHz = max_freq;
+			}
+		}
+	}
+
+	return out_freq_KHz;
+}
+#else
+#define edp_apply_fixed_limits(freq, unused...)	(freq)
+#endif
+
 /*
  * Find the maximum frequency that results in dynamic and leakage current that
  * is less than the regulator current limit.
- * temp_C - always valid
- * power_mW - valid or -1 (infinite)
+ * temp_C - valid or -EINVAL
+ * power_mW - valid or -1 (infinite) or -EINVAL
  */
 static unsigned int edp_calculate_maxf(
 				struct tegra_edp_cpu_leakage_params *params,
@@ -480,9 +412,9 @@ static unsigned int edp_calculate_maxf(
 				int iddq_mA,
 				int n_cores_idx)
 {
-	unsigned int voltage_mV, freq_KHz;
+	unsigned int voltage_mV, freq_KHz = 0;
 	unsigned int cur_effective = regulator_cur - edp_reg_override_mA;
-	int f, i, j, k;
+	int f, i, j, k, r = 0;
 	s64 leakage_mA, dyn_mA, leakage_calc_step;
 	s64 leakage_mW, dyn_mW;
 
@@ -510,42 +442,68 @@ static unsigned int edp_calculate_maxf(
 							  edp_pow(1000, i));
 					leakage_calc_step *=
 						edp_pow(voltage_mV, j);
-					/* Convert (mV)^i to (V)^i */
+					/* Convert (mV)^j to (V)^j */
 					leakage_calc_step =
 						div64_s64(leakage_calc_step,
 							  edp_pow(1000, j));
 					leakage_calc_step *=
 						edp_pow(temp_C, k);
-					/* leakage_consts_ijk was X 100,000 */
+					/* Convert (C)^k to (scaled_C)^k */
 					leakage_calc_step =
 						div64_s64(leakage_calc_step,
-							  100000);
+						edp_pow(params->temp_scaled,
+							k));
+					/* leakage_consts_ijk was scaled */
+					leakage_calc_step =
+						div64_s64(leakage_calc_step,
+							  params->ijk_scaled);
 					leakage_mA += leakage_calc_step;
 				}
 			}
 		}
+
+		/* if specified, set floor for leakage current */
+		if (params->leakage_min && leakage_mA <= params->leakage_min)
+			leakage_mA = params->leakage_min;
+
+		/* leakage cannot be negative => leakage model has error */
+		if (leakage_mA <= 0) {
+			pr_err("VDD_CPU EDP failed: IDDQ too high (%d mA)\n",
+			       iddq_mA);
+			r = -EINVAL;
+			goto end;
+		}
+
 		leakage_mA *= params->leakage_consts_n[n_cores_idx];
-		/* leakage_const_n was pre-multiplied by 1,000,000 */
-		leakage_mA = div64_s64(leakage_mA, 1000000);
+
+		/* leakage_const_n was scaled */
+		leakage_mA = div64_s64(leakage_mA, params->consts_scaled);
 
 		/* Calculate dynamic current */
 		dyn_mA = voltage_mV * freq_KHz / 1000;
 		/* Convert mV to V */
 		dyn_mA = div64_s64(dyn_mA, 1000);
 		dyn_mA *= params->dyn_consts_n[n_cores_idx];
-		/* dyn_const_n was pre-multiplied by 1,000,000 */
-		dyn_mA = div64_s64(dyn_mA, 1000000);
+		/* dyn_const_n was scaled */
+		dyn_mA = div64_s64(dyn_mA, params->dyn_scaled);
 
 		if (power_mW != -1) {
 			leakage_mW = leakage_mA * voltage_mV;
 			dyn_mW = dyn_mA * voltage_mV;
 			if (div64_s64(leakage_mW + dyn_mW, 1000) <= power_mW)
-				return freq_KHz;
+				goto end;
 		} else if ((leakage_mA + dyn_mA) <= cur_effective) {
-			return freq_KHz;
+			goto end;
 		}
+		freq_KHz = 0;
 	}
-	return 0;
+
+ end:
+	if (r != 0)
+		return r;
+
+	return edp_apply_fixed_limits(freq_KHz, params,
+					cur_effective, temp_C, n_cores_idx);
 }
 
 static int edp_relate_freq_voltage(struct clk *clk_cpu_g,
@@ -589,10 +547,22 @@ unsigned int tegra_edp_find_maxf(int volt)
 
 static int edp_find_speedo_idx(int cpu_speedo_id, unsigned int *cpu_speedo_idx)
 {
-	int i;
+	int i, array_size;
+	struct tegra_edp_cpu_leakage_params *params;
 
-	for (i = 0; i < ARRAY_SIZE(leakage_params); i++)
-		if (cpu_speedo_id == leakage_params[i].cpu_speedo_id) {
+	switch (tegra_chip_id) {
+	case TEGRA_CHIPID_TEGRA11:
+		params = tegra11x_get_leakage_params(0, &array_size);
+		break;
+	case TEGRA_CHIPID_TEGRA3:
+	case TEGRA_CHIPID_TEGRA2:
+	default:
+		array_size = 0;
+		break;
+	}
+
+	for (i = 0; i < array_size; i++)
+		if (cpu_speedo_id == params[i].cpu_speedo_id) {
 			*cpu_speedo_idx = i;
 			return 0;
 		}
@@ -604,6 +574,7 @@ static int edp_find_speedo_idx(int cpu_speedo_id, unsigned int *cpu_speedo_idx)
 
 static int init_cpu_edp_limits_calculated(void)
 {
+	unsigned int max_nr_cpus = num_possible_cpus();
 	unsigned int temp_idx, n_cores_idx, pwr_idx;
 	unsigned int cpu_g_minf, cpu_g_maxf;
 	unsigned int iddq_mA;
@@ -622,7 +593,15 @@ static int init_cpu_edp_limits_calculated(void)
 	if (ret)
 		return ret;
 
-	params = &leakage_params[cpu_speedo_idx];
+	switch (tegra_chip_id) {
+	case TEGRA_CHIPID_TEGRA11:
+		params = tegra11x_get_leakage_params(cpu_speedo_idx, NULL);
+		break;
+	case TEGRA_CHIPID_TEGRA3:
+	case TEGRA_CHIPID_TEGRA2:
+	default:
+		return -EINVAL;
+	}
 
 	edp_calculated_limits = kmalloc(sizeof(struct tegra_edp_limits)
 					* ARRAY_SIZE(temperatures), GFP_KERNEL);
@@ -670,7 +649,7 @@ static int init_cpu_edp_limits_calculated(void)
 			freq_voltage_lut_size);
 
 	/* Calculate EDP table */
-	for (n_cores_idx = 0; n_cores_idx < NR_CPUS; n_cores_idx++) {
+	for (n_cores_idx = 0; n_cores_idx < max_nr_cpus; n_cores_idx++) {
 		for (temp_idx = 0;
 		     temp_idx < ARRAY_SIZE(temperatures); temp_idx++) {
 			edp_calculated_limits[temp_idx].temperature =
@@ -680,6 +659,8 @@ static int init_cpu_edp_limits_calculated(void)
 						   -1,
 						   iddq_mA,
 						   n_cores_idx);
+			if (limit == -EINVAL)
+				return -EINVAL;
 			/* apply safety cap if it is specified */
 			if (n_cores_idx < 4) {
 				cap = params->safety_cap[n_cores_idx];
@@ -695,10 +676,12 @@ static int init_cpu_edp_limits_calculated(void)
 			power_edp_calc_limits[pwr_idx].power_limit_100mW =
 				power_cap_levels[pwr_idx] / 100;
 			limit = edp_calculate_maxf(params,
-						   90,
+						   50,
 						   power_cap_levels[pwr_idx],
 						   iddq_mA,
 						   n_cores_idx);
+			if (limit == -EINVAL)
+				return -EINVAL;
 			power_edp_calc_limits[pwr_idx].
 				freq_limits[n_cores_idx] = limit;
 		}
@@ -784,8 +767,18 @@ static int __init init_cpu_edp_limits_lookup(void)
 
 void tegra_recalculate_cpu_edp_limits(void)
 {
-	if (tegra_chip_id == TEGRA11X)
-		init_cpu_edp_limits_calculated();
+	if (tegra_chip_id != TEGRA11X)
+		return;
+
+	if (init_cpu_edp_limits_calculated() == 0)
+		return;
+
+	/* Revert to default EDP table on error */
+	edp_limits = edp_default_limits;
+	edp_limits_size = ARRAY_SIZE(edp_default_limits);
+
+	power_edp_limits = power_edp_default_limits;
+	power_edp_limits_size = ARRAY_SIZE(power_edp_default_limits);
 }
 
 /*
@@ -902,7 +895,6 @@ void tegra_platform_edp_init(struct thermal_trip_info *trips,
 			(cpu_edp_limits[i].temperature * 1000) - margin;
 		trip_state->trip_type = THERMAL_TRIP_ACTIVE;
 		trip_state->upper = trip_state->lower = i + 1;
-		trip_state->hysteresis = 1000;
 
 		(*num_trips)++;
 
@@ -925,15 +917,10 @@ static int edp_limit_debugfs_show(struct seq_file *s, void *data)
 	return 0;
 }
 
-static int edp_debugfs_show(struct seq_file *s, void *data)
+static inline void edp_show_4core_edp_table(struct seq_file *s, int th_idx)
 {
-	int i, th_idx;
+	int i;
 
-	tegra_get_edp_limit(&th_idx);
-	seq_printf(s, "-- VDD_CPU %sEDP table (%umA = %umA - %umA) --\n",
-		   edp_limits == edp_default_limits ? "default " : "",
-		   regulator_cur - edp_reg_override_mA,
-		   regulator_cur, edp_reg_override_mA);
 	seq_printf(s, "%6s %10s %10s %10s %10s\n",
 		   " Temp.", "1-core", "2-cores", "3-cores", "4-cores");
 	for (i = 0; i < edp_limits_size; i++) {
@@ -945,8 +932,27 @@ static int edp_debugfs_show(struct seq_file *s, void *data)
 			   edp_limits[i].freq_limits[2],
 			   edp_limits[i].freq_limits[3]);
 	}
+}
 
-	seq_printf(s, "-- VDD_CPU Power EDP table --\n");
+static inline void edp_show_2core_edp_table(struct seq_file *s, int th_idx)
+{
+	int i;
+
+	seq_printf(s, "%6s %10s %10s\n",
+		   " Temp.", "1-core", "2-cores");
+	for (i = 0; i < edp_limits_size; i++) {
+		seq_printf(s, "%c%3dC: %10u %10u\n",
+			   i == th_idx ? '>' : ' ',
+			   edp_limits[i].temperature,
+			   edp_limits[i].freq_limits[0],
+			   edp_limits[i].freq_limits[1]);
+	}
+}
+
+static inline void edp_show_4core_power_table(struct seq_file *s)
+{
+	int i;
+
 	seq_printf(s, "%6s %10s %10s %10s %10s\n",
 		   " Power", "1-core", "2-cores", "3-cores", "4-cores");
 	for (i = 0; i < power_edp_limits_size; i++) {
@@ -957,16 +963,73 @@ static int edp_debugfs_show(struct seq_file *s, void *data)
 			   power_edp_limits[i].freq_limits[2],
 			   power_edp_limits[i].freq_limits[3]);
 	}
+}
+
+static inline void edp_show_2core_power_table(struct seq_file *s)
+{
+	int i;
+
+	seq_printf(s, "%6s %10s %10s\n",
+		   " Power", "1-core", "2-cores");
+	for (i = 0; i < power_edp_limits_size; i++) {
+		seq_printf(s, "%5dmW: %10u %10u\n",
+			   power_edp_limits[i].power_limit_100mW * 100,
+			   power_edp_limits[i].freq_limits[0],
+			   power_edp_limits[i].freq_limits[1]);
+	}
+}
+
+static inline void edp_show_4core_system_table(struct seq_file *s)
+{
+	seq_printf(s, "%10u %10u %10u %10u\n",
+		   system_edp_limits[0],
+		   system_edp_limits[1],
+		   system_edp_limits[2],
+		   system_edp_limits[3]);
+}
+
+static inline void edp_show_2core_system_table(struct seq_file *s)
+{
+	seq_printf(s, "%10u %10u\n",
+		   system_edp_limits[0],
+		   system_edp_limits[1]);
+}
+
+static int edp_debugfs_show(struct seq_file *s, void *data)
+{
+	unsigned int max_nr_cpus = num_possible_cpus();
+	int th_idx;
+
+	if (max_nr_cpus != 2 && max_nr_cpus != 4) {
+		seq_printf(s, "Unsupported number of CPUs\n");
+		return 0;
+	}
+
+	tegra_get_edp_limit(&th_idx);
+	seq_printf(s, "-- VDD_CPU %sEDP table (%umA = %umA - %umA) --\n",
+		   edp_limits == edp_default_limits ? "**default** " : "",
+		   regulator_cur - edp_reg_override_mA,
+		   regulator_cur, edp_reg_override_mA);
+	if (max_nr_cpus == 2)
+		edp_show_2core_edp_table(s, th_idx);
+	else if (max_nr_cpus == 4)
+		edp_show_4core_edp_table(s, th_idx);
+
+	seq_printf(s, "-- VDD_CPU %sPower EDP table --\n",
+		   power_edp_limits == power_edp_default_limits ?
+		   "**default** " : "");
+	if (max_nr_cpus == 2)
+		edp_show_2core_power_table(s);
+	else if (max_nr_cpus == 4)
+		edp_show_4core_power_table(s);
 
 	if (system_edp_limits) {
 		seq_printf(s, "\n-- System EDP table --\n");
-		seq_printf(s, "%10u %10u %10u %10u\n",
-			   system_edp_limits[0],
-			   system_edp_limits[1],
-			   system_edp_limits[2],
-			   system_edp_limits[3]);
+		if (max_nr_cpus == 2)
+			edp_show_2core_system_table(s);
+		else if (max_nr_cpus == 4)
+			edp_show_4core_system_table(s);
 	}
-
 	return 0;
 }
 
@@ -1067,6 +1130,18 @@ static const struct file_operations edp_reg_override_debugfs_fops = {
 	.release	= single_release,
 };
 
+#ifdef CONFIG_EDP_FRAMEWORK
+static __init struct dentry *tegra_edp_debugfs_dir(void)
+{
+	return edp_debugfs_dir;
+}
+#else
+static __init struct dentry *tegra_edp_debugfs_dir(void)
+{
+	return debugfs_create_dir("edp", NULL);
+}
+#endif
+
 static int __init tegra_edp_debugfs_init(void)
 {
 	struct dentry *d_edp;
@@ -1075,7 +1150,7 @@ static int __init tegra_edp_debugfs_init(void)
 	struct dentry *edp_dir;
 	struct dentry *vdd_cpu_dir;
 
-	edp_dir = debugfs_create_dir("edp", NULL);
+	edp_dir = tegra_edp_debugfs_dir();
 
 	if (!edp_dir)
 		goto edp_dir_err;

@@ -1,7 +1,7 @@
 /*
  * drivers/video/tegra/dc/bandwidth.c
  *
- * Copyright (c) 2010-2012, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2010-2013, NVIDIA CORPORATION, All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -148,6 +148,14 @@ static unsigned long tegra_dc_find_max_bandwidth(struct tegra_dc_win *wins[],
 		max_bw = wins[0]->new_bandwidth + wins[1]->new_bandwidth +
 			 wins[2]->new_bandwidth;
 
+#if defined(CONFIG_ARCH_TEGRA_2x_SOC)
+	/*
+	 * Assuming 60% efficiency: i.e. if we calculate we need 70MBps, we
+	 * will request 117MBps from EMC.
+	 */
+	max_bw = max_bw + (17 * max_bw / 25);
+#endif
+
 	return max_bw;
 }
 
@@ -166,23 +174,28 @@ static unsigned long tegra_dc_find_max_bandwidth(struct tegra_dc_win *wins[],
 static unsigned long tegra_dc_calc_win_bandwidth(struct tegra_dc *dc,
 	struct tegra_dc_win *w)
 {
-	unsigned long ret;
-	int tiled_windows_bw_multiplier;
-	unsigned long bpp;
 	unsigned in_w;
+	unsigned in_h;
+	unsigned bpp;
+	unsigned long f_w;
+	unsigned long f_h;
+	unsigned long bw;
+	int tiled_windows_bw_multiplier;
 
-	if (!WIN_IS_ENABLED(w))
+	/* ignore windows that are off or invalid */
+	if (!WIN_IS_ENABLED(w) || dfixed_trunc(w->w) == 0 ||
+		dfixed_trunc(w->h) == 0 || w->out_w == 0 || w->out_h == 0)
 		return 0;
 
-	if (dfixed_trunc(w->w) == 0 || dfixed_trunc(w->h) == 0 ||
-	    w->out_w == 0 || w->out_h == 0)
-		return 0;
-	if (w->flags & TEGRA_WIN_FLAG_SCAN_COLUMN)
-		/* rotated: PRESCALE_SIZE swapped, but WIN_SIZE is unchanged */
+	if (w->flags & TEGRA_WIN_FLAG_SCAN_COLUMN) {
+		/* rotated : prescaled size is swapped */
 		in_w = dfixed_trunc(w->h);
-	else
-		in_w = dfixed_trunc(w->w); /* normal output, not rotated */
-
+		in_h = dfixed_trunc(w->w);
+	} else {
+		/* normal */
+		in_w = dfixed_trunc(w->w);
+		in_h = dfixed_trunc(w->h);
+	}
 	tiled_windows_bw_multiplier =
 		tegra_mc_get_tiled_memory_bandwidth_multiplier();
 
@@ -191,21 +204,28 @@ static unsigned long tegra_dc_calc_win_bandwidth(struct tegra_dc *dc,
 	 * is of the luma plane's size only. */
 	bpp = tegra_dc_is_yuv_planar(w->fmt) ?
 		2 * tegra_dc_fmt_bpp(w->fmt) : tegra_dc_fmt_bpp(w->fmt);
-	ret = dc->mode.pclk / 1000UL * bpp / 8 *
-#if defined(CONFIG_ARCH_TEGRA_2x_SOC) || defined(CONFIG_ARCH_TEGRA_3x_SOC)
-		(win_use_v_filter(dc, w) ? 2 : 1) *
-#endif
-		in_w / w->out_w * (WIN_IS_TILED(w) ?
-		tiled_windows_bw_multiplier : 1);
 
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
-	/*
-	 * Assuming 60% efficiency: i.e. if we calculate we need 70MBps, we
-	 * will request 117MBps from EMC.
-	 */
-	ret = ret + (17 * ret / 25);
+	bw = dc->mode.pclk / 1000UL * bpp / 8;
+
+	if (WIN_IS_TILED(w))
+		bw *= tiled_windows_bw_multiplier;
+
+#if defined(CONFIG_ARCH_TEGRA_2x_SOC) || defined(CONFIG_ARCH_TEGRA_3x_SOC)
+	if (win_use_v_filter(dc, w))
+		bw *= 2;
 #endif
-	return ret;
+
+	/* calculate H & V scaling factor. treat upscaling as 1.00 */
+	f_w = max(in_w * 100 / w->out_w, 100u);
+	f_h = max(in_h * 100 / w->out_h, 100u);
+	bw *= f_w;
+	bw /= 100;
+	if (win_use_v_filter(dc, w)) {
+		bw *= f_h;
+		bw /= 100;
+	}
+
+	return bw;
 }
 
 static unsigned long tegra_dc_get_bandwidth(
@@ -275,11 +295,13 @@ void tegra_dc_program_bandwidth(struct tegra_dc *dc, bool use_new)
 /* bw in kByte/second. returns Hz for EMC frequency */
 static inline unsigned long tegra_dc_kbps_to_emc(unsigned long bw)
 {
-	if (bw >= (ULONG_MAX / 1000))
+	unsigned long freq = tegra_emc_bw_to_freq_req(bw);
+
+	if (freq >= (ULONG_MAX / 1000))
 		return ULONG_MAX;
-	if (WARN_ONCE((bw * 1000) < bw, "Bandwidth Overflow"))
+	if (WARN_ONCE((freq * 1000) < freq, "Bandwidth Overflow"))
 		return ULONG_MAX;
-	return tegra_emc_bw_to_freq_req(bw) * 1000;
+	return freq * 1000;
 }
 
 int tegra_dc_set_dynamic_emc(struct tegra_dc_win *windows[], int n)

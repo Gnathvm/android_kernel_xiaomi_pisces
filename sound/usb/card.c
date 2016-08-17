@@ -749,6 +749,8 @@ static int usb_nonswitch_match(struct usb_device* udev) {
 }
 #endif
 
+MODULE_DEVICE_TABLE (usb, usb_audio_ids);
+
 /*
  * entry point for linux usb interface
  */

@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-panel.h
  *
- * Copyright (c) 2012, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -37,11 +37,19 @@ struct tegra_panel {
 
 };
 
-static __maybe_unused atomic_t sd_brightness = ATOMIC_INIT(255);
+extern atomic_t sd_brightness;
+#ifdef CONFIG_TEGRA_DC
+	extern atomic_t display_ready;
+#else
+	static __maybe_unused atomic_t display_ready = ATOMIC_INIT(1);
+#endif
 extern struct tegra_panel dsi_l_720p_5;
 extern struct tegra_panel dsi_j_720p_4_7;
 extern struct tegra_panel dsi_s_1080p_5;
 extern struct tegra_panel dsi_p_wuxga_10_1;
 extern struct tegra_panel dsi_a_1080p_11_6;
 extern struct tegra_panel dsi_s_wqxga_10_1;
+extern struct tegra_panel dsi_lgd_wxga_7_0;
 
+int tegra_init_hdmi(struct platform_device *pdev,
+		     struct platform_device *phost1x);

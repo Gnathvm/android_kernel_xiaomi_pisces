@@ -36,6 +36,8 @@
 #endif
 #endif
 
+#define RESET_PROPAGATION_DELAY	5
+
 #ifndef __ASSEMBLY__
 
 #include <linux/clkdev.h>
@@ -130,6 +132,7 @@ enum shared_bus_users_mode {
 	SHARED_CEILING,
 	SHARED_AUTO,
 	SHARED_OVERRIDE,
+	SHARED_ISO_BW,
 };
 
 enum clk_state {
@@ -181,6 +184,8 @@ struct clk {
 			struct clk			*pll_low;
 			struct clk			*pll_high;
 			unsigned long			threshold;
+			int				min_div_low;
+			int				min_div_high;
 		} periph;
 		struct {
 			unsigned long			input_min;
@@ -235,6 +240,7 @@ struct clk {
 			struct clk			*client;
 			u32				client_div;
 			enum shared_bus_users_mode	mode;
+			u32				usage_flag;
 		} shared_bus_user;
 	} u;
 
@@ -270,11 +276,12 @@ void tegra11x_clk_init_la(void);
 void tegra_common_init_clock(void);
 void tegra_init_max_rate(struct clk *c, unsigned long max_rate);
 void tegra_clk_preset_emc_monitor(unsigned long rate);
-void tegra_clk_vefify_parents(void);
+void tegra_clk_verify_parents(void);
 void clk_init(struct clk *clk);
 struct clk *tegra_get_clock_by_name(const char *name);
 unsigned long tegra_clk_measure_input_freq(void);
 int clk_reparent(struct clk *c, struct clk *parent);
+void tegra_clk_init_cbus_plls_from_table(struct tegra_clk_init_table *table);
 void tegra_clk_init_from_table(struct tegra_clk_init_table *table);
 void clk_set_cansleep(struct clk *c);
 unsigned long clk_get_max_rate(struct clk *c);
@@ -374,6 +381,9 @@ static inline int tegra_update_mselect_rate(unsigned long cpu_rate)
 #else
 int tegra_update_mselect_rate(unsigned long cpu_rate);
 #endif
+#else
+static inline unsigned long tegra_emc_to_cpu_ratio(unsigned long cpu_rate)
+{ return 0; }
 #endif
 
 #endif

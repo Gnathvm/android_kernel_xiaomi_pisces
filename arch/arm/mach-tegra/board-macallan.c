@@ -53,7 +53,7 @@
 #include <mach/iomap.h>
 #include <mach/irqs.h>
 #include <mach/pinmux.h>
-#include <mach/pinmux-tegra30.h>
+#include <mach/pinmux-t11.h>
 #include <mach/iomap.h>
 #include <mach/io.h>
 #include <mach/io_dpd.h>
@@ -64,7 +64,8 @@
 #include <mach/usb_phy.h>
 #include <mach/gpio-tegra.h>
 #include <mach/tegra_fiq_debugger.h>
-#include <mach/tegra_usb_modem_power.h>
+#include <linux/platform_data/tegra_usb_modem_power.h>
+#include <mach/hardware.h>
 
 #include "board-touch-raydium.h"
 #include "board.h"
@@ -182,7 +183,7 @@ static struct tegra_i2c_platform_data macallan_i2c2_platform_data = {
 static struct tegra_i2c_platform_data macallan_i2c3_platform_data = {
 	.adapter_nr	= 2,
 	.bus_count	= 1,
-	.bus_clk_rate	= { 100000, 0 },
+	.bus_clk_rate	= { 400000, 0 },
 	.scl_gpio		= {TEGRA_GPIO_I2C3_SCL, 0},
 	.sda_gpio		= {TEGRA_GPIO_I2C3_SDA, 0},
 	.arb_recovery = arb_lost_recovery,
@@ -333,6 +334,9 @@ static struct tegra_asoc_platform_data macallan_audio_pdata = {
 	.gpio_int_mic_en	= TEGRA_GPIO_INT_MIC_EN,
 	.gpio_ext_mic_en	= TEGRA_GPIO_EXT_MIC_EN,
 	.gpio_ldo1_en		= TEGRA_GPIO_LDO1_EN,
+	.edp_support		= true,
+	.edp_states		= {1100, 1100, 0},
+	.edp_vol		= {0x8, 0x8, 0x27},
 	.gpio_codec1 = TEGRA_GPIO_CODEC1_EN,
 	.gpio_codec2 = TEGRA_GPIO_CODEC2_EN,
 	.gpio_codec3 = TEGRA_GPIO_CODEC3_EN,
@@ -391,7 +395,10 @@ static struct platform_device *macallan_devices[] __initdata = {
 static struct tegra_usb_platform_data tegra_udc_pdata = {
 	.port_otg = true,
 	.has_hostpc = true,
+	.support_pmu_vbus = true,
+	.id_det_type = TEGRA_USB_PMU_ID,
 	.phy_intf = TEGRA_USB_PHY_INTF_UTMI,
+	.unaligned_dma_buf_supported = false,
 	.op_mode = TEGRA_USB_OPMODE_DEVICE,
 	.u_data.dev = {
 		.vbus_pmu_irq = 0,
@@ -405,8 +412,8 @@ static struct tegra_usb_platform_data tegra_udc_pdata = {
 		.idle_wait_delay = 17,
 		.term_range_adj = 6,
 		.xcvr_setup = 8,
-		.xcvr_lsfslew = 2,
-		.xcvr_lsrslew = 2,
+		.xcvr_lsfslew = 0,
+		.xcvr_lsrslew = 3,
 		.xcvr_setup_offset = 0,
 		.xcvr_use_fuses = 1,
 	},
@@ -415,6 +422,8 @@ static struct tegra_usb_platform_data tegra_udc_pdata = {
 static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
 	.port_otg = true,
 	.has_hostpc = true,
+	.support_pmu_vbus = true,
+	.id_det_type = TEGRA_USB_PMU_ID,
 	.unaligned_dma_buf_supported = false,
 	.phy_intf = TEGRA_USB_PHY_INTF_UTMI,
 	.op_mode = TEGRA_USB_OPMODE_HOST,
@@ -423,6 +432,7 @@ static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
 		.hot_plug = false,
 		.remote_wakeup_supported = true,
 		.power_off_on_suspend = true,
+		.turn_off_vbus_on_lp0 = true,
 	},
 	.u_cfg.utmi = {
 		.hssync_start_delay = 0,
@@ -430,8 +440,8 @@ static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
 		.idle_wait_delay = 17,
 		.term_range_adj = 6,
 		.xcvr_setup = 15,
-		.xcvr_lsfslew = 2,
-		.xcvr_lsrslew = 2,
+		.xcvr_lsfslew = 0,
+		.xcvr_lsrslew = 3,
 		.xcvr_setup_offset = 0,
 		.xcvr_use_fuses = 1,
 		.vbus_oc_map = 0x4,
@@ -441,6 +451,8 @@ static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
 static struct tegra_usb_otg_data tegra_otg_pdata = {
 	.ehci_device = &tegra_ehci1_device,
 	.ehci_pdata = &tegra_ehci1_utmi_pdata,
+	.vbus_extcon_dev_name = "palmas-extcon",
+	.id_extcon_dev_name = "palmas-extcon",
 };
 
 static void macallan_usb_init(void)
@@ -563,7 +575,6 @@ struct spi_clk_parent spi_parent_clk_macallan[] = {
 };
 
 static struct tegra_spi_platform_data macallan_spi_pdata = {
-	.is_dma_based           = false,
 	.max_dma_buffer         = 16 * 1024,
 	.is_clkon_always        = false,
 	.max_rate               = 25000000,
@@ -590,6 +601,8 @@ static void __init macallan_spi_init(void)
 	}
 	macallan_spi_pdata.parent_clk_list = spi_parent_clk_macallan;
 	macallan_spi_pdata.parent_clk_count = ARRAY_SIZE(spi_parent_clk_macallan);
+	macallan_spi_pdata.is_dma_based = (tegra_revision == TEGRA_REVISION_A01)
+							? false : true ;
 	tegra11_spi_device1.dev.platform_data = &macallan_spi_pdata;
 	platform_add_devices(macallan_spi_devices,
 				ARRAY_SIZE(macallan_spi_devices));
@@ -603,7 +616,7 @@ static __initdata struct tegra_clk_init_table touch_clk_init_table[] = {
 };
 
 struct rm_spi_ts_platform_data rm31080ts_macallan_data = {
-	.gpio_reset = 0,
+	.gpio_reset = TOUCH_GPIO_RST_RAYDIUM_SPI,
 	.config = 0,
 	.platform_id = RM_PLATFORM_D010,
 	.name_of_clock = "clk_out_2",
@@ -651,9 +664,10 @@ static void __init tegra_macallan_init(void)
 {
 	struct board_info board_info;
 
+	macallan_sysedp_init();
 	tegra_get_display_board_info(&board_info);
 	tegra_clk_init_from_table(macallan_clk_init_table);
-	tegra_clk_vefify_parents();
+	tegra_clk_verify_parents();
 	tegra_soc_device_init("macallan");
 	tegra_enable_pinmux();
 	macallan_pinmux_init();
@@ -686,6 +700,9 @@ static void __init tegra_macallan_init(void)
 	tegra_serial_debug_init(TEGRA_UARTD_BASE, INT_WDT_CPU, NULL, -1, -1);
 	macallan_sensors_init();
 	macallan_soctherm_init();
+	tegra_register_fuse();
+	macallan_sysedp_core_init();
+	macallan_sysedp_psydepl_init();
 }
 
 static void __init macallan_ramconsole_reserve(unsigned long size)
@@ -695,12 +712,12 @@ static void __init macallan_ramconsole_reserve(unsigned long size)
 
 static void __init tegra_macallan_dt_init(void)
 {
-	tegra_macallan_init();
-
 #ifdef CONFIG_USE_OF
 	of_platform_populate(NULL,
 		of_default_bus_match_table, NULL, NULL);
 #endif
+
+	tegra_macallan_init();
 }
 
 static void __init tegra_macallan_reserve(void)

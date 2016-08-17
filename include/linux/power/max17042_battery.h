@@ -3,6 +3,7 @@
  *  Note that Maxim 8966 and 8997 are mfd and this is its subdevice.
  *
  * Copyright (C) 2011 Samsung Electronics
+ * Copyright (C) 2013, NVIDIA CORPORATION.  All rights reserved.
  * MyungJoo Ham <myungjoo.ham@samsung.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -215,13 +216,19 @@ struct max17042_platform_data {
 	unsigned int r_sns;
 
 	struct edp_client *edp_client;
+	bool is_battery_present;
 };
 
 #ifdef CONFIG_BATTERY_MAX17042
-extern int maxim_get_temp(void);
+extern int maxim_get_temp(int *deci_celsius);
 extern void max17042_update_status(int status);
 #else
-static inline int maxim_get_temp(void) { return -ENODEV; }
+static inline int maxim_get_temp(int *deci_celsius)
+{
+	/* 0 Kelvin */
+	*deci_celsius = -2732;
+	return -ENODEV;
+}
 static inline void max17042_update_status(int status) {}
 #endif
 #endif /* __MAX17042_BATTERY_H_ */

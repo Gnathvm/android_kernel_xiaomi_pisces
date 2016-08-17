@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-macallan.h
  *
- * Copyright (c) 2013, NVIDIA Corporation.
+ * Copyright (c) 2013, NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -23,6 +23,9 @@
 #include <mach/gpio.h>
 #include <mach/irqs.h>
 #include "gpio-names.h"
+#include <linux/thermal.h>
+#include <linux/platform_data/thermal_sensors.h>
+#include "tegra11_soctherm.h"
 
 #define PMC_WAKE_STATUS 0x14
 #define PMC_WAKE2_STATUS 0x168
@@ -42,8 +45,11 @@
 #define TEGRA_GPIO_INT_MIC_EN		TEGRA_GPIO_PK3
 #define TEGRA_GPIO_EXT_MIC_EN		-1
 
+#define TEGRA_SOC_OC_IRQ_BASE		TEGRA_NR_IRQS
+#define TEGRA_SOC_OC_NUM_IRQ		TEGRA_SOC_OC_IRQ_MAX
+
 /* External peripheral act as interrupt controller */
-#define PALMAS_TEGRA_IRQ_BASE   TEGRA_NR_IRQS
+#define PALMAS_TEGRA_IRQ_BASE	(TEGRA_SOC_OC_IRQ_BASE + TEGRA_SOC_OC_NUM_IRQ)
 #define PALMAS_TEGRA_IRQ_END	(PALMAS_TEGRA_IRQ_BASE + PALMAS_NUM_IRQ)
 
 /* I2C related GPIOs */
@@ -76,17 +82,12 @@
 #define MPU_GYRO_IRQ_GPIO       TEGRA_GPIO_PR3
 #define MPU_GYRO_ADDR           0x69
 #define MPU_GYRO_BUS_NUM        0
-#define MPU_GYRO_ORIENTATION	{ -1, 0, 0, 0, 1, 0, 0, 0, -1 }
-#define MPU_ACCEL_NAME          "kxtf9"
-#define MPU_ACCEL_IRQ_GPIO      0 /* DISABLE ACCELIRQ:  TEGRA_GPIO_PJ2 */
-#define MPU_ACCEL_ADDR          0x0F
-#define MPU_ACCEL_BUS_NUM       0
-#define MPU_ACCEL_ORIENTATION   { 0, 1, 0, -1, 0, 0, 0, 0, 1 }
+#define MPU_GYRO_ORIENTATION	{ 0, 1, 0, 1, 0, 0, 0, 0, -1 }
 #define MPU_COMPASS_NAME        "ak8975"
 #define MPU_COMPASS_IRQ_GPIO    0
 #define MPU_COMPASS_ADDR        0x0D
 #define MPU_COMPASS_BUS_NUM     0
-#define MPU_COMPASS_ORIENTATION { 0, 1, 0, -1, 0, 0, 0, 0, 1 }
+#define MPU_COMPASS_ORIENTATION { 0, 1, 0, 1, 0, 0, 0, 0, -1 }
 
 /* Modem related GPIOs */
 #define MODEM_EN		TEGRA_GPIO_PP2
@@ -105,6 +106,9 @@ int roth_panel_init(void);
 int macallan_kbc_init(void);
 int macallan_pmon_init(void);
 int macallan_soctherm_init(void);
+void macallan_sysedp_init(void);
+void macallan_sysedp_core_init(void);
+void macallan_sysedp_psydepl_init(void);
 
 /* UART port which is used by bluetooth*/
 #define BLUETOOTH_UART_DEV_NAME "/dev/ttyHS2"

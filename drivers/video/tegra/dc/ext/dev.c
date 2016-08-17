@@ -278,6 +278,9 @@ static int tegra_dc_ext_set_windowattr(struct tegra_dc_ext *ext,
 				msecs_to_jiffies(500), NULL);
 	}
 
+	if (err < 0)
+		return err;
+
 #ifndef CONFIG_TEGRA_SIMULATION_PLATFORM
 	timestamp_ns = timespec_to_ns(&flip_win->attr.timestamp);
 

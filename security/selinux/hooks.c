@@ -1818,6 +1818,7 @@ static inline u32 open_file_to_av(struct file *file)
 
 /* Hook functions begin here. */
 
+<<<<<<< HEAD
 static int selinux_binder_set_context_mgr(struct task_struct *mgr)
 {
 	u32 mysid = current_sid();
@@ -1879,6 +1880,8 @@ static int selinux_binder_transfer_file(struct task_struct *from, struct task_st
 			    &ad);
 }
 
+=======
+>>>>>>> cdcc064... kernel: NVidia release kernel source for Tegra 4
 static int selinux_ptrace_access_check(struct task_struct *child,
 				     unsigned int mode)
 {

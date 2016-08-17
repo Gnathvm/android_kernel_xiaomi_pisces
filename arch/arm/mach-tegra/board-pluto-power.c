@@ -22,15 +22,20 @@
 #include <linux/platform_device.h>
 #include <linux/resource.h>
 #include <linux/io.h>
+#include <linux/gpio.h>
 
 #include <mach/iomap.h>
 #include <mach/edp.h>
 #include <mach/irqs.h>
 #include <mach/hardware.h>
+#include <mach/io_dpd.h>
 #include <linux/regulator/fixed.h>
 #include <linux/mfd/palmas.h>
 #include <linux/regulator/machine.h>
 #include <linux/irq.h>
+#include <linux/edp.h>
+#include <linux/edpdev.h>
+#include <linux/platform_data/tegra_edp.h>
 
 #include <asm/mach-types.h>
 
@@ -47,6 +52,7 @@
 
 #define PMC_CTRL		0x0
 #define PMC_CTRL_INTR_LOW	(1 << 17)
+#define PLUTO_4K_REWORKED	0x2
 
 /************************ Pluto based regulator ****************/
 static struct regulator_consumer_supply palmas_smps123_supply[] = {
@@ -55,6 +61,9 @@ static struct regulator_consumer_supply palmas_smps123_supply[] = {
 
 static struct regulator_consumer_supply palmas_smps45_supply[] = {
 	REGULATOR_SUPPLY("vdd_core", NULL),
+	REGULATOR_SUPPLY("vdd_core", "sdhci-tegra.0"),
+	REGULATOR_SUPPLY("vdd_core", "sdhci-tegra.2"),
+	REGULATOR_SUPPLY("vdd_core", "sdhci-tegra.3"),
 };
 
 static struct regulator_consumer_supply palmas_smps6_supply[] = {
@@ -123,14 +132,26 @@ static struct regulator_consumer_supply palmas_smps9_supply[] = {
 static struct regulator_consumer_supply palmas_smps10_supply[] = {
 	REGULATOR_SUPPLY("unused_smps10", NULL),
 	REGULATOR_SUPPLY("usb_vbus", "tegra-ehci.0"),
+	REGULATOR_SUPPLY("usb_vbus", "tegra-otg"),
 	REGULATOR_SUPPLY("avddio_usb", "tegra-xhci"),
 	REGULATOR_SUPPLY("usb_vbus", "tegra-xhci"),
-	REGULATOR_SUPPLY("vdd_vbrtr", NULL),
 	REGULATOR_SUPPLY("vdd_lcd", NULL),
 };
 
 static struct regulator_consumer_supply palmas_ldo1_supply[] = {
 	REGULATOR_SUPPLY("avdd_hdmi_pll", "tegradc.1"),
+	REGULATOR_SUPPLY("avdd_csi_dsi_pll", "tegradc.0"),
+	REGULATOR_SUPPLY("avdd_csi_dsi_pll", "tegradc.1"),
+	REGULATOR_SUPPLY("avdd_csi_dsi_pll", "vi"),
+	REGULATOR_SUPPLY("avdd_pllm", NULL),
+	REGULATOR_SUPPLY("avdd_pllu", NULL),
+	REGULATOR_SUPPLY("avdd_plla_p_c", NULL),
+	REGULATOR_SUPPLY("avdd_pllx", NULL),
+	REGULATOR_SUPPLY("vdd_ddr_hs", NULL),
+	REGULATOR_SUPPLY("avdd_plle", NULL),
+};
+
+static struct regulator_consumer_supply palmas_ldo1_4K_supply[] = {
 	REGULATOR_SUPPLY("avdd_csi_dsi_pll", "tegradc.0"),
 	REGULATOR_SUPPLY("avdd_csi_dsi_pll", "tegradc.1"),
 	REGULATOR_SUPPLY("avdd_csi_dsi_pll", "vi"),
@@ -162,9 +183,15 @@ static struct regulator_consumer_supply palmas_ldo4_supply[] = {
 	REGULATOR_SUPPLY("vdd_spare", NULL),
 };
 
+static struct regulator_consumer_supply palmas_ldo4_4K_supply[] = {
+	REGULATOR_SUPPLY("avdd_hdmi_pll", "tegradc.1"),
+	REGULATOR_SUPPLY("vdd_spare", NULL),
+};
+
 static struct regulator_consumer_supply palmas_ldo5_supply[] = {
 	REGULATOR_SUPPLY("avdd_cam1", NULL),
 	REGULATOR_SUPPLY("vana", "2-0010"),
+	REGULATOR_SUPPLY("vana", "2-0036"),
 };
 
 static struct regulator_consumer_supply palmas_ldo6_supply[] = {
@@ -187,6 +214,7 @@ static struct regulator_consumer_supply palmas_ldo6_supply[] = {
 static struct regulator_consumer_supply palmas_ldo7_supply[] = {
 	REGULATOR_SUPPLY("vdd_af_cam1", NULL),
 	REGULATOR_SUPPLY("vdd", "2-000e"),
+	REGULATOR_SUPPLY("vdd", "2-000c"),
 };
 static struct regulator_consumer_supply palmas_ldo8_supply[] = {
 	REGULATOR_SUPPLY("vdd_rtc", NULL),
@@ -197,7 +225,10 @@ static struct regulator_consumer_supply palmas_ldo9_supply[] = {
 };
 static struct regulator_consumer_supply palmas_ldoln_supply[] = {
 	REGULATOR_SUPPLY("avdd_cam2", NULL),
-	REGULATOR_SUPPLY("vana", "2-0036"),
+	REGULATOR_SUPPLY("avdd", "2-0036"),
+	REGULATOR_SUPPLY("avdd", "2-0010"),
+	REGULATOR_SUPPLY("vdd", "2-004a"),
+	REGULATOR_SUPPLY("vana_imx132", "2-0036"),
 };
 
 static struct regulator_consumer_supply palmas_ldousb_supply[] = {
@@ -222,29 +253,48 @@ static struct regulator_consumer_supply palmas_regen2_supply[] = {
 	REGULATOR_SUPPLY("vdd_mic", NULL),
 };
 
-PALMAS_PDATA_INIT(smps123, 900,  1300, NULL, 0, 0, 0, NORMAL, 0);
-PALMAS_PDATA_INIT(smps45, 900,  1400, NULL, 0, 0, 0, NORMAL, 0);
-PALMAS_PDATA_INIT(smps6, 850,  850, NULL, 0, 0, 1, NORMAL, 0);
-PALMAS_PDATA_INIT(smps7, 1200,  1200, NULL, 0, 0, 1, NORMAL, 0);
-PALMAS_PDATA_INIT(smps8, 1800,  1800, NULL, 1, 1, 1, NORMAL, 0);
-PALMAS_PDATA_INIT(smps9, 2800,  2800, NULL, 1, 0, 1, NORMAL, 0);
-PALMAS_PDATA_INIT(smps10, 5000,  5000, NULL, 0, 0, 0, 0, 0);
-PALMAS_PDATA_INIT(ldo1, 1050,  1050, palmas_rails(smps7), 0, 0, 1, 0, 0);
-PALMAS_PDATA_INIT(ldo2, 2800,  3000, NULL, 0, 0, 0, 0, 0);
-PALMAS_PDATA_INIT(ldo3, 1200,  1200, palmas_rails(smps8), 0, 1, 1, 0, 0);
-PALMAS_PDATA_INIT(ldo4, 900,  3300, NULL, 0, 0, 0, 0, 0);
-PALMAS_PDATA_INIT(ldo5, 2700,  2700, NULL, 0, 0, 1, 0, 0);
-PALMAS_PDATA_INIT(ldo6, 3000,  3000, NULL, 1, 1, 1, 0, 0);
-PALMAS_PDATA_INIT(ldo7, 2800,  2800, NULL, 0, 0, 1, 0, 0);
-PALMAS_PDATA_INIT(ldo8, 900,  900, NULL, 1, 1, 1, 0, 0);
-PALMAS_PDATA_INIT(ldo9, 1800,  3300, palmas_rails(smps9), 0, 0, 1, 0, 0);
-PALMAS_PDATA_INIT(ldoln, 2700, 2700, NULL, 0, 0, 1, 0, 0);
-PALMAS_PDATA_INIT(ldousb, 3300,  3300, NULL, 0, 0, 1, 0, 0);
-PALMAS_PDATA_INIT(regen1, 4300,  4300, NULL, 0, 0, 0, 0, 0);
-PALMAS_PDATA_INIT(regen2, 4300,  4300, palmas_rails(smps8), 0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(smps123, 900,  1350, NULL, 0, 0, 0, NORMAL,
+		0, PALMAS_EXT_CONTROL_ENABLE1, 0, 3, 0);
+PALMAS_REGS_PDATA(smps45, 900,  1400, NULL, 0, 0, 0, NORMAL,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 3, 0);
+PALMAS_REGS_PDATA(smps6, 850,  850, NULL, 0, 0, 1, NORMAL,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(smps7, 1200,  1200, NULL, 0, 0, 1, NORMAL,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(smps8, 1800,  1800, NULL, 1, 1, 1, NORMAL,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(smps9, 2800,  2800, NULL, 1, 0, 1, NORMAL,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(smps10, 5000,  5000, NULL, 0, 0, 0, 0,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo1, 1050,  1050, palmas_rails(smps7), 0, 0, 1, 0,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo2, 2800,  3000, NULL, 0, 0, 0, 0,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo3, 1200,  1200, palmas_rails(smps8), 0, 1, 1, 0,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo4, 1200,  1200, NULL, 0, 0, 1, 0,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo5, 2700,  2700, NULL, 0, 0, 1, 0,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo6, 3000,  3000, NULL, 1, 1, 1, 0,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo7, 2800,  2800, NULL, 0, 0, 1, 0,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo8, 900,  900, NULL, 1, 1, 1, 0,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(ldo9, 1800,  3300, palmas_rails(smps9), 0, 0, 1, 0,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(ldoln, 2700, 2700, NULL, 0, 0, 1, 0,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
+PALMAS_REGS_PDATA(ldousb, 3300,  3300, NULL, 0, 0, 1, 0,
+		0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
+PALMAS_REGS_PDATA(regen1, 4300,  4300, NULL, 0, 0, 0, 0,
+		0, 0, 0, 0, 0);
+PALMAS_REGS_PDATA(regen2, 4300,  4300, palmas_rails(smps8), 0, 0, 0, 0,
+		0, 0, 0, 0, 0);
 
 #define PALMAS_REG_PDATA(_sname) &reg_idata_##_sname
-
 static struct regulator_init_data *pluto_reg_data[PALMAS_NUM_REGS] = {
 	NULL,
 	PALMAS_REG_PDATA(smps123),
@@ -274,45 +324,13 @@ static struct regulator_init_data *pluto_reg_data[PALMAS_NUM_REGS] = {
 	NULL,
 };
 
-#define PALMAS_REG_INIT(_name, _warm_reset, _roof_floor, _mode_sleep,	\
-		_tstep, _vsel)						\
-	static struct palmas_reg_init reg_init_data_##_name = {		\
-		.warm_reset = _warm_reset,				\
-		.roof_floor =	_roof_floor,				\
-		.mode_sleep = _mode_sleep,		\
-		.tstep = _tstep,			\
-		.vsel = _vsel,		\
-	}
-
-PALMAS_REG_INIT(smps12, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(smps123, 0, PALMAS_EXT_CONTROL_ENABLE1, 0, 0, 0);
-PALMAS_REG_INIT(smps3, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(smps45, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REG_INIT(smps457, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(smps6, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(smps7, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(smps8, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(smps9, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(smps10, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(ldo1, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REG_INIT(ldo2, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REG_INIT(ldo3, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(ldo4, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REG_INIT(ldo5, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REG_INIT(ldo6, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(ldo7, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REG_INIT(ldo8, 0, 0, 0, 0, 0);
-PALMAS_REG_INIT(ldo9, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REG_INIT(ldoln, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-PALMAS_REG_INIT(ldousb, 0, PALMAS_EXT_CONTROL_NSLEEP, 0, 0, 0);
-
 #define PALMAS_REG_INIT_DATA(_sname) &reg_init_data_##_sname
 static struct palmas_reg_init *pluto_reg_init[PALMAS_NUM_REGS] = {
-	PALMAS_REG_INIT_DATA(smps12),
+	NULL,
 	PALMAS_REG_INIT_DATA(smps123),
-	PALMAS_REG_INIT_DATA(smps3),
+	NULL,
 	PALMAS_REG_INIT_DATA(smps45),
-	PALMAS_REG_INIT_DATA(smps457),
+	NULL,
 	PALMAS_REG_INIT_DATA(smps6),
 	PALMAS_REG_INIT_DATA(smps7),
 	PALMAS_REG_INIT_DATA(smps8),
@@ -329,6 +347,11 @@ static struct palmas_reg_init *pluto_reg_init[PALMAS_NUM_REGS] = {
 	PALMAS_REG_INIT_DATA(ldo9),
 	PALMAS_REG_INIT_DATA(ldoln),
 	PALMAS_REG_INIT_DATA(ldousb),
+	PALMAS_REG_INIT_DATA(regen1),
+	PALMAS_REG_INIT_DATA(regen2),
+	NULL,
+	NULL,
+	NULL,
 };
 
 static int ac_online(void)
@@ -364,6 +387,7 @@ static struct regulator_consumer_supply fixed_reg_en_battery_supply[] = {
 		REGULATOR_SUPPLY("vdd_sys_gps", NULL),
 		REGULATOR_SUPPLY("vdd_sys_bt", NULL),
 		REGULATOR_SUPPLY("vdd_sys_audio", NULL),
+		REGULATOR_SUPPLY("vdd_vbrtr", NULL),
 };
 
 static struct regulator_consumer_supply fixed_reg_en_vdd_1v8_cam_supply[] = {
@@ -371,7 +395,10 @@ static struct regulator_consumer_supply fixed_reg_en_vdd_1v8_cam_supply[] = {
 	REGULATOR_SUPPLY("vdd_1v8_cam12", NULL),
 	REGULATOR_SUPPLY("vif", "2-0010"),
 	REGULATOR_SUPPLY("vif", "2-0036"),
+	REGULATOR_SUPPLY("vin", "2-004a"),
+	REGULATOR_SUPPLY("dovdd", "2-0010"),
 	REGULATOR_SUPPLY("vdd_i2c", "2-000e"),
+	REGULATOR_SUPPLY("vdd_i2c", "2-000c"),
 };
 
 static struct regulator_consumer_supply fixed_reg_en_vdd_1v2_cam_supply[] = {
@@ -522,7 +549,7 @@ static struct platform_device *pfixed_reg_devs[] = {
 #ifdef CONFIG_ARCH_TEGRA_HAS_CL_DVFS
 /* board parameters for cpu dfll */
 static struct tegra_cl_dvfs_cfg_param pluto_cl_dvfs_param = {
-	.sample_rate = 12500,
+	.sample_rate = 11500,
 
 	.force_mode = TEGRA_CL_DVFS_FORCE_FIXED,
 	.cf = 10,
@@ -566,7 +593,7 @@ static int __init pluto_cl_dvfs_init(void)
 {
 	fill_reg_map();
 	if (tegra_revision < TEGRA_REVISION_A02)
-		pluto_cl_dvfs_data.out_quiet_then_disable = true;
+		pluto_cl_dvfs_data.flags = TEGRA_CL_DVFS_FLAGS_I2C_WAIT_QUIET;
 	tegra_cl_dvfs_device.dev.platform_data = &pluto_cl_dvfs_data;
 	platform_device_register(&tegra_cl_dvfs_device);
 
@@ -605,19 +632,42 @@ struct palmas_clk32k_init_data palmas_clk32k_idata[] = {
 	},
 };
 
+static struct palmas_pinctrl_config palmas_pincfg[] = {
+	PALMAS_PINMUX(POWERGOOD, POWERGOOD, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(VAC, VAC, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(GPIO0, GPIO, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(GPIO1, GPIO, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(GPIO2, GPIO, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(GPIO3, GPIO, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(GPIO4, GPIO, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(GPIO5, CLK32KGAUDIO, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(GPIO6, GPIO, DEFAULT, DEFAULT),
+	PALMAS_PINMUX(GPIO7, GPIO, DEFAULT, DEFAULT),
+};
+
+static struct palmas_pinctrl_platform_data palmas_pinctrl_pdata = {
+	.pincfg = palmas_pincfg,
+	.num_pinctrl = ARRAY_SIZE(palmas_pincfg),
+	.dvfs1_enable = false,
+	.dvfs2_enable = true,
+};
+
+static struct palmas_extcon_platform_data palmas_extcon_pdata = {
+	.connection_name = "palmas-extcon",
+	.enable_vbus_detection = true,
+	.enable_id_pin_detection = false,
+};
+
 static struct palmas_platform_data palmas_pdata = {
 	.gpio_base = PALMAS_TEGRA_GPIO_BASE,
 	.irq_base = PALMAS_TEGRA_IRQ_BASE,
 	.pmic_pdata = &pmic_platform,
-	.mux_from_pdata = true,
-	.pad1 = 0,
-	.pad2 = (PALMAS_PRIMARY_SECONDARY_PAD2_GPIO_5_MASK &
-			(1 << PALMAS_PRIMARY_SECONDARY_PAD2_GPIO_5_SHIFT)),
-	.pad3 = PALMAS_PRIMARY_SECONDARY_PAD3_DVFS2,
 	.clk32k_init_data =  palmas_clk32k_idata,
 	.clk32k_init_data_size = ARRAY_SIZE(palmas_clk32k_idata),
 	.irq_type = IRQ_TYPE_LEVEL_HIGH,
 	.use_power_off = true,
+	.pinctrl_pdata = &palmas_pinctrl_pdata,
+	.extcon_pdata = &palmas_extcon_pdata,
 };
 
 static struct i2c_board_info palma_device[] = {
@@ -645,6 +695,16 @@ int __init pluto_regulator_init(void)
 	pmc_ctrl = readl(pmc + PMC_CTRL);
 	writel(pmc_ctrl & ~PMC_CTRL_INTR_LOW, pmc + PMC_CTRL);
 
+	if (get_power_config() & PLUTO_4K_REWORKED) {
+		/* Account for the change of avdd_hdmi_pll from ldo1 to ldo4 */
+		reg_idata_ldo1.consumer_supplies = palmas_ldo1_4K_supply;
+		reg_idata_ldo1.num_consumer_supplies =
+			ARRAY_SIZE(palmas_ldo1_4K_supply);
+		reg_idata_ldo4.consumer_supplies = palmas_ldo4_4K_supply;
+		reg_idata_ldo4.num_consumer_supplies =
+			ARRAY_SIZE(palmas_ldo4_4K_supply);
+	}
+
 	for (i = 0; i < PALMAS_NUM_REGS ; i++) {
 		pmic_platform.reg_data[i] = pluto_reg_data[i];
 		pmic_platform.reg_init[i] = pluto_reg_init[i];
@@ -666,6 +726,30 @@ static int __init pluto_fixed_regulator_init(void)
 }
 subsys_initcall_sync(pluto_fixed_regulator_init);
 
+static struct tegra_io_dpd hv_io = {
+	.name			= "HV",
+	.io_dpd_reg_index	= 1,
+	.io_dpd_bit		= 6,
+};
+
+static void pluto_board_suspend(int state, enum suspend_stage stage)
+{
+	/* put HV IOs into DPD mode to save additional power */
+	if (state == TEGRA_SUSPEND_LP1 && stage == TEGRA_SUSPEND_BEFORE_CPU) {
+		gpio_direction_input(TEGRA_GPIO_PK6);
+		tegra_io_dpd_enable(&hv_io);
+	}
+}
+
+static void pluto_board_resume(int state, enum resume_stage stage)
+{
+	/* bring HV IOs back from DPD mode, GPIO configuration
+	 * will be restored by gpio driver
+	 */
+	if (state == TEGRA_SUSPEND_LP1 && stage == TEGRA_RESUME_AFTER_CPU)
+		tegra_io_dpd_disable(&hv_io);
+}
+
 static struct tegra_suspend_platform_data pluto_suspend_data = {
 	.cpu_timer	= 300,
 	.cpu_off_timer	= 300,
@@ -676,6 +760,17 @@ static struct tegra_suspend_platform_data pluto_suspend_data = {
 	.sysclkreq_high	= true,
 	.cpu_lp2_min_residency = 1000,
 	.min_residency_crail = 20000,
+#ifdef CONFIG_TEGRA_LP1_LOW_COREVOLTAGE
+	.lp1_lowvolt_support = true,
+	.i2c_base_addr = TEGRA_I2C5_BASE,
+	.pmuslave_addr = 0xB0,
+	.core_reg_addr = 0x2B,
+	.lp1_core_volt_low_cold = 0x33,
+	.lp1_core_volt_low = 0x2e,
+	.lp1_core_volt_high = 0x42,
+#endif
+	.board_suspend	= pluto_board_suspend,
+	.board_resume	= pluto_board_resume,
 };
 
 int __init pluto_suspend_init(void)
@@ -720,10 +815,13 @@ static struct tegra_tsensor_pmu_data tpdata_palmas = {
 };
 
 static struct soctherm_platform_data pluto_soctherm_data = {
+	.oc_irq_base = TEGRA_SOC_OC_IRQ_BASE,
+	.num_oc_irqs = TEGRA_SOC_OC_NUM_IRQ,
 	.therm = {
 		[THERM_CPU] = {
 			.zone_enable = true,
 			.passive_delay = 1000,
+			.hotspot_offset = 6000,
 			.num_trips = 3,
 			.trips = {
 				{
@@ -752,6 +850,33 @@ static struct soctherm_platform_data pluto_soctherm_data = {
 		},
 		[THERM_GPU] = {
 			.zone_enable = true,
+			.passive_delay = 1000,
+			.hotspot_offset = 6000,
+			.num_trips = 3,
+			.trips = {
+				{
+					.cdev_type = "tegra-balanced",
+					.trip_temp = 90000,
+					.trip_type = THERMAL_TRIP_PASSIVE,
+					.upper = THERMAL_NO_LIMIT,
+					.lower = THERMAL_NO_LIMIT,
+				},
+				{
+					.cdev_type = "tegra-heavy",
+					.trip_temp = 100000,
+					.trip_type = THERMAL_TRIP_HOT,
+					.upper = THERMAL_NO_LIMIT,
+					.lower = THERMAL_NO_LIMIT,
+				},
+				{
+					.cdev_type = "tegra-shutdown",
+					.trip_temp = 102000,
+					.trip_type = THERMAL_TRIP_CRITICAL,
+					.upper = THERMAL_NO_LIMIT,
+					.lower = THERMAL_NO_LIMIT,
+				},
+			},
+			.tzp = &pluto_soctherm_therm_cpu_tzp,
 		},
 		[THERM_PLL] = {
 			.zone_enable = true,
@@ -759,9 +884,42 @@ static struct soctherm_platform_data pluto_soctherm_data = {
 	},
 	.throttle = {
 		[THROTTLE_HEAVY] = {
+			.priority = 100,
 			.devs = {
 				[THROTTLE_DEV_CPU] = {
-					.enable = 1,
+					.enable = true,
+					.depth = 80,
+				},
+				[THROTTLE_DEV_GPU] = {
+					.depth = 80,
+					.enable = true,
+				},
+			},
+		},
+		[THROTTLE_OC4] = {
+			.throt_mode = BRIEF,
+			/*
+			 * Pluto is using the max77665 INTB pin to initiate
+			 * the AP throttling, INTB pin will get de-asserted
+			 * immediately after reading IRQ src; so the
+			 * throttling period is too short for max77665 to reset
+			 * OC protection timer, and causing the battery power
+			 * removed.
+			 *
+			 * We can set the throttling period to 3mS to avoid the
+			 * above failing case.
+			 */
+			.period = 3000,
+			.polarity = 1,
+			.intr = true,
+			.devs = {
+				[THROTTLE_DEV_CPU] = {
+					.enable = true,
+					.depth = 50,
+				},
+				[THROTTLE_DEV_GPU] = {
+					.enable = true,
+					.depth = 50,
 				},
 			},
 		},
@@ -773,9 +931,187 @@ int __init pluto_soctherm_init(void)
 {
 	tegra_platform_edp_init(pluto_soctherm_data.therm[THERM_CPU].trips,
 			&pluto_soctherm_data.therm[THERM_CPU].num_trips,
-			8000);  /* edp temperature margin */
+			6000);  /* edp temperature margin */
 	tegra_add_tj_trips(pluto_soctherm_data.therm[THERM_CPU].trips,
+			&pluto_soctherm_data.therm[THERM_CPU].num_trips);
+	tegra_add_vc_trips(pluto_soctherm_data.therm[THERM_CPU].trips,
 			&pluto_soctherm_data.therm[THERM_CPU].num_trips);
 
 	return tegra11_soctherm_init(&pluto_soctherm_data);
+}
+
+static struct edp_manager pluto_sysedp_manager = {
+	.name = "battery",
+	.max = 14000
+};
+
+void __init pluto_sysedp_init(void)
+{
+	struct edp_governor *g;
+	int r;
+
+	if (!IS_ENABLED(CONFIG_EDP_FRAMEWORK))
+		return;
+
+	if (get_power_supply_type() != POWER_SUPPLY_TYPE_BATTERY)
+		pluto_sysedp_manager.max = INT_MAX;
+
+	r = edp_register_manager(&pluto_sysedp_manager);
+	WARN_ON(r);
+	if (r)
+		return;
+
+	/* start with priority governor */
+	g = edp_get_governor("priority");
+	WARN_ON(!g);
+	if (!g)
+		return;
+
+	r = edp_set_governor(&pluto_sysedp_manager, g);
+	WARN_ON(r);
+}
+
+static unsigned int pluto_psydepl_states[] = {
+	9900, 9600, 9300, 9000, 8700, 8400, 8100, 7800,
+	7500, 7200, 6900, 6600, 6300, 6000, 5800, 5600,
+	5400, 5200, 5000, 4800, 4600, 4400, 4200, 4000,
+	3800, 3600, 3400, 3200, 3000, 2800, 2600, 2400,
+	2200, 2000, 1900, 1800, 1700, 1600, 1500, 1400,
+	1300, 1200, 1100, 1000,  900,  800,  700,  600,
+	 500,  400,  300,  200,  100,    0
+};
+
+/* Temperature in deci-celcius */
+static struct psy_depletion_ibat_lut pluto_ibat_lut[] = {
+	{  600,  500 },
+	{  400, 3000 },
+	{    0, 3000 },
+	{ -300,    0 }
+};
+
+static struct psy_depletion_rbat_lut pluto_rbat_lut[] = {
+	{ 100,  43600 },
+	{  80, 104000 },
+	{  60, 102000 },
+	{  40, 113600 },
+	{  20, 124000 },
+	{   0, 150000 }
+};
+
+static struct psy_depletion_ocv_lut pluto_ocv_lut[] = {
+	{ 100, 4200000 },
+	{  90, 4151388 },
+	{  80, 4064953 },
+	{  70, 3990914 },
+	{  60, 3916230 },
+	{  50, 3863778 },
+	{  40, 3807535 },
+	{  30, 3781554 },
+	{  20, 3761117 },
+	{  10, 3663381 },
+	{   0, 3514236 }
+};
+
+static struct psy_depletion_platform_data pluto_psydepl_pdata = {
+	.power_supply = "max170xx_battery",
+	.states = pluto_psydepl_states,
+	.num_states = ARRAY_SIZE(pluto_psydepl_states),
+	.e0_index = 16,
+	.r_const = 80000,
+	.vsys_min = 3250000,
+	.vcharge = 4200000,
+	.ibat_nom = 3000,
+	.ibat_lut = pluto_ibat_lut,
+	.ocv_lut = pluto_ocv_lut,
+	.rbat_lut = pluto_rbat_lut
+};
+
+static struct platform_device pluto_psydepl_device = {
+	.name = "psy_depletion",
+	.id = -1,
+	.dev = { .platform_data = &pluto_psydepl_pdata }
+};
+
+void __init pluto_sysedp_psydepl_init(void)
+{
+	int r;
+
+	r = platform_device_register(&pluto_psydepl_device);
+	WARN_ON(r);
+}
+
+static struct tegra_sysedp_corecap pluto_sysedp_corecap[] = {
+	{  1000, {  1000, 240, 102 }, {  1000, 240, 102 } },
+	{  2000, {  1000, 240, 102 }, {  1000, 240, 102 } },
+	{  3000, {  1000, 240, 102 }, {  1000, 240, 102 } },
+	{  4000, {  1000, 240, 102 }, {  1000, 240, 102 } },
+	{  5000, {  1000, 240, 204 }, {  1000, 240, 204 } },
+	{  6000, {  1283, 240, 312 }, {  1283, 240, 312 } },
+	{  7000, {  1843, 240, 624 }, {  1975, 324, 408 } },
+	{  8000, {  2843, 240, 624 }, {  2306, 420, 624 } },
+	{  9000, {  3843, 240, 624 }, {  2606, 420, 792 } },
+	{ 10000, {  4565, 240, 792 }, {  3398, 528, 792 } },
+	{ 11000, {  5565, 240, 792 }, {  4398, 528, 792 } },
+	{ 12000, {  6565, 240, 792 }, {  4277, 600, 792 } },
+	{ 13000, {  7565, 240, 792 }, {  5277, 672, 792 } },
+	{ 14000, {  8565, 240, 792 }, {  6277, 672, 792 } },
+	{ 15000, {  9565, 384, 792 }, {  7277, 672, 792 } },
+	{ 16000, { 10565, 468, 792 }, {  8277, 672, 792 } },
+	{ 17000, { 11565, 468, 792 }, {  9277, 672, 792 } },
+	{ 18000, { 12565, 468, 792 }, { 10277, 672, 792 } },
+	{ 19000, { 13565, 468, 792 }, { 11277, 672, 792 } },
+	{ 20000, { 14565, 468, 792 }, { 12277, 672, 792 } },
+	{ 23000, { 14565, 672, 792 }, { 14565, 672, 792 } },
+};
+
+static struct tegra_sysedp_corecap pluto_high_sysedp_corecap[] = {
+	{  1000, {  1000, 240, 102 }, {  1000, 240, 204 } },
+	{  2000, {  1000, 240, 102 }, {  1000, 240, 204 } },
+	{  3000, {  1000, 240, 102 }, {  1000, 240, 204 } },
+	{  4000, {  1000, 240, 102 }, {  1000, 240, 204 } },
+	{  5000, {  1000, 240, 204 }, {  1000, 240, 204 } },
+	{  6000, {  1283, 240, 312 }, {  1679, 240, 312 } },
+	{  7000, {  1843, 240, 624 }, {  1975, 324, 408 } },
+	{  8000, {  2843, 240, 624 }, {  2306, 420, 624 } },
+	{  9000, {  3843, 240, 624 }, {  2606, 420, 792 } },
+	{ 10000, {  4565, 240, 792 }, {  3398, 528, 792 } },
+	{ 11000, {  5565, 240, 792 }, {  3398, 600, 792 } },
+	{ 12000, {  6565, 240, 792 }, {  3400, 672, 792 } },
+	{ 13000, {  7565, 240, 792 }, {  4400, 672, 792 } },
+	{ 14000, {  8565, 240, 792 }, {  5400, 672, 792 } },
+	{ 15000, {  9565, 384, 792 }, {  3000, 828, 792 } },
+	{ 16000, { 10565, 468, 792 }, {  4000, 828, 792 } },
+	{ 17000, { 11565, 468, 792 }, {  5000, 828, 792 } },
+	{ 18000, { 12565, 468, 792 }, {  6000, 828, 792 } },
+	{ 19000, { 13565, 468, 792 }, {  7000, 828, 792 } },
+	{ 20000, { 14565, 468, 792 }, {  8000, 828, 792 } },
+	{ 23000, { 14565, 672, 792 }, {  9000, 828, 792 } },
+};
+
+static struct tegra_sysedp_platform_data pluto_sysedp_platdata = {
+	.corecap = pluto_sysedp_corecap,
+	.high_corecap = pluto_high_sysedp_corecap,
+	.corecap_size = ARRAY_SIZE(pluto_sysedp_corecap),
+	.init_req_watts = 20000
+};
+
+static struct platform_device pluto_sysedp_device = {
+	.name = "tegra_sysedp",
+	.id = -1,
+	.dev = { .platform_data = &pluto_sysedp_platdata }
+};
+
+void __init pluto_sysedp_core_init(void)
+{
+	int r;
+
+	pluto_sysedp_platdata.cpufreq_lim = tegra_get_system_edp_entries(
+			&pluto_sysedp_platdata.cpufreq_lim_size);
+	if (!pluto_sysedp_platdata.cpufreq_lim) {
+		WARN_ON(1);
+		return;
+	}
+
+	r = platform_device_register(&pluto_sysedp_device);
+	WARN_ON(r);
 }

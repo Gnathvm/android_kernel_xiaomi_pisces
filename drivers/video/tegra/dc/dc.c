@@ -909,6 +909,7 @@ bool tegra_dc_hpd(struct tegra_dc *dc)
 {
 	int sense;
 	int level;
+	int hpd;
 
 	if (WARN_ON(!dc || !dc->out))
 		return false;
@@ -923,8 +924,13 @@ bool tegra_dc_hpd(struct tegra_dc *dc)
 
 	sense = dc->out->flags & TEGRA_DC_OUT_HOTPLUG_MASK;
 
-	return (sense == TEGRA_DC_OUT_HOTPLUG_HIGH && level) ||
+	hpd = (sense == TEGRA_DC_OUT_HOTPLUG_HIGH && level) ||
 		(sense == TEGRA_DC_OUT_HOTPLUG_LOW && !level);
+
+	if (dc->out->hotplug_report)
+		dc->out->hotplug_report(hpd);
+
+	return hpd;
 }
 EXPORT_SYMBOL(tegra_dc_hpd);
 
@@ -1732,7 +1738,7 @@ static irqreturn_t tegra_dc_irq(int irq, void *ptr)
 	int need_disable = 0;
 
 	mutex_lock(&dc->lock);
-	if (!dc->enabled) {
+	if (!dc->enabled || !tegra_dc_is_powered(dc)) {
 		mutex_unlock(&dc->lock);
 		return IRQ_HANDLED;
 	}
@@ -2214,6 +2220,9 @@ static void _tegra_dc_controller_disable(struct tegra_dc *dc)
 		/* disable windows */
 		w->flags &= ~TEGRA_WIN_FLAG_ENABLED;
 
+		/* set window physical address to invalid*/
+		w->phys_addr = 0;
+
 		/* flush any pending syncpt waits */
 		while (dc->syncpt[i].min < dc->syncpt[i].max) {
 			trace_display_syncpt_flush(dc, dc->syncpt[i].id,
@@ -2477,11 +2486,14 @@ static void tegra_dc_add_modes(struct tegra_dc *dc)
 	specs.modedb_len = dc->out->n_modes;
 	specs.modedb = kzalloc(specs.modedb_len *
 		sizeof(struct fb_videomode), GFP_KERNEL);
+	if (specs.modedb == NULL) {
+		dev_err(&dc->ndev->dev, "modedb allocation failed\n");
+		return;
+	}
 	for (i = 0; i < dc->out->n_modes; i++)
 		tegra_dc_to_fb_videomode(&specs.modedb[i],
 			&dc->out->modes[i]);
 	tegra_fb_update_monspecs(dc->fb, &specs, NULL);
-	kfree(specs.modedb);
 }
 
 static int tegra_dc_probe(struct platform_device *ndev)
@@ -2542,7 +2554,12 @@ static int tegra_dc_probe(struct platform_device *ndev)
 		dc->win_syncpt[0] = NVSYNCPT_DISP0_A;
 		dc->win_syncpt[1] = NVSYNCPT_DISP0_B;
 		dc->win_syncpt[2] = NVSYNCPT_DISP0_C;
-		dc->powergate_id = TEGRA_POWERGATE_DISA;
+		/* This code assumes DISB depends on DISA. DC's powergate
+		 * code will have to change if dependency is removed */
+		if (dc->out && dc->out->type == TEGRA_DC_OUT_HDMI)
+			dc->powergate_id = TEGRA_POWERGATE_DISB;
+		else
+			dc->powergate_id = TEGRA_POWERGATE_DISA;
 	} else if (TEGRA_DISPLAY2_BASE == res->start) {
 		dc->vblank_syncpt = NVSYNCPT_VBLANK1;
 		dc->win_syncpt[0] = NVSYNCPT_DISP1_A;
@@ -2702,8 +2719,7 @@ static int tegra_dc_probe(struct platform_device *ndev)
 	if (dc->out && dc->out->n_modes)
 		tegra_dc_add_modes(dc);
 
-	if (dc->out && dc->out->hotplug_init)
-		dc->out->hotplug_init(&ndev->dev);
+	tegra_dc_hotplug_init(dc);
 
 	if (dc->out_ops && dc->out_ops->detect)
 		dc->out_ops->detect(dc);
@@ -2838,14 +2854,14 @@ static int tegra_dc_resume(struct platform_device *ndev)
 	mutex_lock(&dc->lock);
 	dc->suspended = false;
 
+	/* To pan the fb on resume */
+	tegra_fb_pan_display_reset(dc->fb);
+
 	if (dc->enabled) {
 		dc->enabled = false;
 		_tegra_dc_set_default_videomode(dc);
 		dc->enabled = _tegra_dc_enable(dc);
 	}
-
-	if (dc->out && dc->out->hotplug_init)
-		dc->out->hotplug_init(&ndev->dev);
 
 	if (dc->out_ops && dc->out_ops->resume)
 		dc->out_ops->resume(dc);

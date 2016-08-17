@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012 NVIDIA, Inc.
+ * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -30,12 +30,12 @@
 
 static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		12750,      /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x4000003e, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x4400003e, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -54,12 +54,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000060, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000018, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -74,7 +74,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000004, /* EMC_TCKE */
 			0x00000004, /* EMC_TCKESR */
 			0x00000004, /* EMC_TPD */
-			0x00000001, /* EMC_TFAW */
+			0x00000004, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
@@ -103,21 +103,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x00000007, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x800001c6, /* EMC_DYN_SELF_REF_CONTROL */
+			0x800001c5, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x40040001, /* MC_EMEM_ARB_CFG */
@@ -138,6 +138,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x000a0402, /* MC_EMEM_ARB_DA_COVERS */
 			0x77e30303, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
@@ -152,7 +153,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -184,7 +185,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -204,7 +205,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x0000000e, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000007, /* MC_PTSA_GRANT_DECREMENT */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -215,10 +216,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			12750,      /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -226,12 +231,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		57820,      /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		20400,      /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000026, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000026, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -250,12 +255,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x0000009a, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000026, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -270,7 +275,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000004, /* EMC_TCKE */
 			0x00000004, /* EMC_TCKESR */
 			0x00000004, /* EMC_TPD */
-			0x00000001, /* EMC_TFAW */
+			0x00000004, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
@@ -299,16 +304,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x0000000b, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
@@ -334,6 +339,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x000a0402, /* MC_EMEM_ARB_DA_COVERS */
 			0x76230303, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
@@ -348,7 +354,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -380,7 +386,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -400,7 +406,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x00000014, /* MC_PTSA_GRANT_DECREMENT */
+			0x0000000a, /* MC_PTSA_GRANT_DECREMENT */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -411,10 +417,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			20400,      /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -422,12 +432,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		35610,      /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		40800,      /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000012, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000012, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -446,12 +456,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000134, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x0000004d, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -466,7 +476,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000004, /* EMC_TCKE */
 			0x00000004, /* EMC_TCKESR */
 			0x00000004, /* EMC_TPD */
-			0x00000002, /* EMC_TFAW */
+			0x00000004, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
@@ -495,16 +505,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x00000015, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
@@ -530,6 +540,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x000a0402, /* MC_EMEM_ARB_DA_COVERS */
 			0x74a30303, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
@@ -544,7 +555,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -576,7 +587,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -596,7 +607,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x0000002a, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000015, /* MC_PTSA_GRANT_DECREMENT */
 			0x00b000b0, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00b000c4, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x00d700eb, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -607,10 +618,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			40800,      /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -618,12 +633,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		20850,      /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		68000,      /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x4000000a, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x4400000a, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -642,12 +657,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000202, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000080, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -662,7 +677,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000004, /* EMC_TCKE */
 			0x00000004, /* EMC_TCKESR */
 			0x00000004, /* EMC_TPD */
-			0x00000003, /* EMC_TFAW */
+			0x00000004, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
@@ -691,16 +706,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x00000022, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
@@ -726,6 +741,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x000a0402, /* MC_EMEM_ARB_DA_COVERS */
 			0x74230403, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
@@ -740,7 +756,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -772,7 +788,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -792,7 +808,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x00000046, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000023, /* MC_PTSA_GRANT_DECREMENT */
 			0x00690069, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00690075, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x0081008d, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -803,10 +819,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00bc00bc, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			68000,      /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -814,12 +834,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		10720,      /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		102000,     /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000006, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000006, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -838,12 +858,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000303, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x000000c0, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -887,21 +907,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x00000033, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80000714, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80000713, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x08000001, /* MC_EMEM_ARB_CFG */
@@ -922,6 +942,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x000a0403, /* MC_EMEM_ARB_DA_COVERS */
 			0x73c30504, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
@@ -936,7 +957,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -968,7 +989,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -988,7 +1009,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x00000068, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000034, /* MC_PTSA_GRANT_DECREMENT */
 			0x00460046, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x0046004e, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x0056005e, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -999,10 +1020,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x007d007d, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			102000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -1010,19 +1035,19 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		6890,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		204000,     /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000002, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000002, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
 			0x00000009, /* EMC_RC */
 			0x00000035, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
-			0x00000007, /* EMC_RAS */
+			0x00000006, /* EMC_RAS */
 			0x00000002, /* EMC_RP */
 			0x00000004, /* EMC_R2W */
 			0x0000000a, /* EMC_W2R */
@@ -1034,12 +1059,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000607, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000181, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -1063,12 +1088,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x0000aa88, /* EMC_FBIO_CFG5 */
-			0x000000a0, /* EMC_CFG_DIG_DLL */
+			0x002c00a0, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x0006c000, /* EMC_DLL_XFORM_DQS4 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS5 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS6 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS7 */
+			0x00040000, /* EMC_DLL_XFORM_DQS4 */
+			0x00040000, /* EMC_DLL_XFORM_DQS5 */
+			0x00040000, /* EMC_DLL_XFORM_DQS6 */
+			0x00040000, /* EMC_DLL_XFORM_DQS7 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
@@ -1083,7 +1108,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x05057404, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
@@ -1091,8 +1116,8 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
@@ -1104,7 +1129,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x800000fe, /* MC_EMEM_ARB_OUTSTANDING_REQ */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RCD */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RP */
-			0x00000005, /* MC_EMEM_ARB_TIMING_RC */
+			0x00000004, /* MC_EMEM_ARB_TIMING_RC */
 			0x00000002, /* MC_EMEM_ARB_TIMING_RAS */
 			0x00000004, /* MC_EMEM_ARB_TIMING_FAW */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RRD */
@@ -1115,32 +1140,33 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000003, /* MC_EMEM_ARB_TIMING_R2W */
 			0x00000006, /* MC_EMEM_ARB_TIMING_W2R */
 			0x06030102, /* MC_EMEM_ARB_DA_TURNS */
-			0x000a0405, /* MC_EMEM_ARB_DA_COVERS */
-			0x73840a06, /* MC_EMEM_ARB_MISC0 */
+			0x000a0404, /* MC_EMEM_ARB_DA_COVERS */
+			0x73840a05, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000004, /* EMC_FBIO_CFG6 */
 			0x00000007, /* EMC_QUSE */
-			0x00000004, /* EMC_EINPUT */
+			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
+			0x00040000, /* EMC_DLL_XFORM_DQS0 */
 			0x00000009, /* EMC_QSAFE */
 			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
 			0x0000000d, /* EMC_RDV */
 			0x0079e79e, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000808, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS1 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS2 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS3 */
+			0x00040000, /* EMC_DLL_XFORM_DQS1 */
+			0x00040000, /* EMC_DLL_XFORM_DQS2 */
+			0x00040000, /* EMC_DLL_XFORM_DQS3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ1 */
 			0x00048000, /* EMC_DLL_XFORM_DQ2 */
 			0x00048000, /* EMC_DLL_XFORM_DQ3 */
@@ -1155,24 +1181,24 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000004, /* EMC_FBIO_CFG6 */
 			0x00000007, /* EMC_QUSE */
-			0x00000004, /* EMC_EINPUT */
+			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
+			0x00040000, /* EMC_DLL_XFORM_DQS0 */
 			0x00000009, /* EMC_QSAFE */
 			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
 			0x0000000d, /* EMC_RDV */
 			0x0079e79e, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000808, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS1 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS2 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS3 */
+			0x00040000, /* EMC_DLL_XFORM_DQS1 */
+			0x00040000, /* EMC_DLL_XFORM_DQS2 */
+			0x00040000, /* EMC_DLL_XFORM_DQS3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ1 */
 			0x00048000, /* EMC_DLL_XFORM_DQ2 */
 			0x00048000, /* EMC_DLL_XFORM_DQ3 */
@@ -1184,7 +1210,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x000000d0, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000068, /* MC_PTSA_GRANT_DECREMENT */
 			0x00230023, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00230027, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x002b002f, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -1195,6 +1221,10 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x003e003e, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00c8, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			204000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
@@ -1206,16 +1236,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		3420,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		312000,     /* SDRAM frequency */
 		1000,       /* min voltage */
 		"pll_c",    /* clock source id */
 		0x24000002, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
-			0x0000000e, /* EMC_RC */
+			0x0000000d, /* EMC_RC */
 			0x00000050, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
 			0x00000009, /* EMC_RAS */
@@ -1230,15 +1260,15 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000004, /* EMC_WDV */
-			0x00000004, /* EMC_WDV_MASK */
-			0x00000007, /* EMC_IBDLY */
-			0x00080006, /* EMC_PUTERM_EXTRA */
+			0x0000000f, /* EMC_WDV_MASK */
+			0x00000006, /* EMC_IBDLY */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
-			0x00000945, /* EMC_REFRESH */
+			0x00000010, /* EMC_RDV_MASK */
+			0x00000941, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x00000251, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x00000250, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000001, /* EMC_PDEX2WR */
 			0x00000008, /* EMC_PDEX2RD */
 			0x00000001, /* EMC_PCHG2PDEN */
@@ -1254,17 +1284,17 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
-			0x00000986, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000982, /* EMC_TREFBW */
+			0x00000000, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
-			0x0000ba88, /* EMC_FBIO_CFG5 */
+			0x00005088, /* EMC_FBIO_CFG5 */
 			0x002c00a0, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x00030000, /* EMC_DLL_XFORM_DQS4 */
-			0x00030000, /* EMC_DLL_XFORM_DQS5 */
-			0x00030000, /* EMC_DLL_XFORM_DQS6 */
-			0x00030000, /* EMC_DLL_XFORM_DQS7 */
+			0x00020000, /* EMC_DLL_XFORM_DQS4 */
+			0x00020000, /* EMC_DLL_XFORM_DQS5 */
+			0x00020000, /* EMC_DLL_XFORM_DQS6 */
+			0x00020000, /* EMC_DLL_XFORM_DQS7 */
 			0x00028000, /* EMC_DLL_XFORM_QUSE4 */
 			0x00028000, /* EMC_DLL_XFORM_QUSE5 */
 			0x00028000, /* EMC_DLL_XFORM_QUSE6 */
@@ -1279,7 +1309,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x00000000, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
@@ -1287,13 +1317,13 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x0171000c, /* EMC_MRS_WAIT_CNT */
-			0x0171000c, /* EMC_MRS_WAIT_CNT2 */
+			0x0171000f, /* EMC_MRS_WAIT_CNT */
+			0x0171000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80001395, /* EMC_DYN_SELF_REF_CONTROL */
+			0x8000138d, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x0b000004, /* MC_EMEM_ARB_CFG */
@@ -1314,32 +1344,33 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x000b0607, /* MC_EMEM_ARB_DA_COVERS */
 			0x76e50f08, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_QUSE */
 			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x00030000, /* EMC_DLL_XFORM_DQS0 */
+			0x00020000, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000b, /* EMC_QSAFE */
 			0x00028000, /* EMC_DLL_XFORM_QUSE0 */
-			0x0000000d, /* EMC_RDV */
+			0x0000000e, /* EMC_RDV */
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
-			0x00024000, /* EMC_DLL_XFORM_ADDR0 */
+			0x00024000, /* EMC_DLL_XFORM_DQ0 */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00014000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00024000, /* EMC_DLL_XFORM_ADDR1 */
-			0x00024000, /* EMC_DLL_XFORM_ADDR2 */
-			0x00030000, /* EMC_DLL_XFORM_DQS1 */
-			0x00030000, /* EMC_DLL_XFORM_DQS2 */
-			0x00030000, /* EMC_DLL_XFORM_DQS3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ1 */
-			0x00030000, /* EMC_DLL_XFORM_DQ2 */
-			0x00030000, /* EMC_DLL_XFORM_DQ3 */
+			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
+			0x00014000, /* EMC_DLL_XFORM_ADDR2 */
+			0x00020000, /* EMC_DLL_XFORM_DQS1 */
+			0x00020000, /* EMC_DLL_XFORM_DQS2 */
+			0x00020000, /* EMC_DLL_XFORM_DQS3 */
+			0x00024000, /* EMC_DLL_XFORM_DQ1 */
+			0x00024000, /* EMC_DLL_XFORM_DQ2 */
+			0x00024000, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
@@ -1350,28 +1381,28 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_QUSE */
 			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x00030000, /* EMC_DLL_XFORM_DQS0 */
+			0x00020000, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000b, /* EMC_QSAFE */
 			0x00028000, /* EMC_DLL_XFORM_QUSE0 */
-			0x0000000d, /* EMC_RDV */
+			0x0000000e, /* EMC_RDV */
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
-			0x00024000, /* EMC_DLL_XFORM_ADDR0 */
+			0x00024000, /* EMC_DLL_XFORM_DQ0 */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00014000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00024000, /* EMC_DLL_XFORM_ADDR1 */
-			0x00024000, /* EMC_DLL_XFORM_ADDR2 */
-			0x00030000, /* EMC_DLL_XFORM_DQS1 */
-			0x00030000, /* EMC_DLL_XFORM_DQS2 */
-			0x00030000, /* EMC_DLL_XFORM_DQS3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ1 */
-			0x00030000, /* EMC_DLL_XFORM_DQ2 */
-			0x00030000, /* EMC_DLL_XFORM_DQ3 */
+			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
+			0x00014000, /* EMC_DLL_XFORM_ADDR2 */
+			0x00020000, /* EMC_DLL_XFORM_DQS1 */
+			0x00020000, /* EMC_DLL_XFORM_DQS2 */
+			0x00020000, /* EMC_DLL_XFORM_DQS3 */
+			0x00024000, /* EMC_DLL_XFORM_DQ1 */
+			0x00024000, /* EMC_DLL_XFORM_DQ2 */
+			0x00024000, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
@@ -1380,7 +1411,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00028000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x00000140, /* MC_PTSA_GRANT_DECREMENT */
+			0x000000a0, /* MC_PTSA_GRANT_DECREMENT */
 			0x00170017, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00170019, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x001c001e, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -1391,30 +1422,34 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00290029, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff0082, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			312000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x5320000e, /* EMC_CFG */
+		0x5300000e, /* EMC_CFG */
 		0x80000321, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
 		0x80200000, /* Mode Register 2 */
 		0x00000000, /* Mode Register 4 */
-		2680,       /* expected dvfs latency (ns) */
+		2180,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		408000,     /* SDRAM frequency */
 		1000,       /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000000, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000000, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
 			0x00000012, /* EMC_RC */
 			0x00000069, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
-			0x0000000d, /* EMC_RAS */
+			0x0000000c, /* EMC_RAS */
 			0x00000004, /* EMC_RP */
 			0x00000005, /* EMC_R2W */
 			0x00000009, /* EMC_W2R */
@@ -1426,13 +1461,13 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000004, /* EMC_WDV */
-			0x00000004, /* EMC_WDV_MASK */
-			0x00000007, /* EMC_IBDLY */
-			0x00080006, /* EMC_PUTERM_EXTRA */
+			0x0000000f, /* EMC_WDV_MASK */
+			0x00000006, /* EMC_IBDLY */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000e, /* EMC_RDV_MASK */
-			0x00000c2f, /* EMC_REFRESH */
+			0x00000010, /* EMC_RDV_MASK */
+			0x00000c2e, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x0000030b, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000001, /* EMC_PDEX2WR */
@@ -1450,21 +1485,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
-			0x00000c70, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000c6f, /* EMC_TREFBW */
+			0x00000000, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
-			0x0000ba88, /* EMC_FBIO_CFG5 */
+			0x00005088, /* EMC_FBIO_CFG5 */
 			0x002c0080, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x00018000, /* EMC_DLL_XFORM_DQS4 */
-			0x00018000, /* EMC_DLL_XFORM_DQS5 */
-			0x00018000, /* EMC_DLL_XFORM_DQS6 */
-			0x00018000, /* EMC_DLL_XFORM_DQS7 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE7 */
+			0x00028000, /* EMC_DLL_XFORM_DQS4 */
+			0x00028000, /* EMC_DLL_XFORM_DQS5 */
+			0x00028000, /* EMC_DLL_XFORM_DQS6 */
+			0x00028000, /* EMC_DLL_XFORM_DQS7 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE4 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE5 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE6 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE7 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS4 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
@@ -1475,7 +1510,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x00000000, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
@@ -1483,21 +1518,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x0158000c, /* EMC_MRS_WAIT_CNT */
-			0x0158000c, /* EMC_MRS_WAIT_CNT2 */
+			0x0158000f, /* EMC_MRS_WAIT_CNT */
+			0x0158000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80001944, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80001941, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x02000006, /* MC_EMEM_ARB_CFG */
 			0x80000190, /* MC_EMEM_ARB_OUTSTANDING_REQ */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RCD */
 			0x00000002, /* MC_EMEM_ARB_TIMING_RP */
-			0x0000000a, /* MC_EMEM_ARB_TIMING_RC */
-			0x00000006, /* MC_EMEM_ARB_TIMING_RAS */
+			0x00000009, /* MC_EMEM_ARB_TIMING_RC */
+			0x00000005, /* MC_EMEM_ARB_TIMING_RAS */
 			0x00000008, /* MC_EMEM_ARB_TIMING_FAW */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RRD */
 			0x00000002, /* MC_EMEM_ARB_TIMING_RAP2PRE */
@@ -1507,73 +1542,74 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000004, /* MC_EMEM_ARB_TIMING_R2W */
 			0x00000006, /* MC_EMEM_ARB_TIMING_W2R */
 			0x06040202, /* MC_EMEM_ARB_DA_TURNS */
-			0x000e070a, /* MC_EMEM_ARB_DA_COVERS */
-			0x7547130b, /* MC_EMEM_ARB_MISC0 */
+			0x000e0709, /* MC_EMEM_ARB_DA_COVERS */
+			0x7547130a, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_QUSE */
 			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x00018000, /* EMC_DLL_XFORM_DQS0 */
+			0x00028000, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE0 */
 			0x0000000e, /* EMC_RDV */
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00020001, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
-			0x00000005, /* EMC_DLL_XFORM_ADDR0 */
-			0x00000000, /* EMC_XM2CLKPADCTRL2 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ0 */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00014000, /* EMC_DLL_XFORM_ADDR0 */
+			0x00000a0a, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00000005, /* EMC_DLL_XFORM_ADDR1 */
-			0x00000005, /* EMC_DLL_XFORM_ADDR2 */
-			0x00018000, /* EMC_DLL_XFORM_DQS1 */
-			0x00018000, /* EMC_DLL_XFORM_DQS2 */
-			0x00018000, /* EMC_DLL_XFORM_DQS3 */
-			0x00020001, /* EMC_DLL_XFORM_DQ1 */
-			0x00020001, /* EMC_DLL_XFORM_DQ2 */
-			0x00020001, /* EMC_DLL_XFORM_DQ3 */
+			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
+			0x00014000, /* EMC_DLL_XFORM_ADDR2 */
+			0x00028000, /* EMC_DLL_XFORM_DQS1 */
+			0x00028000, /* EMC_DLL_XFORM_DQS2 */
+			0x00028000, /* EMC_DLL_XFORM_DQS3 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ1 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ2 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_QUSE */
 			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x00018000, /* EMC_DLL_XFORM_DQS0 */
+			0x00028000, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE0 */
 			0x0000000e, /* EMC_RDV */
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00020001, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
-			0x00000005, /* EMC_DLL_XFORM_ADDR0 */
-			0x00000000, /* EMC_XM2CLKPADCTRL2 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ0 */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00014000, /* EMC_DLL_XFORM_ADDR0 */
+			0x00000a0a, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00000005, /* EMC_DLL_XFORM_ADDR1 */
-			0x00000005, /* EMC_DLL_XFORM_ADDR2 */
-			0x00018000, /* EMC_DLL_XFORM_DQS1 */
-			0x00018000, /* EMC_DLL_XFORM_DQS2 */
-			0x00018000, /* EMC_DLL_XFORM_DQS3 */
-			0x00020001, /* EMC_DLL_XFORM_DQ1 */
-			0x00020001, /* EMC_DLL_XFORM_DQ2 */
-			0x00020001, /* EMC_DLL_XFORM_DQ3 */
+			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
+			0x00014000, /* EMC_DLL_XFORM_ADDR2 */
+			0x00028000, /* EMC_DLL_XFORM_DQS1 */
+			0x00028000, /* EMC_DLL_XFORM_DQS2 */
+			0x00028000, /* EMC_DLL_XFORM_DQS3 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ1 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ2 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x000000d1, /* MC_PTSA_GRANT_DECREMENT */
@@ -1587,10 +1623,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x001f001f, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00d30064, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00d300d3, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			408000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x53200006, /* EMC_CFG */
+		0x53000006, /* EMC_CFG */
 		0x80000731, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -1598,12 +1638,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		1750,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		528000,     /* SDRAM frequency */
 		1100,       /* min voltage */
 		"pll_m",    /* clock source id */
-		0x80000000, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x84000000, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -1612,7 +1652,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_RFC_SLR */
 			0x00000010, /* EMC_RAS */
 			0x00000006, /* EMC_RP */
-			0x00000004, /* EMC_R2W */
+			0x00000006, /* EMC_R2W */
 			0x00000009, /* EMC_W2R */
 			0x00000002, /* EMC_R2P */
 			0x0000000d, /* EMC_W2P */
@@ -1622,20 +1662,20 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000009, /* EMC_IBDLY */
-			0x00090007, /* EMC_PUTERM_EXTRA */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
-			0x00000007, /* EMC_QRST */
-			0x00000010, /* EMC_RDV_MASK */
-			0x00000fd8, /* EMC_REFRESH */
+			0x00000006, /* EMC_QRST */
+			0x00000012, /* EMC_RDV_MASK */
+			0x00000fd6, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x000003f6, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x000003f5, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000002, /* EMC_PDEX2WR */
 			0x0000000b, /* EMC_PDEX2RD */
 			0x00000001, /* EMC_PCHG2PDEN */
 			0x00000000, /* EMC_ACT2PDEN */
-			0x00000085, /* EMC_AR2PDEN */
+			0x00000084, /* EMC_AR2PDEN */
 			0x00000012, /* EMC_RW2PDEN */
 			0x0000008f, /* EMC_TXSR */
 			0x00000200, /* EMC_TXSRDLL */
@@ -1646,21 +1686,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_TRPAB */
 			0x00000005, /* EMC_TCLKSTABLE */
 			0x00000006, /* EMC_TCLKSTOP */
-			0x00001019, /* EMC_TREFBW */
-			0x00000008, /* EMC_QUSE_EXTRA */
+			0x00001017, /* EMC_TREFBW */
+			0x00000000, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
-			0x0000ba88, /* EMC_FBIO_CFG5 */
+			0x00005088, /* EMC_FBIO_CFG5 */
 			0xf0120091, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x0000000a, /* EMC_DLL_XFORM_DQS4 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS5 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS6 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS7 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE7 */
+			0x00000009, /* EMC_DLL_XFORM_DQS4 */
+			0x00000009, /* EMC_DLL_XFORM_DQS5 */
+			0x00000009, /* EMC_DLL_XFORM_DQS6 */
+			0x00000009, /* EMC_DLL_XFORM_DQS7 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE4 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE5 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE6 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE7 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS4 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
@@ -1679,13 +1719,13 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x0139000f, /* EMC_MRS_WAIT_CNT */
-			0x0139000f, /* EMC_MRS_WAIT_CNT2 */
+			0x013a000f, /* EMC_MRS_WAIT_CNT */
+			0x013a000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80002066, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80002062, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x0f000007, /* MC_EMEM_ARB_CFG */
@@ -1700,76 +1740,77 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000009, /* MC_EMEM_ARB_TIMING_WAP2PRE */
 			0x00000002, /* MC_EMEM_ARB_TIMING_R2R */
 			0x00000002, /* MC_EMEM_ARB_TIMING_W2W */
-			0x00000004, /* MC_EMEM_ARB_TIMING_R2W */
+			0x00000005, /* MC_EMEM_ARB_TIMING_R2W */
 			0x00000006, /* MC_EMEM_ARB_TIMING_W2R */
-			0x06040202, /* MC_EMEM_ARB_DA_TURNS */
+			0x06050202, /* MC_EMEM_ARB_DA_TURNS */
 			0x0010090c, /* MC_EMEM_ARB_DA_COVERS */
 			0x7428180d, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000006, /* EMC_FBIO_CFG6 */
-			0x00000009, /* EMC_QUSE */
+			0x00000008, /* EMC_QUSE */
 			0x00000007, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x0000000a, /* EMC_DLL_XFORM_DQS0 */
+			0x00000009, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
-			0x00000010, /* EMC_RDV */
-			0x0028a28a, /* EMC_XM2DQSPADCTRL4 */
-			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00000011, /* EMC_RDV */
+			0x00249249, /* EMC_XM2DQSPADCTRL4 */
+			0x20820800, /* EMC_XM2DQSPADCTRL3 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ0 */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00010000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000909, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00010000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00010000, /* EMC_DLL_XFORM_ADDR2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ3 */
+			0x00000009, /* EMC_DLL_XFORM_DQS1 */
+			0x00000009, /* EMC_DLL_XFORM_DQS2 */
+			0x00000009, /* EMC_DLL_XFORM_DQS3 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ1 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ2 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE1 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE2 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000006, /* EMC_FBIO_CFG6 */
-			0x00000009, /* EMC_QUSE */
+			0x00000008, /* EMC_QUSE */
 			0x00000007, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x0000000a, /* EMC_DLL_XFORM_DQS0 */
+			0x00000009, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
-			0x00000010, /* EMC_RDV */
-			0x0028a28a, /* EMC_XM2DQSPADCTRL4 */
-			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00000011, /* EMC_RDV */
+			0x00249249, /* EMC_XM2DQSPADCTRL4 */
+			0x20820800, /* EMC_XM2DQSPADCTRL3 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ0 */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00010000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000909, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00010000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00010000, /* EMC_DLL_XFORM_ADDR2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ3 */
+			0x00000009, /* EMC_DLL_XFORM_DQS1 */
+			0x00000009, /* EMC_DLL_XFORM_DQS2 */
+			0x00000009, /* EMC_DLL_XFORM_DQS3 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ1 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ2 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE1 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE2 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x0000010e, /* MC_PTSA_GRANT_DECREMENT */
@@ -1783,10 +1824,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00180018, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00a3004d, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00a300a3, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			528000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x73100004, /* EMC_CFG */
+		0x53000004, /* EMC_CFG */
 		0x80000941, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -1794,16 +1839,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 		1440,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		624000,     /* SDRAM frequency */
 		1100,       /* min voltage */
 		"pll_c",    /* clock source id */
 		0x24000000, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
-			0x0000001d, /* EMC_RC */
+			0x0000001c, /* EMC_RC */
 			0x000000a1, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
 			0x00000014, /* EMC_RAS */
@@ -1818,15 +1863,15 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x0000000a, /* EMC_IBDLY */
-			0x000c000a, /* EMC_PUTERM_EXTRA */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000007, /* EMC_QRST */
-			0x00000012, /* EMC_RDV_MASK */
-			0x000012c4, /* EMC_REFRESH */
+			0x00000014, /* EMC_RDV_MASK */
+			0x000012c3, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x000004b1, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x000004b0, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000002, /* EMC_PDEX2WR */
 			0x0000000d, /* EMC_PDEX2RD */
 			0x00000001, /* EMC_PCHG2PDEN */
@@ -1842,9 +1887,9 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_TRPAB */
 			0x00000006, /* EMC_TCLKSTABLE */
 			0x00000007, /* EMC_TCLKSTOP */
-			0x00001305, /* EMC_TREFBW */
+			0x00001304, /* EMC_TREFBW */
 			0x00000009, /* EMC_QUSE_EXTRA */
-			0x00000020, /* EMC_ODT_WRITE */
+			0x80000000, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x0000ba88, /* EMC_FBIO_CFG5 */
 			0xf00d0191, /* EMC_CFG_DIG_DLL */
@@ -1853,10 +1898,10 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x007fc00b, /* EMC_DLL_XFORM_DQS5 */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS6 */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS7 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE7 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE4 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE5 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE6 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE7 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS4 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
@@ -1875,13 +1920,13 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x0122000c, /* EMC_MRS_WAIT_CNT */
-			0x0122000c, /* EMC_MRS_WAIT_CNT2 */
+			0x0122000f, /* EMC_MRS_WAIT_CNT */
+			0x0122000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x8000261a, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80002617, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x06000009, /* MC_EMEM_ARB_CFG */
@@ -1902,70 +1947,71 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00130b0f, /* MC_EMEM_ARB_DA_COVERS */
 			0x736a1d10, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000006, /* EMC_FBIO_CFG6 */
-			0x0000000a, /* EMC_QUSE */
+			0x00000009, /* EMC_QUSE */
 			0x00000008, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE0 */
 			0x00000012, /* EMC_RDV */
-			0x0028a28a, /* EMC_XM2DQSPADCTRL4 */
-			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00000009, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
-			0x007f400e, /* EMC_DLL_XFORM_ADDR0 */
+			0x00249249, /* EMC_XM2DQSPADCTRL4 */
+			0x20820800, /* EMC_XM2DQSPADCTRL3 */
+			0x00000008, /* EMC_DLL_XFORM_DQ0 */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00000008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000909, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x007f400e, /* EMC_DLL_XFORM_ADDR1 */
-			0x007f400e, /* EMC_DLL_XFORM_ADDR2 */
+			0x00000008, /* EMC_DLL_XFORM_ADDR1 */
+			0x00000008, /* EMC_DLL_XFORM_ADDR2 */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS1 */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS2 */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS3 */
-			0x00000009, /* EMC_DLL_XFORM_DQ1 */
-			0x00000009, /* EMC_DLL_XFORM_DQ2 */
-			0x00000009, /* EMC_DLL_XFORM_DQ3 */
+			0x00000008, /* EMC_DLL_XFORM_DQ1 */
+			0x00000008, /* EMC_DLL_XFORM_DQ2 */
+			0x00000008, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000006, /* EMC_FBIO_CFG6 */
-			0x0000000a, /* EMC_QUSE */
+			0x00000009, /* EMC_QUSE */
 			0x00000008, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE0 */
 			0x00000012, /* EMC_RDV */
-			0x0028a28a, /* EMC_XM2DQSPADCTRL4 */
-			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00000009, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
-			0x007f400e, /* EMC_DLL_XFORM_ADDR0 */
+			0x00249249, /* EMC_XM2DQSPADCTRL4 */
+			0x20820800, /* EMC_XM2DQSPADCTRL3 */
+			0x00000008, /* EMC_DLL_XFORM_DQ0 */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00000008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000909, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x007f400e, /* EMC_DLL_XFORM_ADDR1 */
-			0x007f400e, /* EMC_DLL_XFORM_ADDR2 */
+			0x00000008, /* EMC_DLL_XFORM_ADDR1 */
+			0x00000008, /* EMC_DLL_XFORM_ADDR2 */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS1 */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS2 */
 			0x007fc00b, /* EMC_DLL_XFORM_DQS3 */
-			0x00000009, /* EMC_DLL_XFORM_DQ1 */
-			0x00000009, /* EMC_DLL_XFORM_DQ2 */
-			0x00000009, /* EMC_DLL_XFORM_DQ3 */
+			0x00000008, /* EMC_DLL_XFORM_DQ1 */
+			0x00000008, /* EMC_DLL_XFORM_DQ2 */
+			0x00000008, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x0000013f, /* MC_PTSA_GRANT_DECREMENT */
@@ -1979,32 +2025,36 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00140014, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x008a0041, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x008a008a, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			624000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
 		0x53200000, /* EMC_CFG */
 		0x80000b61, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
-		0x80200010, /* Mode Register 2 */
+		0x80200410, /* Mode Register 2 */
 		0x00000000, /* Mode Register 4 */
-		1440,       /* expected dvfs latency (ns) */
+		1230,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		792000,     /* SDRAM frequency */
 		1100,       /* min voltage */
 		"pll_m",    /* clock source id */
-		0x80000000, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x84000000, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
 			0x00000024, /* EMC_RC */
-			0x000000cd, /* EMC_RFC */
+			0x000000cc, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
 			0x00000019, /* EMC_RAS */
 			0x0000000a, /* EMC_RP */
-			0x00000009, /* EMC_R2W */
+			0x00000008, /* EMC_R2W */
 			0x0000000d, /* EMC_W2R */
 			0x00000004, /* EMC_R2P */
 			0x00000013, /* EMC_W2P */
@@ -2014,17 +2064,17 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000006, /* EMC_WDV */
-			0x00000006, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x0000000b, /* EMC_IBDLY */
-			0x000d000a, /* EMC_PUTERM_EXTRA */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000008, /* EMC_QRST */
-			0x00000014, /* EMC_RDV_MASK */
-			0x000017e4, /* EMC_REFRESH */
+			0x00000016, /* EMC_RDV_MASK */
+			0x000017e1, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x000005f9, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x000005f8, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000003, /* EMC_PDEX2WR */
-			0x00000012, /* EMC_PDEX2RD */
+			0x00000011, /* EMC_PDEX2RD */
 			0x00000001, /* EMC_PCHG2PDEN */
 			0x00000000, /* EMC_ACT2PDEN */
 			0x000000c6, /* EMC_AR2PDEN */
@@ -2038,21 +2088,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_TRPAB */
 			0x00000007, /* EMC_TCLKSTABLE */
 			0x00000008, /* EMC_TCLKSTOP */
-			0x00001825, /* EMC_TREFBW */
-			0x0000000a, /* EMC_QUSE_EXTRA */
-			0x80000020, /* EMC_ODT_WRITE */
+			0x00001822, /* EMC_TREFBW */
+			0x00000000, /* EMC_QUSE_EXTRA */
+			0x80000000, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
-			0x0000ba88, /* EMC_FBIO_CFG5 */
+			0x00005088, /* EMC_FBIO_CFG5 */
 			0xf0070191, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x0000000a, /* EMC_DLL_XFORM_DQS4 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS5 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS6 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS7 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE7 */
+			0x00000008, /* EMC_DLL_XFORM_DQS4 */
+			0x00000008, /* EMC_DLL_XFORM_DQS5 */
+			0x00000008, /* EMC_DLL_XFORM_DQS6 */
+			0x00000008, /* EMC_DLL_XFORM_DQS7 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE4 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE5 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE6 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE7 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS4 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
@@ -2061,9 +2111,9 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_XM2CMDPADCTRL4 */
 			0x0000013d, /* EMC_XM2DQSPADCTRL2 */
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
-			0x77ffc084, /* EMC_XM2CLKPADCTRL */
-			0x81f1f508, /* EMC_XM2COMPPADCTRL */
-			0x07077704, /* EMC_XM2VTTGENPADCTRL */
+			0x77ffc085, /* EMC_XM2CLKPADCTRL */
+			0x81f1f108, /* EMC_XM2COMPPADCTRL */
+			0x07077504, /* EMC_XM2VTTGENPADCTRL */
 			0x00000000, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
@@ -2077,7 +2127,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80003018, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80003012, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x0e00000b, /* MC_EMEM_ARB_CFG */
@@ -2098,70 +2148,71 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00170e13, /* MC_EMEM_ARB_DA_COVERS */
 			0x734c2414, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040000, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000006, /* EMC_FBIO_CFG6 */
-			0x0000000b, /* EMC_QUSE */
+			0x0000000a, /* EMC_QUSE */
 			0x00000008, /* EMC_EINPUT */
 			0x00000006, /* EMC_EINPUT_DURATION */
-			0x0000000a, /* EMC_DLL_XFORM_DQS0 */
+			0x00000008, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000d, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE0 */
 			0x00000014, /* EMC_RDV */
 			0x00249249, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ0 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ0 */
 			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
-			0x007fc00d, /* EMC_DLL_XFORM_ADDR0 */
+			0x007fc008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000b0b, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x007fc00d, /* EMC_DLL_XFORM_ADDR1 */
-			0x007fc00d, /* EMC_DLL_XFORM_ADDR2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ3 */
+			0x0000000b, /* EMC_DLL_XFORM_ADDR1 */
+			0x007fc008, /* EMC_DLL_XFORM_ADDR2 */
+			0x00000008, /* EMC_DLL_XFORM_DQS1 */
+			0x007fc008, /* EMC_DLL_XFORM_DQS2 */
+			0x00000008, /* EMC_DLL_XFORM_DQS3 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ1 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ2 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000006, /* EMC_FBIO_CFG6 */
-			0x0000000b, /* EMC_QUSE */
+			0x0000000a, /* EMC_QUSE */
 			0x00000008, /* EMC_EINPUT */
 			0x00000006, /* EMC_EINPUT_DURATION */
-			0x0000000a, /* EMC_DLL_XFORM_DQS0 */
+			0x00000008, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000d, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE0 */
 			0x00000014, /* EMC_RDV */
 			0x00249249, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ0 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ0 */
 			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
-			0x007fc00d, /* EMC_DLL_XFORM_ADDR0 */
+			0x007fc008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000b0b, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x007fc00d, /* EMC_DLL_XFORM_ADDR1 */
-			0x007fc00d, /* EMC_DLL_XFORM_ADDR2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQS3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ3 */
+			0x0000000b, /* EMC_DLL_XFORM_ADDR1 */
+			0x007fc008, /* EMC_DLL_XFORM_ADDR2 */
+			0x00000008, /* EMC_DLL_XFORM_DQS1 */
+			0x007fc008, /* EMC_DLL_XFORM_DQS2 */
+			0x00000008, /* EMC_DLL_XFORM_DQS3 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ1 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ2 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000196, /* MC_PTSA_GRANT_DECREMENT */
@@ -2175,13 +2226,17 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 			0x00100010, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x006d0033, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x006d006d, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			792000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x73000000, /* EMC_CFG */
+		0x53000000, /* EMC_CFG */
 		0x80000d71, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
-		0x80200218, /* Mode Register 2 */
+		0x80200418, /* Mode Register 2 */
 		0x00000000, /* Mode Register 4 */
 		1200,       /* expected dvfs latency (ns) */
 	},
@@ -2189,12 +2244,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40S_table[] = {
 
 static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		12750,      /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x4000003e, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x4400003e, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -2213,12 +2268,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000060, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000018, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -2233,12 +2288,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000004, /* EMC_TCKE */
 			0x00000004, /* EMC_TCKESR */
 			0x00000004, /* EMC_TPD */
-			0x00000001, /* EMC_TFAW */
+			0x00000004, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
 			0x00000064, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000005, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x0000aa88, /* EMC_FBIO_CFG5 */
@@ -2262,21 +2317,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x00000007, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x800001c6, /* EMC_DYN_SELF_REF_CONTROL */
+			0x800001c5, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x40040001, /* MC_EMEM_ARB_CFG */
@@ -2297,11 +2352,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x000a0402, /* MC_EMEM_ARB_DA_COVERS */
 			0x77e30303, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -2311,7 +2367,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -2332,8 +2388,8 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -2343,7 +2399,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -2363,7 +2419,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x0000000e, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000007, /* MC_PTSA_GRANT_DECREMENT */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -2374,10 +2430,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			12750,      /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -2385,12 +2445,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		57820,      /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		20400,      /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000026, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000026, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -2409,12 +2469,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x0000009a, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000026, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -2429,12 +2489,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000004, /* EMC_TCKE */
 			0x00000004, /* EMC_TCKESR */
 			0x00000004, /* EMC_TPD */
-			0x00000001, /* EMC_TFAW */
+			0x00000004, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
 			0x000000a0, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000005, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x0000aa88, /* EMC_FBIO_CFG5 */
@@ -2458,16 +2518,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x0000000b, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
@@ -2493,11 +2553,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x000a0402, /* MC_EMEM_ARB_DA_COVERS */
 			0x76230303, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -2507,7 +2568,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -2528,8 +2589,8 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -2539,7 +2600,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -2559,7 +2620,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x00000014, /* MC_PTSA_GRANT_DECREMENT */
+			0x0000000a, /* MC_PTSA_GRANT_DECREMENT */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -2570,10 +2631,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			20400,      /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -2581,12 +2646,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		35610,      /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		40800,      /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000012, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000012, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -2605,12 +2670,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000134, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x0000004d, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -2625,12 +2690,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000004, /* EMC_TCKE */
 			0x00000004, /* EMC_TCKESR */
 			0x00000004, /* EMC_TPD */
-			0x00000002, /* EMC_TFAW */
+			0x00000004, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
 			0x0000013f, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000005, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x0000aa88, /* EMC_FBIO_CFG5 */
@@ -2654,16 +2719,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x00000015, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
@@ -2689,11 +2754,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x000a0402, /* MC_EMEM_ARB_DA_COVERS */
 			0x74a30303, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -2703,7 +2769,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -2724,8 +2790,8 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -2735,7 +2801,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -2755,7 +2821,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x0000002a, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000015, /* MC_PTSA_GRANT_DECREMENT */
 			0x00b000b0, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00b000c4, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x00d700eb, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -2766,10 +2832,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			40800,      /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -2777,12 +2847,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		20850,      /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		68000,      /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x4000000a, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x4400000a, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -2801,12 +2871,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000202, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000080, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -2821,12 +2891,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000004, /* EMC_TCKE */
 			0x00000004, /* EMC_TCKESR */
 			0x00000004, /* EMC_TPD */
-			0x00000003, /* EMC_TFAW */
+			0x00000004, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
 			0x00000213, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000005, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x0000aa88, /* EMC_FBIO_CFG5 */
@@ -2850,16 +2920,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x00000022, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
@@ -2885,11 +2955,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x000a0402, /* MC_EMEM_ARB_DA_COVERS */
 			0x74230403, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -2899,7 +2970,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -2920,8 +2991,8 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -2931,7 +3002,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -2951,7 +3022,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x00000046, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000023, /* MC_PTSA_GRANT_DECREMENT */
 			0x00690069, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00690075, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x0081008d, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -2962,10 +3033,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00bc00bc, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			68000,      /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -2973,12 +3048,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		10720,      /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		102000,     /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000006, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000006, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
@@ -2997,12 +3072,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000303, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x000000c0, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -3022,7 +3097,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
 			0x0000031c, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000005, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x0000aa88, /* EMC_FBIO_CFG5 */
@@ -3046,21 +3121,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
-			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x00000033, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00000000, /* EMC_ZCAL_INTERVAL */
 			0x00000042, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80000714, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80000713, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x08000001, /* MC_EMEM_ARB_CFG */
@@ -3081,11 +3156,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x000a0403, /* MC_EMEM_ARB_DA_COVERS */
 			0x73c30504, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -3095,7 +3171,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -3116,8 +3192,8 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000004, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
@@ -3127,7 +3203,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
@@ -3147,7 +3223,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x00000068, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000034, /* MC_PTSA_GRANT_DECREMENT */
 			0x00460046, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x0046004e, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x0056005e, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -3158,10 +3234,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x007d007d, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			102000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x7320000e, /* EMC_CFG */
+		0x7324000e, /* EMC_CFG */
 		0x80001221, /* Mode Register 0 */
 		0x80100003, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -3169,19 +3249,19 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		6890,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		204000,     /* SDRAM frequency */
-		900,       /* min voltage */
+		900,        /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000002, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000002, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
 			0x00000009, /* EMC_RC */
 			0x00000035, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
-			0x00000007, /* EMC_RAS */
+			0x00000006, /* EMC_RAS */
 			0x00000002, /* EMC_RP */
 			0x00000004, /* EMC_R2W */
 			0x0000000a, /* EMC_W2R */
@@ -3193,12 +3273,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x00000006, /* EMC_IBDLY */
 			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
+			0x0000000f, /* EMC_RDV_MASK */
 			0x00000607, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x00000181, /* EMC_PRE_REFRESH_REQ_CNT */
@@ -3222,12 +3302,12 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x0000aa88, /* EMC_FBIO_CFG5 */
-			0x000000a0, /* EMC_CFG_DIG_DLL */
+			0x002c00a0, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x0006c000, /* EMC_DLL_XFORM_DQS4 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS5 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS6 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS7 */
+			0x00040000, /* EMC_DLL_XFORM_DQS4 */
+			0x00040000, /* EMC_DLL_XFORM_DQS5 */
+			0x00040000, /* EMC_DLL_XFORM_DQS6 */
+			0x00040000, /* EMC_DLL_XFORM_DQS7 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
 			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
@@ -3242,7 +3322,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x05057404, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x0000003f, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
@@ -3250,8 +3330,8 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT */
-			0x000c000c, /* EMC_MRS_WAIT_CNT2 */
+			0x000f000f, /* EMC_MRS_WAIT_CNT */
+			0x000f000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
@@ -3263,7 +3343,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x800000fe, /* MC_EMEM_ARB_OUTSTANDING_REQ */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RCD */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RP */
-			0x00000005, /* MC_EMEM_ARB_TIMING_RC */
+			0x00000004, /* MC_EMEM_ARB_TIMING_RC */
 			0x00000002, /* MC_EMEM_ARB_TIMING_RAS */
 			0x00000004, /* MC_EMEM_ARB_TIMING_FAW */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RRD */
@@ -3274,32 +3354,33 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000003, /* MC_EMEM_ARB_TIMING_R2W */
 			0x00000006, /* MC_EMEM_ARB_TIMING_W2R */
 			0x06030102, /* MC_EMEM_ARB_DA_TURNS */
-			0x000a0405, /* MC_EMEM_ARB_DA_COVERS */
-			0x73840a06, /* MC_EMEM_ARB_MISC0 */
+			0x000a0404, /* MC_EMEM_ARB_DA_COVERS */
+			0x73840a05, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000004, /* EMC_FBIO_CFG6 */
 			0x00000007, /* EMC_QUSE */
-			0x00000004, /* EMC_EINPUT */
+			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
+			0x00040000, /* EMC_DLL_XFORM_DQS0 */
 			0x00000009, /* EMC_QSAFE */
 			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
 			0x0000000d, /* EMC_RDV */
 			0x0079e79e, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000808, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS1 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS2 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS3 */
+			0x00040000, /* EMC_DLL_XFORM_DQS1 */
+			0x00040000, /* EMC_DLL_XFORM_DQS2 */
+			0x00040000, /* EMC_DLL_XFORM_DQS3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ1 */
 			0x00048000, /* EMC_DLL_XFORM_DQ2 */
 			0x00048000, /* EMC_DLL_XFORM_DQ3 */
@@ -3314,24 +3395,24 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000004, /* EMC_FBIO_CFG6 */
 			0x00000007, /* EMC_QUSE */
-			0x00000004, /* EMC_EINPUT */
+			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x0006c000, /* EMC_DLL_XFORM_DQS0 */
+			0x00040000, /* EMC_DLL_XFORM_DQS0 */
 			0x00000009, /* EMC_QSAFE */
 			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
 			0x0000000d, /* EMC_RDV */
 			0x0079e79e, /* EMC_XM2DQSPADCTRL4 */
 			0x20820800, /* EMC_XM2DQSPADCTRL3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000808, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS1 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS2 */
-			0x0006c000, /* EMC_DLL_XFORM_DQS3 */
+			0x00040000, /* EMC_DLL_XFORM_DQS1 */
+			0x00040000, /* EMC_DLL_XFORM_DQS2 */
+			0x00040000, /* EMC_DLL_XFORM_DQS3 */
 			0x00048000, /* EMC_DLL_XFORM_DQ1 */
 			0x00048000, /* EMC_DLL_XFORM_DQ2 */
 			0x00048000, /* EMC_DLL_XFORM_DQ3 */
@@ -3343,7 +3424,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x000000d0, /* MC_PTSA_GRANT_DECREMENT */
+			0x00000068, /* MC_PTSA_GRANT_DECREMENT */
 			0x00230023, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00230027, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x002b002f, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -3354,6 +3435,10 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x003e003e, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff00c8, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			204000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
@@ -3365,16 +3450,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		3420,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		312000,     /* SDRAM frequency */
 		1000,       /* min voltage */
 		"pll_c",    /* clock source id */
 		0x24000002, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
-			0x0000000e, /* EMC_RC */
+			0x0000000d, /* EMC_RC */
 			0x00000050, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
 			0x00000009, /* EMC_RAS */
@@ -3389,15 +3474,15 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000004, /* EMC_WDV */
-			0x00000004, /* EMC_WDV_MASK */
-			0x00000007, /* EMC_IBDLY */
-			0x00080006, /* EMC_PUTERM_EXTRA */
+			0x0000000f, /* EMC_WDV_MASK */
+			0x00000006, /* EMC_IBDLY */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000d, /* EMC_RDV_MASK */
-			0x00000945, /* EMC_REFRESH */
+			0x00000010, /* EMC_RDV_MASK */
+			0x00000941, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x00000251, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x00000250, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000001, /* EMC_PDEX2WR */
 			0x00000008, /* EMC_PDEX2RD */
 			0x00000001, /* EMC_PCHG2PDEN */
@@ -3413,17 +3498,17 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
-			0x00000986, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000982, /* EMC_TREFBW */
+			0x00000000, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
-			0x0000ba88, /* EMC_FBIO_CFG5 */
+			0x00005088, /* EMC_FBIO_CFG5 */
 			0x002c00a0, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x00030000, /* EMC_DLL_XFORM_DQS4 */
-			0x00030000, /* EMC_DLL_XFORM_DQS5 */
-			0x00030000, /* EMC_DLL_XFORM_DQS6 */
-			0x00030000, /* EMC_DLL_XFORM_DQS7 */
+			0x00020000, /* EMC_DLL_XFORM_DQS4 */
+			0x00020000, /* EMC_DLL_XFORM_DQS5 */
+			0x00020000, /* EMC_DLL_XFORM_DQS6 */
+			0x00020000, /* EMC_DLL_XFORM_DQS7 */
 			0x00028000, /* EMC_DLL_XFORM_QUSE4 */
 			0x00028000, /* EMC_DLL_XFORM_QUSE5 */
 			0x00028000, /* EMC_DLL_XFORM_QUSE6 */
@@ -3438,7 +3523,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x00000000, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
@@ -3446,13 +3531,13 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x0171000c, /* EMC_MRS_WAIT_CNT */
-			0x0171000c, /* EMC_MRS_WAIT_CNT2 */
+			0x0171000f, /* EMC_MRS_WAIT_CNT */
+			0x0171000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80001395, /* EMC_DYN_SELF_REF_CONTROL */
+			0x8000138d, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x0b000004, /* MC_EMEM_ARB_CFG */
@@ -3473,32 +3558,33 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x000b0607, /* MC_EMEM_ARB_DA_COVERS */
 			0x76e50f08, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000006, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000004, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x00030000, /* EMC_DLL_XFORM_DQS0 */
+			0x00020000, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000b, /* EMC_QSAFE */
 			0x00028000, /* EMC_DLL_XFORM_QUSE0 */
-			0x0000000d, /* EMC_RDV */
+			0x0000000e, /* EMC_RDV */
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0x00024000, /* EMC_DLL_XFORM_DQ0 */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00014000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00014000, /* EMC_DLL_XFORM_ADDR2 */
-			0x00030000, /* EMC_DLL_XFORM_DQS1 */
-			0x00030000, /* EMC_DLL_XFORM_DQS2 */
-			0x00030000, /* EMC_DLL_XFORM_DQS3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ1 */
-			0x00030000, /* EMC_DLL_XFORM_DQ2 */
-			0x00030000, /* EMC_DLL_XFORM_DQ3 */
+			0x00020000, /* EMC_DLL_XFORM_DQS1 */
+			0x00020000, /* EMC_DLL_XFORM_DQS2 */
+			0x00020000, /* EMC_DLL_XFORM_DQS3 */
+			0x00024000, /* EMC_DLL_XFORM_DQ1 */
+			0x00024000, /* EMC_DLL_XFORM_DQ2 */
+			0x00024000, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
@@ -3508,29 +3594,29 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000006, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000004, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x00030000, /* EMC_DLL_XFORM_DQS0 */
+			0x00020000, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000b, /* EMC_QSAFE */
 			0x00028000, /* EMC_DLL_XFORM_QUSE0 */
-			0x0000000d, /* EMC_RDV */
+			0x0000000e, /* EMC_RDV */
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0x00024000, /* EMC_DLL_XFORM_DQ0 */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00014000, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000000, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00014000, /* EMC_DLL_XFORM_ADDR2 */
-			0x00030000, /* EMC_DLL_XFORM_DQS1 */
-			0x00030000, /* EMC_DLL_XFORM_DQS2 */
-			0x00030000, /* EMC_DLL_XFORM_DQS3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ1 */
-			0x00030000, /* EMC_DLL_XFORM_DQ2 */
-			0x00030000, /* EMC_DLL_XFORM_DQ3 */
+			0x00020000, /* EMC_DLL_XFORM_DQS1 */
+			0x00020000, /* EMC_DLL_XFORM_DQS2 */
+			0x00020000, /* EMC_DLL_XFORM_DQS3 */
+			0x00024000, /* EMC_DLL_XFORM_DQ1 */
+			0x00024000, /* EMC_DLL_XFORM_DQ2 */
+			0x00024000, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
@@ -3539,7 +3625,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00028000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
-			0x00000140, /* MC_PTSA_GRANT_DECREMENT */
+			0x000000a0, /* MC_PTSA_GRANT_DECREMENT */
 			0x00170017, /* MC_LATENCY_ALLOWANCE_G2_0 */
 			0x00170019, /* MC_LATENCY_ALLOWANCE_G2_1 */
 			0x001c001e, /* MC_LATENCY_ALLOWANCE_NV_0 */
@@ -3550,30 +3636,34 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00290029, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00ff0082, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00ff00ff, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			312000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x5320000e, /* EMC_CFG */
+		0x5300000e, /* EMC_CFG */
 		0x80000321, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
 		0x80200000, /* Mode Register 2 */
 		0x00000000, /* Mode Register 4 */
-		2680,       /* expected dvfs latency (ns) */
+		2180,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		408000,     /* SDRAM frequency */
 		1000,       /* min voltage */
 		"pll_p",    /* clock source id */
-		0x40000000, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x44000000, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
 			0x00000012, /* EMC_RC */
 			0x00000069, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
-			0x0000000d, /* EMC_RAS */
+			0x0000000c, /* EMC_RAS */
 			0x00000004, /* EMC_RP */
 			0x00000005, /* EMC_R2W */
 			0x00000009, /* EMC_W2R */
@@ -3585,13 +3675,13 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000004, /* EMC_WDV */
-			0x00000004, /* EMC_WDV_MASK */
-			0x00000007, /* EMC_IBDLY */
-			0x00080006, /* EMC_PUTERM_EXTRA */
+			0x0000000f, /* EMC_WDV_MASK */
+			0x00000006, /* EMC_IBDLY */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000004, /* EMC_QRST */
-			0x0000000e, /* EMC_RDV_MASK */
-			0x00000c2f, /* EMC_REFRESH */
+			0x00000010, /* EMC_RDV_MASK */
+			0x00000c2e, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
 			0x0000030b, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000001, /* EMC_PDEX2WR */
@@ -3609,21 +3699,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_TRPAB */
 			0x00000004, /* EMC_TCLKSTABLE */
 			0x00000005, /* EMC_TCLKSTOP */
-			0x00000c70, /* EMC_TREFBW */
-			0x00000006, /* EMC_QUSE_EXTRA */
+			0x00000c6f, /* EMC_TREFBW */
+			0x00000000, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
-			0x0000ba88, /* EMC_FBIO_CFG5 */
+			0x00005088, /* EMC_FBIO_CFG5 */
 			0x002c0080, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
 			0x00028000, /* EMC_DLL_XFORM_DQS4 */
 			0x00028000, /* EMC_DLL_XFORM_DQS5 */
 			0x00028000, /* EMC_DLL_XFORM_DQS6 */
 			0x00028000, /* EMC_DLL_XFORM_DQS7 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE7 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE4 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE5 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE6 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE7 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS4 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
@@ -3634,7 +3724,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
 			0x81f1f108, /* EMC_XM2COMPPADCTRL */
-			0x03035504, /* EMC_XM2VTTGENPADCTRL */
+			0x03037504, /* EMC_XM2VTTGENPADCTRL */
 			0x00000000, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
@@ -3642,21 +3732,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x0158000c, /* EMC_MRS_WAIT_CNT */
-			0x0158000c, /* EMC_MRS_WAIT_CNT2 */
+			0x0158000f, /* EMC_MRS_WAIT_CNT */
+			0x0158000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80001944, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80001941, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x02000006, /* MC_EMEM_ARB_CFG */
 			0x80000190, /* MC_EMEM_ARB_OUTSTANDING_REQ */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RCD */
 			0x00000002, /* MC_EMEM_ARB_TIMING_RP */
-			0x0000000a, /* MC_EMEM_ARB_TIMING_RC */
-			0x00000006, /* MC_EMEM_ARB_TIMING_RAS */
+			0x00000009, /* MC_EMEM_ARB_TIMING_RC */
+			0x00000005, /* MC_EMEM_ARB_TIMING_RAS */
 			0x00000008, /* MC_EMEM_ARB_TIMING_FAW */
 			0x00000001, /* MC_EMEM_ARB_TIMING_RRD */
 			0x00000002, /* MC_EMEM_ARB_TIMING_RAP2PRE */
@@ -3666,73 +3756,74 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000004, /* MC_EMEM_ARB_TIMING_R2W */
 			0x00000006, /* MC_EMEM_ARB_TIMING_W2R */
 			0x06040202, /* MC_EMEM_ARB_DA_TURNS */
-			0x000e070a, /* MC_EMEM_ARB_DA_COVERS */
-			0x7547130b, /* MC_EMEM_ARB_MISC0 */
+			0x000e0709, /* MC_EMEM_ARB_DA_COVERS */
+			0x7547130a, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000006, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000004, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x00028000, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE0 */
 			0x0000000e, /* EMC_RDV */
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
+			0x0001c000, /* EMC_DLL_XFORM_DQ0 */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00014000, /* EMC_DLL_XFORM_ADDR0 */
-			0x00000000, /* EMC_XM2CLKPADCTRL2 */
+			0x00000a0a, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00014000, /* EMC_DLL_XFORM_ADDR2 */
 			0x00028000, /* EMC_DLL_XFORM_DQS1 */
 			0x00028000, /* EMC_DLL_XFORM_DQS2 */
 			0x00028000, /* EMC_DLL_XFORM_DQS3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ1 */
-			0x00030000, /* EMC_DLL_XFORM_DQ2 */
-			0x00030000, /* EMC_DLL_XFORM_DQ3 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ1 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ2 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000006, /* EMC_FBIO_CFG6 */
-			0x00000007, /* EMC_QUSE */
+			0x00000004, /* EMC_FBIO_CFG6 */
+			0x00000006, /* EMC_QUSE */
 			0x00000005, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
 			0x00028000, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE0 */
 			0x0000000e, /* EMC_RDV */
 			0x00208208, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
+			0x0001c000, /* EMC_DLL_XFORM_DQ0 */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
 			0x00014000, /* EMC_DLL_XFORM_ADDR0 */
-			0x00000000, /* EMC_XM2CLKPADCTRL2 */
+			0x00000a0a, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
 			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
 			0x00014000, /* EMC_DLL_XFORM_ADDR2 */
 			0x00028000, /* EMC_DLL_XFORM_DQS1 */
 			0x00028000, /* EMC_DLL_XFORM_DQS2 */
 			0x00028000, /* EMC_DLL_XFORM_DQS3 */
-			0x00030000, /* EMC_DLL_XFORM_DQ1 */
-			0x00030000, /* EMC_DLL_XFORM_DQ2 */
-			0x00030000, /* EMC_DLL_XFORM_DQ3 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ1 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ2 */
+			0x0001c000, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00028000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x000000d1, /* MC_PTSA_GRANT_DECREMENT */
@@ -3746,10 +3837,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x001f001f, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x00d30064, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x00d300d3, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			408000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x53200006, /* EMC_CFG */
+		0x53000006, /* EMC_CFG */
 		0x80000731, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
 		0x80200008, /* Mode Register 2 */
@@ -3757,69 +3852,69 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		1750,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
-		624000,     /* SDRAM frequency */
+		0x42,       /* Rev 4.0.3 */
+		528000,     /* SDRAM frequency */
 		1100,       /* min voltage */
-		"pll_c",    /* clock source id */
-		0x24000000, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		"pll_m",    /* clock source id */
+		0x84000000, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
-			0x0000001d, /* EMC_RC */
-			0x000000a1, /* EMC_RFC */
+			0x00000018, /* EMC_RC */
+			0x00000088, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
-			0x00000014, /* EMC_RAS */
-			0x00000007, /* EMC_RP */
-			0x00000007, /* EMC_R2W */
-			0x0000000b, /* EMC_W2R */
-			0x00000003, /* EMC_R2P */
-			0x00000010, /* EMC_W2P */
-			0x00000007, /* EMC_RD_RCD */
-			0x00000007, /* EMC_WR_RCD */
+			0x00000010, /* EMC_RAS */
+			0x00000006, /* EMC_RP */
+			0x00000006, /* EMC_R2W */
+			0x00000009, /* EMC_W2R */
+			0x00000002, /* EMC_R2P */
+			0x0000000d, /* EMC_W2P */
+			0x00000006, /* EMC_RD_RCD */
+			0x00000006, /* EMC_WR_RCD */
 			0x00000002, /* EMC_RRD */
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000005, /* EMC_WDV */
-			0x00000005, /* EMC_WDV_MASK */
-			0x0000000b, /* EMC_IBDLY */
-			0x000c000a, /* EMC_PUTERM_EXTRA */
+			0x0000000f, /* EMC_WDV_MASK */
+			0x00000009, /* EMC_IBDLY */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
-			0x00000007, /* EMC_QRST */
+			0x00000006, /* EMC_QRST */
 			0x00000012, /* EMC_RDV_MASK */
-			0x000012c4, /* EMC_REFRESH */
+			0x00000fd6, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x000004b1, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x000003f5, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000002, /* EMC_PDEX2WR */
-			0x0000000d, /* EMC_PDEX2RD */
+			0x0000000b, /* EMC_PDEX2RD */
 			0x00000001, /* EMC_PCHG2PDEN */
 			0x00000000, /* EMC_ACT2PDEN */
-			0x0000009c, /* EMC_AR2PDEN */
-			0x00000015, /* EMC_RW2PDEN */
-			0x000000a9, /* EMC_TXSR */
+			0x00000084, /* EMC_AR2PDEN */
+			0x00000012, /* EMC_RW2PDEN */
+			0x0000008f, /* EMC_TXSR */
 			0x00000200, /* EMC_TXSRDLL */
-			0x00000005, /* EMC_TCKE */
-			0x00000005, /* EMC_TCKESR */
-			0x00000005, /* EMC_TPD */
-			0x00000019, /* EMC_TFAW */
+			0x00000004, /* EMC_TCKE */
+			0x00000004, /* EMC_TCKESR */
+			0x00000004, /* EMC_TPD */
+			0x00000016, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
-			0x00000006, /* EMC_TCLKSTABLE */
-			0x00000007, /* EMC_TCLKSTOP */
-			0x00001305, /* EMC_TREFBW */
-			0x0000000a, /* EMC_QUSE_EXTRA */
+			0x00000005, /* EMC_TCLKSTABLE */
+			0x00000006, /* EMC_TCLKSTOP */
+			0x00001017, /* EMC_TREFBW */
+			0x00000000, /* EMC_QUSE_EXTRA */
 			0x00000020, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
-			0x0000ba88, /* EMC_FBIO_CFG5 */
-			0xf00d0191, /* EMC_CFG_DIG_DLL */
+			0x00005088, /* EMC_FBIO_CFG5 */
+			0xf0120091, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS4 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS5 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS6 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS7 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE7 */
+			0x00000009, /* EMC_DLL_XFORM_DQS4 */
+			0x00000009, /* EMC_DLL_XFORM_DQS5 */
+			0x00000009, /* EMC_DLL_XFORM_DQS6 */
+			0x00000009, /* EMC_DLL_XFORM_DQS7 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE4 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE5 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE6 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE7 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS4 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
@@ -3838,13 +3933,214 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000100, /* EMC_ZCAL_WAIT_CNT */
-			0x0122000c, /* EMC_MRS_WAIT_CNT */
-			0x0122000c, /* EMC_MRS_WAIT_CNT2 */
+			0x013a000f, /* EMC_MRS_WAIT_CNT */
+			0x013a000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x8000261a, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80002062, /* EMC_DYN_SELF_REF_CONTROL */
+			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
+			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
+			0x0f000007, /* MC_EMEM_ARB_CFG */
+			0x80000190, /* MC_EMEM_ARB_OUTSTANDING_REQ */
+			0x00000002, /* MC_EMEM_ARB_TIMING_RCD */
+			0x00000003, /* MC_EMEM_ARB_TIMING_RP */
+			0x0000000c, /* MC_EMEM_ARB_TIMING_RC */
+			0x00000007, /* MC_EMEM_ARB_TIMING_RAS */
+			0x0000000a, /* MC_EMEM_ARB_TIMING_FAW */
+			0x00000001, /* MC_EMEM_ARB_TIMING_RRD */
+			0x00000002, /* MC_EMEM_ARB_TIMING_RAP2PRE */
+			0x00000009, /* MC_EMEM_ARB_TIMING_WAP2PRE */
+			0x00000002, /* MC_EMEM_ARB_TIMING_R2R */
+			0x00000002, /* MC_EMEM_ARB_TIMING_W2W */
+			0x00000005, /* MC_EMEM_ARB_TIMING_R2W */
+			0x00000006, /* MC_EMEM_ARB_TIMING_W2R */
+			0x06050202, /* MC_EMEM_ARB_DA_TURNS */
+			0x0010090c, /* MC_EMEM_ARB_DA_COVERS */
+			0x7428180d, /* MC_EMEM_ARB_MISC0 */
+			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
+		},
+		{
+			0x00000000, /* EMC_CDB_CNTL_1 */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000008, /* EMC_QUSE */
+			0x00000007, /* EMC_EINPUT */
+			0x00000004, /* EMC_EINPUT_DURATION */
+			0x00000009, /* EMC_DLL_XFORM_DQS0 */
+			0x0000000c, /* EMC_QSAFE */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00000011, /* EMC_RDV */
+			0x00249249, /* EMC_XM2DQSPADCTRL4 */
+			0x20820800, /* EMC_XM2DQSPADCTRL3 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ0 */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00010000, /* EMC_DLL_XFORM_ADDR0 */
+			0x00000909, /* EMC_XM2CLKPADCTRL2 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
+			0x00010000, /* EMC_DLL_XFORM_ADDR1 */
+			0x00010000, /* EMC_DLL_XFORM_ADDR2 */
+			0x00000009, /* EMC_DLL_XFORM_DQS1 */
+			0x00000009, /* EMC_DLL_XFORM_DQS2 */
+			0x00000009, /* EMC_DLL_XFORM_DQS3 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ1 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ2 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ3 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE1 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE2 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE3 */
+		},
+		{
+			0x00000000, /* EMC_CDB_CNTL_1 */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000008, /* EMC_QUSE */
+			0x00000007, /* EMC_EINPUT */
+			0x00000004, /* EMC_EINPUT_DURATION */
+			0x00000009, /* EMC_DLL_XFORM_DQS0 */
+			0x0000000c, /* EMC_QSAFE */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00000011, /* EMC_RDV */
+			0x00249249, /* EMC_XM2DQSPADCTRL4 */
+			0x20820800, /* EMC_XM2DQSPADCTRL3 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ0 */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00010000, /* EMC_DLL_XFORM_ADDR0 */
+			0x00000909, /* EMC_XM2CLKPADCTRL2 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
+			0x00010000, /* EMC_DLL_XFORM_ADDR1 */
+			0x00010000, /* EMC_DLL_XFORM_ADDR2 */
+			0x00000009, /* EMC_DLL_XFORM_DQS1 */
+			0x00000009, /* EMC_DLL_XFORM_DQS2 */
+			0x00000009, /* EMC_DLL_XFORM_DQS3 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ1 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ2 */
+			0x0000400b, /* EMC_DLL_XFORM_DQ3 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE1 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE2 */
+			0x0000c000, /* EMC_DLL_XFORM_QUSE3 */
+		},
+		{
+			0x0000010e, /* MC_PTSA_GRANT_DECREMENT */
+			0x000d000d, /* MC_LATENCY_ALLOWANCE_G2_0 */
+			0x000d000f, /* MC_LATENCY_ALLOWANCE_G2_1 */
+			0x00100012, /* MC_LATENCY_ALLOWANCE_NV_0 */
+			0x00000012, /* MC_LATENCY_ALLOWANCE_NV2_0 */
+			0x00120012, /* MC_LATENCY_ALLOWANCE_NV_2 */
+			0x00180012, /* MC_LATENCY_ALLOWANCE_NV_1 */
+			0x00000018, /* MC_LATENCY_ALLOWANCE_NV2_1 */
+			0x00180018, /* MC_LATENCY_ALLOWANCE_NV3 */
+			0x00a3004d, /* MC_LATENCY_ALLOWANCE_EPP_0 */
+			0x00a300a3, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			528000,     /* SDRAM Frequency */
+		},
+		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
+		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
+		0x53000004, /* EMC_CFG */
+		0x80000941, /* Mode Register 0 */
+		0x80100002, /* Mode Register 1 */
+		0x80200008, /* Mode Register 2 */
+		0x00000000, /* Mode Register 4 */
+		1440,       /* expected dvfs latency (ns) */
+	},
+	{
+		0x42,       /* Rev 4.0.3 */
+		624000,     /* SDRAM frequency */
+		1100,       /* min voltage */
+		"pll_c",    /* clock source id */
+		0x24000000, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
+		30,         /* number of trim_regs (each channel) */
+		11,         /* number of up_down_regs */
+		{
+			0x0000001c, /* EMC_RC */
+			0x000000a1, /* EMC_RFC */
+			0x00000000, /* EMC_RFC_SLR */
+			0x00000014, /* EMC_RAS */
+			0x00000007, /* EMC_RP */
+			0x00000007, /* EMC_R2W */
+			0x0000000b, /* EMC_W2R */
+			0x00000003, /* EMC_R2P */
+			0x00000010, /* EMC_W2P */
+			0x00000007, /* EMC_RD_RCD */
+			0x00000007, /* EMC_WR_RCD */
+			0x00000002, /* EMC_RRD */
+			0x00000001, /* EMC_REXT */
+			0x00000000, /* EMC_WEXT */
+			0x00000005, /* EMC_WDV */
+			0x0000000f, /* EMC_WDV_MASK */
+			0x0000000a, /* EMC_IBDLY */
+			0x00010000, /* EMC_PUTERM_EXTRA */
+			0x00000000, /* EMC_CDB_CNTL_2 */
+			0x00000007, /* EMC_QRST */
+			0x00000014, /* EMC_RDV_MASK */
+			0x000012c3, /* EMC_REFRESH */
+			0x00000000, /* EMC_BURST_REFRESH_NUM */
+			0x000004b0, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x00000002, /* EMC_PDEX2WR */
+			0x0000000d, /* EMC_PDEX2RD */
+			0x00000001, /* EMC_PCHG2PDEN */
+			0x00000000, /* EMC_ACT2PDEN */
+			0x0000009c, /* EMC_AR2PDEN */
+			0x00000015, /* EMC_RW2PDEN */
+			0x000000a9, /* EMC_TXSR */
+			0x00000200, /* EMC_TXSRDLL */
+			0x00000005, /* EMC_TCKE */
+			0x00000005, /* EMC_TCKESR */
+			0x00000005, /* EMC_TPD */
+			0x00000019, /* EMC_TFAW */
+			0x00000000, /* EMC_TRPAB */
+			0x00000006, /* EMC_TCLKSTABLE */
+			0x00000007, /* EMC_TCLKSTOP */
+			0x00001304, /* EMC_TREFBW */
+			0x00000009, /* EMC_QUSE_EXTRA */
+			0x80000000, /* EMC_ODT_WRITE */
+			0x00000000, /* EMC_ODT_READ */
+			0x0000ba88, /* EMC_FBIO_CFG5 */
+			0xf00d0191, /* EMC_CFG_DIG_DLL */
+			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS4 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS5 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS6 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS7 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE4 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE5 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE6 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE7 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS4 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
+			0x00000000, /* EMC_DLI_TRIM_TXDQS7 */
+			0x001112a0, /* EMC_XM2CMDPADCTRL */
+			0x00000000, /* EMC_XM2CMDPADCTRL4 */
+			0x0000013d, /* EMC_XM2DQSPADCTRL2 */
+			0x00000000, /* EMC_XM2DQPADCTRL2 */
+			0x77ffc085, /* EMC_XM2CLKPADCTRL */
+			0x81f1f108, /* EMC_XM2COMPPADCTRL */
+			0x07077504, /* EMC_XM2VTTGENPADCTRL */
+			0x00000000, /* EMC_XM2VTTGENPADCTRL2 */
+			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
+			0x00000000, /* EMC_TXDSRVTTGEN */
+			0x02000000, /* EMC_FBIO_SPARE */
+			0x00000802, /* EMC_CTT_TERM_CTRL */
+			0x00020000, /* EMC_ZCAL_INTERVAL */
+			0x00000100, /* EMC_ZCAL_WAIT_CNT */
+			0x0122000f, /* EMC_MRS_WAIT_CNT */
+			0x0122000f, /* EMC_MRS_WAIT_CNT2 */
+			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
+			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
+			0x00000000, /* EMC_CTT */
+			0x00000000, /* EMC_CTT_DURATION */
+			0x80002617, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x06000009, /* MC_EMEM_ARB_CFG */
@@ -3865,70 +4161,71 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00130b0f, /* MC_EMEM_ARB_DA_COVERS */
 			0x736a1d10, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040320, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x0000000b, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000009, /* EMC_QUSE */
 			0x00000008, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS0 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE0 */
 			0x00000012, /* EMC_RDV */
-			0x0028a28a, /* EMC_XM2DQSPADCTRL4 */
-			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00000009, /* EMC_DLL_XFORM_DQ0 */
-			0xa0f10000, /* EMC_AUTO_CAL_CONFIG */
-			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
+			0x00249249, /* EMC_XM2DQSPADCTRL4 */
+			0x20820800, /* EMC_XM2DQSPADCTRL3 */
+			0x00000008, /* EMC_DLL_XFORM_DQ0 */
+			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00000008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000909, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS1 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS2 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS3 */
-			0x00000009, /* EMC_DLL_XFORM_DQ1 */
-			0x00000009, /* EMC_DLL_XFORM_DQ2 */
-			0x00000009, /* EMC_DLL_XFORM_DQ3 */
+			0x00000008, /* EMC_DLL_XFORM_ADDR1 */
+			0x00000008, /* EMC_DLL_XFORM_ADDR2 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS1 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS2 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS3 */
+			0x00000008, /* EMC_DLL_XFORM_DQ1 */
+			0x00000008, /* EMC_DLL_XFORM_DQ2 */
+			0x00000008, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
-			0x00000004, /* EMC_FBIO_CFG6 */
-			0x0000000b, /* EMC_QUSE */
+			0x00000006, /* EMC_FBIO_CFG6 */
+			0x00000009, /* EMC_QUSE */
 			0x00000008, /* EMC_EINPUT */
 			0x00000004, /* EMC_EINPUT_DURATION */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS0 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000c, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE0 */
 			0x00000012, /* EMC_RDV */
-			0x0028a28a, /* EMC_XM2DQSPADCTRL4 */
-			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x00000009, /* EMC_DLL_XFORM_DQ0 */
-			0xa8f10000, /* EMC_AUTO_CAL_CONFIG */
-			0x00000000, /* EMC_DLL_XFORM_ADDR0 */
+			0x00249249, /* EMC_XM2DQSPADCTRL4 */
+			0x20820800, /* EMC_XM2DQSPADCTRL3 */
+			0x00000008, /* EMC_DLL_XFORM_DQ0 */
+			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
+			0x00000008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000909, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS1 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS2 */
-			0x007fc00a, /* EMC_DLL_XFORM_DQS3 */
-			0x00000009, /* EMC_DLL_XFORM_DQ1 */
-			0x00000009, /* EMC_DLL_XFORM_DQ2 */
-			0x00000009, /* EMC_DLL_XFORM_DQ3 */
+			0x00000008, /* EMC_DLL_XFORM_ADDR1 */
+			0x00000008, /* EMC_DLL_XFORM_ADDR2 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS1 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS2 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQS3 */
+			0x00000008, /* EMC_DLL_XFORM_DQ1 */
+			0x00000008, /* EMC_DLL_XFORM_DQ2 */
+			0x00000008, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00020000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x0000013f, /* MC_PTSA_GRANT_DECREMENT */
@@ -3942,32 +4239,36 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00140014, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x008a0041, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x008a008a, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			624000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
 		0x53200000, /* EMC_CFG */
 		0x80000b61, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
-		0x80200010, /* Mode Register 2 */
+		0x80200410, /* Mode Register 2 */
 		0x00000000, /* Mode Register 4 */
-		1440,       /* expected dvfs latency (ns) */
+		1230,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		792000,     /* SDRAM frequency */
 		1100,       /* min voltage */
 		"pll_m",    /* clock source id */
-		0x80000000, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x84000000, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
 			0x00000024, /* EMC_RC */
-			0x000000cd, /* EMC_RFC */
+			0x000000cc, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
 			0x00000019, /* EMC_RAS */
 			0x0000000a, /* EMC_RP */
-			0x00000009, /* EMC_R2W */
+			0x00000008, /* EMC_R2W */
 			0x0000000d, /* EMC_W2R */
 			0x00000004, /* EMC_R2P */
 			0x00000013, /* EMC_W2P */
@@ -3977,17 +4278,17 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000006, /* EMC_WDV */
-			0x00000006, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x0000000b, /* EMC_IBDLY */
-			0x000d000a, /* EMC_PUTERM_EXTRA */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x00000008, /* EMC_QRST */
-			0x00000014, /* EMC_RDV_MASK */
-			0x000017e4, /* EMC_REFRESH */
+			0x00000016, /* EMC_RDV_MASK */
+			0x000017e1, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x000005f9, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x000005f8, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000003, /* EMC_PDEX2WR */
-			0x00000012, /* EMC_PDEX2RD */
+			0x00000011, /* EMC_PDEX2RD */
 			0x00000001, /* EMC_PCHG2PDEN */
 			0x00000000, /* EMC_ACT2PDEN */
 			0x000000c6, /* EMC_AR2PDEN */
@@ -4001,21 +4302,21 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_TRPAB */
 			0x00000007, /* EMC_TCLKSTABLE */
 			0x00000008, /* EMC_TCLKSTOP */
-			0x00001825, /* EMC_TREFBW */
-			0x0000000a, /* EMC_QUSE_EXTRA */
-			0x80000020, /* EMC_ODT_WRITE */
+			0x00001822, /* EMC_TREFBW */
+			0x00000000, /* EMC_QUSE_EXTRA */
+			0x80000000, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
-			0x0000ba88, /* EMC_FBIO_CFG5 */
+			0x00005088, /* EMC_FBIO_CFG5 */
 			0xf0070191, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
 			0x00000008, /* EMC_DLL_XFORM_DQS4 */
 			0x00000008, /* EMC_DLL_XFORM_DQS5 */
 			0x00000008, /* EMC_DLL_XFORM_DQS6 */
 			0x00000008, /* EMC_DLL_XFORM_DQS7 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE4 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE5 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE6 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE7 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE4 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE5 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE6 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE7 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS4 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS5 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS6 */
@@ -4025,8 +4326,8 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x0000013d, /* EMC_XM2DQSPADCTRL2 */
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
-			0x81f1f508, /* EMC_XM2COMPPADCTRL */
-			0x07076604, /* EMC_XM2VTTGENPADCTRL */
+			0x81f1f108, /* EMC_XM2COMPPADCTRL */
+			0x07077504, /* EMC_XM2VTTGENPADCTRL */
 			0x00000000, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
@@ -4040,7 +4341,7 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
 			0x00000000, /* EMC_CTT */
 			0x00000000, /* EMC_CTT_DURATION */
-			0x80003018, /* EMC_DYN_SELF_REF_CONTROL */
+			0x80003012, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
 			0x0e00000b, /* MC_EMEM_ARB_CFG */
@@ -4061,70 +4362,71 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00170e13, /* MC_EMEM_ARB_DA_COVERS */
 			0x734c2414, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040000, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000006, /* EMC_FBIO_CFG6 */
-			0x0000000b, /* EMC_QUSE */
+			0x0000000a, /* EMC_QUSE */
 			0x00000008, /* EMC_EINPUT */
 			0x00000006, /* EMC_EINPUT_DURATION */
 			0x00000008, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000d, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE0 */
 			0x00000014, /* EMC_RDV */
 			0x00249249, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ0 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ0 */
 			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
-			0x00000008, /* EMC_DLL_XFORM_ADDR0 */
+			0x007fc008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000b0b, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
+			0x0000000b, /* EMC_DLL_XFORM_ADDR1 */
+			0x007fc008, /* EMC_DLL_XFORM_ADDR2 */
 			0x00000008, /* EMC_DLL_XFORM_DQS1 */
-			0x00000008, /* EMC_DLL_XFORM_DQS2 */
+			0x007fc008, /* EMC_DLL_XFORM_DQS2 */
 			0x00000008, /* EMC_DLL_XFORM_DQS3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ3 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ1 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ2 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
 			0x00000006, /* EMC_FBIO_CFG6 */
-			0x0000000b, /* EMC_QUSE */
+			0x0000000a, /* EMC_QUSE */
 			0x00000008, /* EMC_EINPUT */
 			0x00000006, /* EMC_EINPUT_DURATION */
 			0x00000008, /* EMC_DLL_XFORM_DQS0 */
 			0x0000000d, /* EMC_QSAFE */
-			0x00000000, /* EMC_DLL_XFORM_QUSE0 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE0 */
 			0x00000014, /* EMC_RDV */
 			0x00249249, /* EMC_XM2DQSPADCTRL4 */
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ0 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ0 */
 			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
-			0x00000008, /* EMC_DLL_XFORM_ADDR0 */
+			0x007fc008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000b0b, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
+			0x0000000b, /* EMC_DLL_XFORM_ADDR1 */
+			0x007fc008, /* EMC_DLL_XFORM_ADDR2 */
 			0x00000008, /* EMC_DLL_XFORM_DQS1 */
-			0x00000008, /* EMC_DLL_XFORM_DQS2 */
+			0x007fc008, /* EMC_DLL_XFORM_DQS2 */
 			0x00000008, /* EMC_DLL_XFORM_DQS3 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ1 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ2 */
-			0x0000000a, /* EMC_DLL_XFORM_DQ3 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ1 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ2 */
+			0x007fc00b, /* EMC_DLL_XFORM_DQ3 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS1 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS3 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE1 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE2 */
-			0x00000000, /* EMC_DLL_XFORM_QUSE3 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE1 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE2 */
+			0x00008000, /* EMC_DLL_XFORM_QUSE3 */
 		},
 		{
 			0x00000196, /* MC_PTSA_GRANT_DECREMENT */
@@ -4138,10 +4440,14 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00100010, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x006d0033, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x006d006d, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			792000,     /* SDRAM Frequency */
 		},
 		0x00000042, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
-		0x53200000, /* EMC_CFG */
+		0x53000000, /* EMC_CFG */
 		0x80000d71, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
 		0x80200418, /* Mode Register 2 */
@@ -4149,60 +4455,60 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 		1200,       /* expected dvfs latency (ns) */
 	},
 	{
-		0x41,       /* Rev 4.0.3 */
+		0x42,       /* Rev 4.0.3 */
 		924000,     /* SDRAM frequency */
-		1170,       /* min voltage */
+		1200,       /* min voltage */
 		"pll_m",    /* clock source id */
-		0x80000000, /* CLK_SOURCE_EMC */
-		99,         /* number of burst_regs */
+		0x84000000, /* CLK_SOURCE_EMC */
+		100,        /* number of burst_regs */
 		30,         /* number of trim_regs (each channel) */
 		11,         /* number of up_down_regs */
 		{
 			0x0000002b, /* EMC_RC */
-			0x000000f1, /* EMC_RFC */
+			0x000000ef, /* EMC_RFC */
 			0x00000000, /* EMC_RFC_SLR */
 			0x0000001e, /* EMC_RAS */
 			0x0000000b, /* EMC_RP */
-			0x00000009, /* EMC_R2W */
+			0x00000008, /* EMC_R2W */
 			0x0000000f, /* EMC_W2R */
 			0x00000005, /* EMC_R2P */
-			0x00000018, /* EMC_W2P */
+			0x00000016, /* EMC_W2P */
 			0x0000000b, /* EMC_RD_RCD */
 			0x0000000b, /* EMC_WR_RCD */
 			0x00000004, /* EMC_RRD */
 			0x00000001, /* EMC_REXT */
 			0x00000000, /* EMC_WEXT */
 			0x00000007, /* EMC_WDV */
-			0x00000007, /* EMC_WDV_MASK */
+			0x0000000f, /* EMC_WDV_MASK */
 			0x0000000d, /* EMC_IBDLY */
-			0x000f000c, /* EMC_PUTERM_EXTRA */
+			0x00010000, /* EMC_PUTERM_EXTRA */
 			0x00000000, /* EMC_CDB_CNTL_2 */
 			0x0000000a, /* EMC_QRST */
-			0x00000016, /* EMC_RDV_MASK */
-			0x00001c39, /* EMC_REFRESH */
+			0x00000018, /* EMC_RDV_MASK */
+			0x00001be7, /* EMC_REFRESH */
 			0x00000000, /* EMC_BURST_REFRESH_NUM */
-			0x0000070e, /* EMC_PRE_REFRESH_REQ_CNT */
+			0x000006f9, /* EMC_PRE_REFRESH_REQ_CNT */
 			0x00000004, /* EMC_PDEX2WR */
 			0x00000015, /* EMC_PDEX2RD */
 			0x00000001, /* EMC_PCHG2PDEN */
 			0x00000000, /* EMC_ACT2PDEN */
-			0x000000e8, /* EMC_AR2PDEN */
-			0x0000001d, /* EMC_RW2PDEN */
-			0x000000fd, /* EMC_TXSR */
+			0x000000e6, /* EMC_AR2PDEN */
+			0x0000001b, /* EMC_RW2PDEN */
+			0x000000fa, /* EMC_TXSR */
 			0x00000200, /* EMC_TXSRDLL */
 			0x00000006, /* EMC_TCKE */
 			0x00000006, /* EMC_TCKESR */
 			0x00000006, /* EMC_TPD */
-			0x00000026, /* EMC_TFAW */
+			0x00000025, /* EMC_TFAW */
 			0x00000000, /* EMC_TRPAB */
 			0x00000009, /* EMC_TCLKSTABLE */
 			0x0000000a, /* EMC_TCLKSTOP */
-			0x00001c7a, /* EMC_TREFBW */
+			0x00001c28, /* EMC_TREFBW */
 			0x00000000, /* EMC_QUSE_EXTRA */
-			0x80000020, /* EMC_ODT_WRITE */
+			0x80000000, /* EMC_ODT_WRITE */
 			0x00000000, /* EMC_ODT_READ */
 			0x00005088, /* EMC_FBIO_CFG5 */
-			0xf0030191, /* EMC_CFG_DIG_DLL */
+			0xf0040191, /* EMC_CFG_DIG_DLL */
 			0x00008000, /* EMC_CFG_DIG_DLL_PERIOD */
 			0x00000007, /* EMC_DLL_XFORM_DQS4 */
 			0x00000007, /* EMC_DLL_XFORM_DQS5 */
@@ -4221,25 +4527,25 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x0000013d, /* EMC_XM2DQSPADCTRL2 */
 			0x00000000, /* EMC_XM2DQPADCTRL2 */
 			0x77ffc085, /* EMC_XM2CLKPADCTRL */
-			0x81f1f508, /* EMC_XM2COMPPADCTRL */
+			0x81f1f108, /* EMC_XM2COMPPADCTRL */
 			0x07077504, /* EMC_XM2VTTGENPADCTRL */
 			0x00000000, /* EMC_XM2VTTGENPADCTRL2 */
 			0x0000003f, /* EMC_DSR_VTTGEN_DRV */
 			0x00000000, /* EMC_TXDSRVTTGEN */
 			0x02000000, /* EMC_FBIO_SPARE */
-			0x00000801, /* EMC_CTT_TERM_CTRL */
+			0x00000802, /* EMC_CTT_TERM_CTRL */
 			0x00020000, /* EMC_ZCAL_INTERVAL */
 			0x00000128, /* EMC_ZCAL_WAIT_CNT */
-			0x00cb000f, /* EMC_MRS_WAIT_CNT */
-			0x00cb000f, /* EMC_MRS_WAIT_CNT2 */
+			0x00ce000f, /* EMC_MRS_WAIT_CNT */
+			0x00ce000f, /* EMC_MRS_WAIT_CNT2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG2 */
 			0x00000000, /* EMC_AUTO_CAL_CONFIG3 */
-			0x00000004, /* EMC_CTT */
-			0x00000004, /* EMC_CTT_DURATION */
-			0x8000388a, /* EMC_DYN_SELF_REF_CONTROL */
+			0x00000000, /* EMC_CTT */
+			0x00000000, /* EMC_CTT_DURATION */
+			0x800037ea, /* EMC_DYN_SELF_REF_CONTROL */
 			0x1f7df7df, /* EMC_CA_TRAINING_TIMING_CNTL1 */
 			0x0000001f, /* EMC_CA_TRAINING_TIMING_CNTL2 */
-			0x0000000e, /* MC_EMEM_ARB_CFG */
+			0x0e00000d, /* MC_EMEM_ARB_CFG */
 			0x80000190, /* MC_EMEM_ARB_OUTSTANDING_REQ */
 			0x00000005, /* MC_EMEM_ARB_TIMING_RCD */
 			0x00000006, /* MC_EMEM_ARB_TIMING_RP */
@@ -4248,15 +4554,16 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x00000012, /* MC_EMEM_ARB_TIMING_FAW */
 			0x00000002, /* MC_EMEM_ARB_TIMING_RRD */
 			0x00000004, /* MC_EMEM_ARB_TIMING_RAP2PRE */
-			0x0000000f, /* MC_EMEM_ARB_TIMING_WAP2PRE */
+			0x0000000e, /* MC_EMEM_ARB_TIMING_WAP2PRE */
 			0x00000002, /* MC_EMEM_ARB_TIMING_R2R */
 			0x00000002, /* MC_EMEM_ARB_TIMING_W2W */
 			0x00000006, /* MC_EMEM_ARB_TIMING_R2W */
 			0x00000009, /* MC_EMEM_ARB_TIMING_W2R */
 			0x09060202, /* MC_EMEM_ARB_DA_TURNS */
-			0x001b1016, /* MC_EMEM_ARB_DA_COVERS */
-			0x734f2b17, /* MC_EMEM_ARB_MISC0 */
+			0x001a1016, /* MC_EMEM_ARB_DA_COVERS */
+			0x734e2a17, /* MC_EMEM_ARB_MISC0 */
 			0x001f0000, /* MC_EMEM_ARB_RING1_THROTTLE */
+			0x00040000, /* EMC_SEL_DPD_CTRL */
 		},
 		{
 			0x00000000, /* EMC_CDB_CNTL_1 */
@@ -4272,11 +4579,11 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
 			0x00004007, /* EMC_DLL_XFORM_DQ0 */
 			0xa0f10f0f, /* EMC_AUTO_CAL_CONFIG */
-			0x00000008, /* EMC_DLL_XFORM_ADDR0 */
+			0x00004008, /* EMC_DLL_XFORM_ADDR0 */
 			0x00000f0f, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
+			0x00004000, /* EMC_DLL_XFORM_ADDR1 */
+			0x00004000, /* EMC_DLL_XFORM_ADDR2 */
 			0x00000007, /* EMC_DLL_XFORM_DQS1 */
 			0x00000007, /* EMC_DLL_XFORM_DQS2 */
 			0x00000007, /* EMC_DLL_XFORM_DQS3 */
@@ -4304,11 +4611,11 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x10410400, /* EMC_XM2DQSPADCTRL3 */
 			0x00004007, /* EMC_DLL_XFORM_DQ0 */
 			0xa8f10f0f, /* EMC_AUTO_CAL_CONFIG */
-			0x00000008, /* EMC_DLL_XFORM_ADDR0 */
-			0x00000b0b, /* EMC_XM2CLKPADCTRL2 */
+			0x00004008, /* EMC_DLL_XFORM_ADDR0 */
+			0x00000f0f, /* EMC_XM2CLKPADCTRL2 */
 			0x00000000, /* EMC_DLI_TRIM_TXDQS0 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR1 */
-			0x00000000, /* EMC_DLL_XFORM_ADDR2 */
+			0x00004000, /* EMC_DLL_XFORM_ADDR1 */
+			0x00004000, /* EMC_DLL_XFORM_ADDR2 */
 			0x00000007, /* EMC_DLL_XFORM_DQS1 */
 			0x00000007, /* EMC_DLL_XFORM_DQS2 */
 			0x00000007, /* EMC_DLL_XFORM_DQS3 */
@@ -4334,11 +4641,15 @@ static struct tegra11_emc_table e1611_h5tc4g63afr_rda_T40T_table[] = {
 			0x000d000d, /* MC_LATENCY_ALLOWANCE_NV3 */
 			0x005d002c, /* MC_LATENCY_ALLOWANCE_EPP_0 */
 			0x005d005d, /* MC_LATENCY_ALLOWANCE_EPP_1 */
+			0x4E564441, /* System Verification tag */
+			0x04010700, /* Reg_tool Version */
+			0x02000100, /* DVFS_tool Version */
+			924000,     /* SDRAM Frequency */
 		},
-		0x0000004d, /* EMC_ZCAL_WAIT_CNT after clock change */
+		0x0000004c, /* EMC_ZCAL_WAIT_CNT after clock change */
 		0x001fffff, /* EMC_AUTO_CAL_INTERVAL */
 		0x53000000, /* EMC_CFG */
-		0x80000115, /* Mode Register 0 */
+		0x80000f15, /* Mode Register 0 */
 		0x80100002, /* Mode Register 1 */
 		0x80200420, /* Mode Register 2 */
 		0x00000000, /* Mode Register 4 */
@@ -8705,7 +9016,8 @@ static struct tegra11_emc_pdata *dalmore_get_emc_data(void)
 		(tegra_sku_id == 0x3 || tegra_sku_id == 0x4))
 		return &e1611_h5tc4g63afr_rda_T40T_pdata;
 	/* load T40S Table */
-	else if (board_info.board_id == BOARD_E1611 && tegra_sku_id == 0x5) {
+	else if (board_info.board_id == BOARD_E1611 &&
+		(tegra_sku_id == 0x5 || tegra_sku_id == 0x20)) {
 		if (tegra_get_memory_type())
 			return &e1611_h5tc4g63afr_rda_T40S_pdata;
 		else

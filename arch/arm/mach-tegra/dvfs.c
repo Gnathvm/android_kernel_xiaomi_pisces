@@ -5,7 +5,7 @@
  * Author:
  *	Colin Cross <ccross@google.com>
  *
- * Copyright (C) 2010-2011 NVIDIA Corporation.
+ * Copyright (C) 2010-2013 NVIDIA CORPORATION. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -77,6 +77,32 @@ void tegra_dvfs_add_relationships(struct dvfs_relationship *rels, int n)
 	mutex_unlock(&dvfs_lock);
 }
 
+/* Make sure there is a matching cooling device for thermal limit profile. */
+static void dvfs_validate_cdevs(struct dvfs_rail *rail)
+{
+	if (!rail->therm_mv_caps != !rail->therm_mv_caps_num) {
+		rail->therm_mv_caps_num = 0;
+		rail->therm_mv_caps = NULL;
+		WARN(1, "%s: not matching thermal caps/num\n", rail->reg_id);
+	}
+
+	if (rail->therm_mv_caps && !rail->vmax_cdev)
+		WARN(1, "%s: missing vmax cooling device\n", rail->reg_id);
+
+	if (!rail->therm_mv_floors != !rail->therm_mv_floors_num) {
+		rail->therm_mv_floors_num = 0;
+		rail->therm_mv_floors = NULL;
+		WARN(1, "%s: not matching thermal floors/num\n", rail->reg_id);
+	}
+
+	if (rail->therm_mv_floors && !rail->vmin_cdev)
+		WARN(1, "%s: missing vmin cooling device\n", rail->reg_id);
+
+	/* Limit override range to maximum floor */
+	if (rail->therm_mv_floors)
+		rail->min_override_millivolts = rail->therm_mv_floors[0];
+}
+
 int tegra_dvfs_init_rails(struct dvfs_rail *rails[], int n)
 {
 	int i, mv;
@@ -104,6 +130,8 @@ int tegra_dvfs_init_rails(struct dvfs_rail *rails[], int n)
 			rails[i]->step = rails[i]->max_millivolts;
 
 		list_add_tail(&rails[i]->node, &dvfs_rail_list);
+
+		dvfs_validate_cdevs(rails[i]);
 
 		if (!strcmp("vdd_cpu", rails[i]->reg_id))
 			tegra_cpu_rail = rails[i];
@@ -306,9 +334,11 @@ static inline int dvfs_rail_apply_limits(struct dvfs_rail *rail, int millivolts)
 {
 	int min_mv = rail->min_millivolts;
 
-	if (rail->pll_mode_cdev)
-		min_mv = max(min_mv, rail->thermal_idx ?
-			     0 : rail->min_millivolts_cold);
+	if (rail->therm_mv_floors) {
+		int i = rail->therm_floor_idx;
+		if (i < rail->therm_mv_floors_num)
+			min_mv = rail->therm_mv_floors[i];
+	}
 
 	if (rail->override_millivolts)
 		millivolts = rail->override_millivolts;
@@ -647,6 +677,7 @@ out:
 #else
 int tegra_dvfs_override_core_voltage(int override_mv)
 {
+	pr_err("%s: vdd core override is not supported\n", __func__);
 	return -ENOSYS;
 }
 #endif
@@ -1000,53 +1031,53 @@ int tegra_dvfs_dfll_mode_clear(struct dvfs *d, unsigned long rate)
 	return ret;
 }
 
-struct tegra_cooling_device *tegra_dvfs_get_cpu_dfll_cdev(void)
+struct tegra_cooling_device *tegra_dvfs_get_cpu_vmax_cdev(void)
 {
 	if (tegra_cpu_rail)
-		return tegra_cpu_rail->dfll_mode_cdev;
+		return tegra_cpu_rail->vmax_cdev;
 	return NULL;
 }
 
-struct tegra_cooling_device *tegra_dvfs_get_cpu_pll_cdev(void)
+struct tegra_cooling_device *tegra_dvfs_get_cpu_vmin_cdev(void)
 {
 	if (tegra_cpu_rail)
-		return tegra_cpu_rail->pll_mode_cdev;
+		return tegra_cpu_rail->vmin_cdev;
 	return NULL;
 }
 
-struct tegra_cooling_device *tegra_dvfs_get_core_cdev(void)
+struct tegra_cooling_device *tegra_dvfs_get_core_vmin_cdev(void)
 {
 	if (tegra_core_rail)
-		return tegra_core_rail->pll_mode_cdev;
+		return tegra_core_rail->vmin_cdev;
 	return NULL;
 }
 
 #ifdef CONFIG_THERMAL
 /* Cooling device limits minimum rail voltage at cold temperature in pll mode */
-static int tegra_dvfs_rail_get_cdev_max_state(
+static int tegra_dvfs_rail_get_vmin_cdev_max_state(
 	struct thermal_cooling_device *cdev, unsigned long *max_state)
 {
 	struct dvfs_rail *rail = (struct dvfs_rail *)cdev->devdata;
-	*max_state = rail->pll_mode_cdev->trip_temperatures_num;
+	*max_state = rail->vmin_cdev->trip_temperatures_num;
 	return 0;
 }
 
-static int tegra_dvfs_rail_get_cdev_cur_state(
+static int tegra_dvfs_rail_get_vmin_cdev_cur_state(
 	struct thermal_cooling_device *cdev, unsigned long *cur_state)
 {
 	struct dvfs_rail *rail = (struct dvfs_rail *)cdev->devdata;
-	*cur_state = rail->thermal_idx;
+	*cur_state = rail->therm_floor_idx;
 	return 0;
 }
 
-static int tegra_dvfs_rail_set_cdev_state(
+static int tegra_dvfs_rail_set_vmin_cdev_state(
 	struct thermal_cooling_device *cdev, unsigned long cur_state)
 {
 	struct dvfs_rail *rail = (struct dvfs_rail *)cdev->devdata;
 
 	mutex_lock(&dvfs_lock);
-	if (rail->thermal_idx != cur_state) {
-		rail->thermal_idx = cur_state;
+	if (rail->therm_floor_idx != cur_state) {
+		rail->therm_floor_idx = cur_state;
 		dvfs_rail_update(rail);
 	}
 	mutex_unlock(&dvfs_lock);
@@ -1054,25 +1085,25 @@ static int tegra_dvfs_rail_set_cdev_state(
 }
 
 static struct thermal_cooling_device_ops tegra_dvfs_rail_cooling_ops = {
-	.get_max_state = tegra_dvfs_rail_get_cdev_max_state,
-	.get_cur_state = tegra_dvfs_rail_get_cdev_cur_state,
-	.set_cur_state = tegra_dvfs_rail_set_cdev_state,
+	.get_max_state = tegra_dvfs_rail_get_vmin_cdev_max_state,
+	.get_cur_state = tegra_dvfs_rail_get_vmin_cdev_cur_state,
+	.set_cur_state = tegra_dvfs_rail_set_vmin_cdev_state,
 };
 
-static void tegra_dvfs_rail_register_pll_mode_cdev(struct dvfs_rail *rail)
+static void tegra_dvfs_rail_register_vmin_cdev(struct dvfs_rail *rail)
 {
-	if (!rail->pll_mode_cdev)
+	if (!rail->vmin_cdev)
 		return;
 
 	/* just report error - initialized for cold temperature, anyway */
 	if (IS_ERR_OR_NULL(thermal_cooling_device_register(
-		rail->pll_mode_cdev->cdev_type, (void *)rail,
+		rail->vmin_cdev->cdev_type, (void *)rail,
 		&tegra_dvfs_rail_cooling_ops)))
 		pr_err("tegra cooling device %s failed to register\n",
-		       rail->pll_mode_cdev->cdev_type);
+		       rail->vmin_cdev->cdev_type);
 }
 #else
-#define tegra_dvfs_rail_register_pll_mode_cdev(rail)
+#define tegra_dvfs_rail_register_vmin_cdev(rail)
 #endif
 
 /* Directly set cold temperature limit in dfll mode */
@@ -1080,16 +1111,23 @@ int tegra_dvfs_rail_dfll_mode_set_cold(struct dvfs_rail *rail)
 {
 	int ret = 0;
 
-#ifdef CONFIG_THERMAL
-	if (!rail || !rail->dfll_mode_cdev || !rail->min_millivolts_cold)
+	/* No thermal floors - nothing to do */
+	if (!rail || !rail->therm_mv_floors)
 		return ret;
 
+	/*
+	 * Since cooling thresholds are the same in pll and dfll modes, pll mode
+	 * thermal index can be used to decide if cold limit should be set in
+	 * dfll mode.
+	 */
 	mutex_lock(&dvfs_lock);
-	if (rail->dfll_mode)
-		ret = dvfs_rail_set_voltage_reg(
-			rail, rail->min_millivolts_cold);
+	if (rail->dfll_mode &&
+	    (rail->therm_floor_idx < rail->therm_mv_floors_num)) {
+			int mv = rail->therm_mv_floors[rail->therm_floor_idx];
+			ret = dvfs_rail_set_voltage_reg(rail, mv);
+	}
 	mutex_unlock(&dvfs_lock);
-#endif
+
 	return ret;
 }
 
@@ -1133,7 +1171,7 @@ int __init tegra_dvfs_late_init(void)
 	register_reboot_notifier(&tegra_dvfs_reboot_nb);
 
 	list_for_each_entry(rail, &dvfs_rail_list, node)
-		tegra_dvfs_rail_register_pll_mode_cdev(rail);
+		tegra_dvfs_rail_register_vmin_cdev(rail);
 
 	return 0;
 }
@@ -1208,6 +1246,8 @@ static int dvfs_tree_show(struct seq_file *s, void *data)
 	mutex_lock(&dvfs_lock);
 
 	list_for_each_entry(rail, &dvfs_rail_list, node) {
+		int thermal_mv_floor = 0;
+
 		seq_printf(s, "%s %d mV%s:\n", rail->reg_id, rail->millivolts,
 			   rail->dfll_mode ? " dfll mode" :
 				rail->disabled ? " disabled" : "");
@@ -1217,6 +1257,13 @@ static int dvfs_tree_show(struct seq_file *s, void *data)
 				dvfs_solve_relationship(rel));
 		}
 		seq_printf(s, "   offset     %-7d mV\n", rail->offs_millivolts);
+
+		if (rail->therm_mv_floors) {
+			int i = rail->therm_floor_idx;
+			if (i < rail->therm_mv_floors_num)
+				thermal_mv_floor = rail->therm_mv_floors[i];
+		}
+		seq_printf(s, "   thermal    %-7d mV\n", thermal_mv_floor);
 
 		if (rail == tegra_core_rail) {
 			seq_printf(s, "   override   %-7d mV [%-4d...%-4d]\n",

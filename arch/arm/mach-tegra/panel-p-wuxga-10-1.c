@@ -332,7 +332,7 @@ static int dsi_p_wuxga_10_1_enable(struct device *dev)
 	gpio_set_value(gpio_lcd_rst, 0);
 	msleep(150);
 	gpio_set_value(gpio_lcd_rst, 1);
-	msleep(1500);
+	msleep(20);
 #endif
 
 	return 0;
@@ -554,14 +554,14 @@ static int dsi_p_wuxga_10_1_bl_notify(struct device *unused, int brightness)
 {
 	int cur_sd_brightness = atomic_read(&sd_brightness);
 
+	/* SD brightness is a percentage */
+	brightness = (brightness * cur_sd_brightness) / 255;
+
 	/* Apply any backlight response curve */
 	if (brightness > 255)
 		pr_info("Error: Brightness > 255!\n");
 	else
 		brightness = dsi_p_wuxga_10_1_bl_output_measured[brightness];
-
-	/* SD brightness is a percentage */
-	brightness = (brightness * cur_sd_brightness) / 255;
 
 	return brightness;
 }
@@ -571,18 +571,26 @@ static int dsi_p_wuxga_10_1_check_fb(struct device *dev, struct fb_info *info)
 	return info->device == &disp_device->dev;
 }
 
+static int dsi_p_wuxga_10_1_display_init(struct device *dev)
+{
+	return atomic_read(&display_ready);
+}
+
 static struct platform_pwm_backlight_data dsi_p_wuxga_10_1_bl_data = {
 	.pwm_id		= 1,
 	.max_brightness	= 255,
 	.dft_brightness	= 224,
 	.pwm_period_ns	= 1000000,
 	.notify		= dsi_p_wuxga_10_1_bl_notify,
+	.edp_states = { 3950, 2950, 1850, 940, 750, 0},
+	.edp_brightness = {255, 213, 136, 73, 60, 0},
 	/* Only toggle backlight on fb blank notifications for disp1 */
 	.check_fb	= dsi_p_wuxga_10_1_check_fb,
+	.init = dsi_p_wuxga_10_1_display_init,
 };
 
 static struct platform_device __maybe_unused
-		dsi_p_wuxga_10_1_bl_device __initdata = {
+		dsi_p_wuxga_10_1_bl_device = {
 	.name	= "pwm-backlight",
 	.id	= -1,
 	.dev	= {

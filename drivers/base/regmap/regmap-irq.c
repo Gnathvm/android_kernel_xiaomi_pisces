@@ -122,12 +122,14 @@ static int regmap_irq_set_wake(struct irq_data *data, unsigned int on)
 		return -EINVAL;
 
 	if (on) {
-		d->wake_buf[irq_data->reg_offset / map->reg_stride]
-			&= ~irq_data->mask;
+		if (d->wake_buf)
+			d->wake_buf[irq_data->reg_offset / map->reg_stride]
+				&= ~irq_data->mask;
 		d->wake_count++;
 	} else {
-		d->wake_buf[irq_data->reg_offset / map->reg_stride]
-			|= irq_data->mask;
+		if (d->wake_buf)
+			d->wake_buf[irq_data->reg_offset / map->reg_stride]
+				|= irq_data->mask;
 		d->wake_count--;
 	}
 

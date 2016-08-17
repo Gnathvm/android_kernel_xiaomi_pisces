@@ -1,7 +1,7 @@
 /*
  * drivers/video/tegra/camera/camera_clk.c
  *
- * Copyright (C) 2013 Nvidia Corp
+ * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -14,7 +14,13 @@
  *
  */
 
+#include <mach/latency_allowance.h>
 #include "camera_clk.h"
+
+#define BPP_YUV422 16UL
+#define BPP_YUV420_Y 8UL
+#define BPP_YUV420_U 2UL
+#define BPP_YUV420_V 2UL
 
 int tegra_camera_enable_clk(struct tegra_camera *camera)
 {
@@ -37,11 +43,20 @@ int tegra_camera_disable_clk(struct tegra_camera *camera)
 }
 
 int tegra_camera_init_clk(struct tegra_camera *camera,
-		struct clock_data *clock_init)
+	struct clock_data *clock_init)
 {
 	int i;
-	for (i = 0; i < CAMERA_CLK_MAX; i++)
+	for (i = 0; i < CAMERA_CLK_MAX; i++) {
 		camera->clock[clock_init[i].index].on = clock_init[i].init;
+		/*
+		 * clock_init[i].freq is initial clock frequency to set.
+		 * If it is zero, then skip it. It can be set again through
+		 * IOCTL.
+		 */
+		if (clock_init[i].freq)
+			clk_set_rate(camera->clock[clock_init[i].index].clk,
+				clock_init[i].freq);
+	}
 	return 0;
 }
 
@@ -97,23 +112,19 @@ int tegra_camera_clk_set_rate(struct tegra_camera *camera)
 #ifndef CONFIG_ARCH_TEGRA_2x_SOC
 		{
 			/*
-			 * User space assumes that HW emc controller is 4
-			 * byte-wide DDR controller.
-			 * Emc bandwidth needs to be calcaluated using input emc
-			 * freq first, and then real emc freq will
-			 * be calculated using tegra_emc API.
-			 * tegra_emc_bw_to_freq_req takes HW difference
-			 * into consideration.
-			 * bw param in tegra_emc_bw_to_freq_req() is in KHz.
+			 * When emc_clock is set through TEGRA_CAMERA_EMC_CLK,
+			 * info->rate has peak memory bandwidth in Bps.
 			 */
-			unsigned long bw = (info->rate * 8) >> 10;
+			unsigned long bw = info->rate / 1000;
 #ifdef CONFIG_ARCH_TEGRA_11x_SOC
 			int ret = 0;
 #endif
-			dev_dbg(camera->dev, "%s: emc_clk rate=%lu\n",
-				__func__, info->rate);
-			clk_set_rate(clk,
-					tegra_emc_bw_to_freq_req(bw) << 10);
+
+			dev_dbg(camera->dev, "%s: bw=%lu\n",
+				__func__, bw);
+
+			clk_set_rate(clk, tegra_emc_bw_to_freq_req(bw) * 1000);
+
 #ifdef CONFIG_ARCH_TEGRA_11x_SOC
 			/*
 			 * There is no way to figure out what latency
@@ -125,12 +136,20 @@ int tegra_camera_clk_set_rate(struct tegra_camera *camera)
 			ret = tegra_isomgr_reserve(camera->isomgr_handle,
 					bw,	/* KB/sec */
 					4);	/* usec */
-			if (!ret)
+			if (!ret) {
+				dev_err(camera->dev,
+				"%s: failed to reserve %lu KBps\n",
+				__func__, bw);
 				return -ENOMEM;
+			}
 
 			ret = tegra_isomgr_realize(camera->isomgr_handle);
-			if (!ret)
+			if (!ret) {
+				dev_err(camera->dev,
+				"%s: failed to realize %lu KBps\n",
+				__func__, bw);
 				return -ENOMEM;
+			}
 #endif
 		}
 #endif
@@ -200,6 +219,7 @@ int tegra_camera_clk_set_rate(struct tegra_camera *camera)
 			tegra_clk_cfg_ex(camera->clock[CAMERA_PLL_D2_CLK].clk,
 						TEGRA_CLK_PLLD_DSI_OUT_ENB, 0);
 		}
+		tegra_camera_set_latency_allowance(camera, parent_div_rate_pre);
 #endif
 	}
 
@@ -207,5 +227,52 @@ set_rate_end:
 	info->rate = clk_get_rate(clk);
 	dev_dbg(camera->dev, "%s: get_rate=%lu",
 			__func__, info->rate);
+	return 0;
+}
+
+unsigned int tegra_camera_get_max_bw(struct tegra_camera *camera)
+{
+	unsigned long max_bw = 0;
+
+	if (!camera->clock[CAMERA_VI_CLK].clk) {
+		dev_err(camera->dev, "%s: no vi clock", __func__);
+		return -EFAULT;
+	}
+
+	/*
+	 * Peak memory bandwidth is calculated as follows.
+	 * BW = max(VI clock) * (2BPP + 1.5BPP)
+	 * Preview port has 2BPP and video port has 1.5BPP.
+	 * max_bw is KBps.
+	 */
+	max_bw = ((clk_round_rate(camera->clock[CAMERA_VI_CLK].clk, UINT_MAX) >>
+			10)*7) >> 1;
+	dev_dbg(camera->dev, "%s: max_bw = %lu", __func__, max_bw);
+
+	return (unsigned int)max_bw;
+}
+
+int tegra_camera_set_latency_allowance(struct tegra_camera *camera,
+	unsigned long vi_freq)
+{
+	/*
+	 * Assumption is that preview port has YUV422 and video port has
+	 * YUV420. Preview port may have Bayer format which has 10 bit per
+	 * pixel. Even if preview port has Bayer format, setting latency
+	 * allowance with YUV422 format should be OK because BPP of YUV422 is
+	 * higher than BPP of Bayer.
+	 * When this function gets called, video format is not programmed yet.
+	 * That's why we have to assume video format here rather than reading
+	 * them from registers.
+	 */
+	tegra_set_latency_allowance(TEGRA_LA_VI_WSB,
+		((vi_freq / 1000000UL) * BPP_YUV422) / 8UL);
+	tegra_set_latency_allowance(TEGRA_LA_VI_WU,
+		((vi_freq / 1000000UL) * BPP_YUV420_U) / 8UL);
+	tegra_set_latency_allowance(TEGRA_LA_VI_WV,
+		((vi_freq / 1000000UL) * BPP_YUV420_V) / 8UL);
+	tegra_set_latency_allowance(TEGRA_LA_VI_WY,
+		((vi_freq / 1000000UL) * BPP_YUV420_Y) / 8UL);
+
 	return 0;
 }

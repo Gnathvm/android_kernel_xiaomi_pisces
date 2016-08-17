@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2011, NVIDIA Corporation.
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -39,10 +39,21 @@ struct tegra_dtv_hw_config {
 	int valid_pol;      /*< VALID pin polarity */
 };
 
+struct tegra_dtv_profile {
+	unsigned int bufsize;     /*< SIZE of buffer */
+	unsigned int bufnum;      /*< COUNT of buffer */
+	unsigned int cpuboost;    /*< FREQUENC to boost up CPU */
+	unsigned int bitrate;     /*< BITRATE of stream */
+};
+
 #define TEGRA_DTV_IOCTL_SET_HW_CONFIG  _IOW(TEGRA_DTV_MAGIC, 2,		\
 					   const struct tegra_dtv_hw_config *)
 #define TEGRA_DTV_IOCTL_GET_HW_CONFIG  _IOR(TEGRA_DTV_MAGIC, 3,		\
 					   struct tegra_dtv_hw_config *)
+#define TEGRA_DTV_IOCTL_GET_PROFILE _IOR(TEGRA_DTV_MAGIC, 4,		\
+					 struct tegra_dtv_profile *)
+#define TEGRA_DTV_IOCTL_SET_PROFILE _IOW(TEGRA_DTV_MAGIC, 5,		\
+					  const struct tegra_dtv_profile *)
 
 /**
  * clock edge settings for clk_edge
@@ -116,19 +127,5 @@ enum {
 	TEGRA_DTV_VALID_POLARITY_HIGH = 0,
 	TEGRA_DTV_VALID_POLARITY_LOW,
 };
-
-#ifdef __KERNEL__
-enum {
-	TEGRA_DTV_CLK_POSEDGE,
-	TEGRA_DTV_CLK_NEGEDGE,
-};
-
-struct tegra_dtv_platform_data {
-	unsigned int dma_buf_size;
-	int clk_edge;
-	bool byte_swz_enabled;
-	bool bit_swz_enabled;
-};
-#endif /* __KERNEL__ */
 
 #endif /* __TEGRA_DTV_H__ */

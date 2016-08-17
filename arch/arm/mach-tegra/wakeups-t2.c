@@ -1,15 +1,19 @@
 /*
  * Copyright (c) 2011, Google, Inc.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
  * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
  * more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <linux/kernel.h>
@@ -22,6 +26,7 @@
 #include <mach/irqs.h>
 
 #include "gpio-names.h"
+#include "pm-irq.h"
 
 /* TODO: We could populate the other table from this one at runtime
  * instead of always searching twice */
@@ -110,18 +115,20 @@ int tegra_gpio_to_wake(int gpio)
 	return -EINVAL;
 }
 
-int tegra_irq_to_wake(int irq)
+void tegra_irq_to_wake(int irq, int *wak_list, int *wak_size)
 {
 	int i;
-	int ret = -EINVAL;
 
+	*wak_size = 0;
 	for (i = 0; i < ARRAY_SIZE(tegra_wake_event_irq); i++) {
 		if (tegra_wake_event_irq[i] == irq) {
 			pr_info("Wake %d for irq=%d\n", i, irq);
-			ret = i;
-			goto out;
+			wak_list[*wak_size] = i;
+			*wak_size = *wak_size + 1;
 		}
 	}
+	if (*wak_size)
+		goto out;
 
 	/* The gpio set_wake code bubbles the set_wake call up to the irq
 	 * set_wake code. This insures that the nested irq set_wake call
@@ -136,11 +143,12 @@ int tegra_irq_to_wake(int irq)
 
 	if (tegra_gpio_get_bank_int_nr(tegra_gpio_wakes[last_gpio]) == irq) {
 		pr_info("gpio bank wake found: wake %d for irq=%d\n", i, irq);
-		ret = last_gpio;
+		wak_list[*wak_size] = last_gpio;
+		*wak_size = 1;
 	}
 
 out:
-	return ret;
+	return;
 }
 
 int tegra_wake_to_irq(int wake)
