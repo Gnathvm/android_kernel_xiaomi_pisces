@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-dalmore-sdhci.c
  *
- * Copyright (c) 2010, Google, Inc.
+ * Copyright (C) 2010 Google, Inc.
  * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -43,6 +43,7 @@
 #define DALMORE_WLAN_RST	TEGRA_GPIO_PX7
 #define DALMORE_WLAN_WOW	TEGRA_GPIO_PU5
 #define DALMORE_SD_CD		TEGRA_GPIO_PV2
+#define DALMORE_SD_WP		TEGRA_GPIO_PQ4
 static void (*wifi_status_cb)(int card_present, void *dev_id);
 static void *wifi_status_cb_devid;
 static int dalmore_wifi_status_register(void (*callback)(int , void *), void *);
@@ -151,18 +152,20 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.ddr_clk_limit = 41000000,
 	.max_clk_limit = 82000000,
 	.uhs_mask = MMC_UHS_MASK_DDR50,
+	.edp_support = false,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 	.cd_gpio = DALMORE_SD_CD,
-	.wp_gpio = -1,
+	.wp_gpio = DALMORE_SD_WP,
 	.power_gpio = -1,
 	.tap_delay = 0x3,
 	.trim_delay = 0x3,
 	.ddr_clk_limit = 41000000,
 	.max_clk_limit = 82000000,
-	.sd_detect_in_suspend = 1,
 	.uhs_mask = MMC_UHS_MASK_DDR50,
+	.edp_support = true,
+	.edp_states = {966, 0},
 	.power_off_rail = true,
 };
 
@@ -172,13 +175,16 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.power_gpio = -1,
 	.is_8bit = 1,
 	.tap_delay = 0x5,
-	.trim_delay = 0,
+	.trim_delay = 0xA,
 	.ddr_clk_limit = 41000000,
 	.max_clk_limit = 156000000,
 	.mmc_data = {
 		.built_in = 1,
 		.ocr_mask = MMC_OCR_1V8_MASK,
 	},
+	.edp_support = true,
+	.edp_states = {966, 0},
+	.en_freq_scaling = true,
 };
 
 static struct platform_device tegra_sdhci_device0 = {
@@ -392,11 +398,13 @@ int __init dalmore_sdhci_init(void)
 {
 	int nominal_core_mv;
 	int min_vcore_override_mv;
+	struct board_info board_info;
 
 	nominal_core_mv =
 		tegra_dvfs_rail_get_nominal_millivolts(tegra_core_rail);
 	if (nominal_core_mv) {
 		tegra_sdhci_platform_data0.nominal_vcore_mv = nominal_core_mv;
+		tegra_sdhci_platform_data2.nominal_vcore_mv = nominal_core_mv;
 		tegra_sdhci_platform_data3.nominal_vcore_mv = nominal_core_mv;
 	}
 	min_vcore_override_mv =
@@ -404,10 +412,22 @@ int __init dalmore_sdhci_init(void)
 	if (min_vcore_override_mv) {
 		tegra_sdhci_platform_data0.min_vcore_override_mv =
 			min_vcore_override_mv;
+		tegra_sdhci_platform_data2.min_vcore_override_mv =
+			min_vcore_override_mv;
 		tegra_sdhci_platform_data3.min_vcore_override_mv =
 			min_vcore_override_mv;
 	}
-
+	if ((tegra_sdhci_platform_data3.uhs_mask & MMC_MASK_HS200)
+		&& (!(tegra_sdhci_platform_data3.uhs_mask &
+		MMC_UHS_MASK_DDR50)))
+		tegra_sdhci_platform_data3.trim_delay = 0;
+	tegra_get_board_info(&board_info);
+	if (board_info.fab == BOARD_FAB_A05) {
+		tegra_sdhci_platform_data0.max_clk_limit = 156000000;
+		tegra_sdhci_platform_data0.en_freq_scaling = true;
+		tegra_sdhci_platform_data2.wp_gpio = -1;
+		tegra_sdhci_platform_data2.max_clk_limit = 156000000;
+	}
 	platform_device_register(&tegra_sdhci_device3);
 	platform_device_register(&tegra_sdhci_device2);
 	platform_device_register(&tegra_sdhci_device0);

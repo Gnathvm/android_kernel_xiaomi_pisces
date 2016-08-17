@@ -256,14 +256,14 @@ static int __maybe_unused dsi_l_720p_5_bl_notify(struct device *unused,
 {
 	int cur_sd_brightness = atomic_read(&sd_brightness);
 
+	/* SD brightness is a percentage */
+	brightness = (brightness * cur_sd_brightness) / 255;
+
 	/* Apply any backlight response curve */
 	if (brightness > 255)
 		pr_info("Error: Brightness > 255!\n");
 	else
 		brightness = dsi_l_720p_5_bl_response_curve[brightness];
-
-	/* SD brightness is a percentage */
-	brightness = (brightness * cur_sd_brightness) / 255;
 
 	return brightness;
 }
@@ -562,22 +562,22 @@ static struct tegra_dsi_cmd dsi_l_720p_5_init_cmd[] = {
 
 	/* panel power control 2 */
 	DSI_CMD_SHORT(DSI_GENERIC_SHORT_WRITE_2_PARAMS, 0xc2, 0x02),
-	DSI_DLY_MS(20),
+	DSI_DLY_MS(15),
 
 	/* panel power control 2 */
 	DSI_CMD_SHORT(DSI_GENERIC_SHORT_WRITE_2_PARAMS, 0xc2, 0x06),
-	DSI_DLY_MS(20),
+	DSI_DLY_MS(15),
 
 	/* panel power control 2 */
 	DSI_CMD_SHORT(DSI_GENERIC_SHORT_WRITE_2_PARAMS, 0xc2, 0x4e),
-	DSI_DLY_MS(100),
+	DSI_DLY_MS(85),
 
 	DSI_CMD_SHORT(DSI_DCS_WRITE_0_PARAM, DSI_DCS_EXIT_SLEEP_MODE, 0x0),
-	DSI_DLY_MS(20),
+	DSI_DLY_MS(15),
 
 	/* panel OTP 2 */
 	DSI_CMD_SHORT(DSI_GENERIC_SHORT_WRITE_2_PARAMS, 0xf9, 0x80),
-	DSI_DLY_MS(20),
+	DSI_DLY_MS(15),
 
 	DSI_CMD_SHORT(DSI_DCS_WRITE_0_PARAM, DSI_DCS_SET_DISPLAY_ON, 0x0),
 };

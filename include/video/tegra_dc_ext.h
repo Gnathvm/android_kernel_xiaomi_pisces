@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011, NVIDIA Corporation
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION, All rights reserved.
  *
  * Author: Robert Morell <rmorell@nvidia.com>
  * Some code based on fbdev extensions written by:
@@ -28,6 +28,7 @@
 # include <unistd.h>
 #endif
 
+/* pixformat - color format */
 #define TEGRA_DC_EXT_FMT_P1		0
 #define TEGRA_DC_EXT_FMT_P2		1
 #define TEGRA_DC_EXT_FMT_P4		2
@@ -50,6 +51,22 @@
 #define TEGRA_DC_EXT_FMT_YUV422R	23
 #define TEGRA_DC_EXT_FMT_YCbCr422RA	24
 #define TEGRA_DC_EXT_FMT_YUV422RA	25
+/* color format type field is 8-bits */
+#define TEGRA_DC_EXT_FMT_SHIFT		0
+#define TEGRA_DC_EXT_FMT_MASK		(0xff << TEGRA_DC_EXT_FMT_SHIFT)
+
+/* pixformat - byte order options ( w x y z ) */
+#define TEGRA_DC_EXT_FMT_BYTEORDER_NOSWAP	(0 << 8) /* ( 3 2 1 0 ) */
+#define TEGRA_DC_EXT_FMT_BYTEORDER_SWAP2	(1 << 8) /* ( 2 3 0 1 ) */
+#define TEGRA_DC_EXT_FMT_BYTEORDER_SWAP4	(2 << 8) /* ( 0 1 2 3 ) */
+#define TEGRA_DC_EXT_FMT_BYTEORDER_SWAP4HW	(3 << 8) /* ( 1 0 3 2 ) */
+/* the next two are not available on T30 or earlier */
+#define TEGRA_DC_EXT_FMT_BYTEORDER_SWAP02	(4 << 8) /* ( 3 0 1 2 ) */
+#define TEGRA_DC_EXT_FMT_BYTEORDER_SWAPLEFT	(5 << 8) /* ( 2 1 0 3 ) */
+/* byte order field is 4-bits */
+#define TEGRA_DC_EXT_FMT_BYTEORDER_SHIFT	8
+#define TEGRA_DC_EXT_FMT_BYTEORDER_MASK		\
+		(0x0f << TEGRA_DC_EXT_FMT_BYTEORDER_SHIFT)
 
 #define TEGRA_DC_EXT_BLEND_NONE		0
 #define TEGRA_DC_EXT_BLEND_PREMULT	1
@@ -122,8 +139,14 @@ struct tegra_dc_ext_flip {
  *		  0	   1	foreground color
  * - Exactly one of the SIZE flags must be specified.
  */
-#define TEGRA_DC_EXT_CURSOR_IMAGE_FLAGS_SIZE_32x32	1
-#define TEGRA_DC_EXT_CURSOR_IMAGE_FLAGS_SIZE_64x64	2
+
+#define TEGRA_DC_EXT_CURSOR_IMAGE_FLAGS_SIZE_32x32	((1 & 0x7) << 0)
+#define TEGRA_DC_EXT_CURSOR_IMAGE_FLAGS_SIZE_64x64	((2 & 0x7) << 0)
+#define TEGRA_DC_EXT_CURSOR_IMAGE_FLAGS_SIZE_128x128	((3 & 0x7) << 0)
+#define TEGRA_DC_EXT_CURSOR_IMAGE_FLAGS_SIZE_256x256	((4 & 0x7) << 0)
+#define TEGRA_DC_EXT_CURSOR_IMAGE_FLAGS_SIZE(x)		(((x) & 0x7) >> 0)
+#define TEGRA_DC_EXT_CURSOR_FLAGS_2BIT_LEGACY		(0 << 16)
+#define TEGRA_DC_EXT_CURSOR_FLAGS_RGBA_NORMAL		(1 << 16)
 struct tegra_dc_ext_cursor_image {
 	struct {
 		__u8	r;
@@ -135,7 +158,7 @@ struct tegra_dc_ext_cursor_image {
 };
 
 /* Possible flags for struct nvdc_cursor's flags field */
-#define TEGRA_DC_EXT_CURSOR_FLAGS_VISIBLE	1
+#define TEGRA_DC_EXT_CURSOR_FLAGS_VISIBLE	(1 << 0)
 
 struct tegra_dc_ext_cursor {
 	__s16 x;

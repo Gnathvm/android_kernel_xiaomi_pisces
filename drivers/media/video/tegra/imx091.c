@@ -44,6 +44,7 @@
 #define IMX091_LENS_VIEW_ANGLE_V	60400 /* / _INT2FLOAT_DIVISOR */
 #define IMX091_WAIT_MS 3
 #define IMX091_I2C_TABLE_MAX_ENTRIES	400
+#define IMX091_FUSE_ID_SIZE		8
 
 static u16 imx091_ids[] = {
 	0x0091,
@@ -88,6 +89,7 @@ struct imx091_info {
 	struct dentry *debugfs_root;
 	u16	i2c_reg;
 #endif
+	struct nvc_fuseid fuse_id;
 };
 
 struct imx091_reg {
@@ -747,11 +749,11 @@ static struct imx091_mode_data imx091_4208x3120 = {
 		.region_start_y		= 0,
 		.x_scale		= 1,
 		.y_scale		= 1,
-		.bracket_caps		= 1,
-		.flush_count		= 2,
+		.bracket_caps		= 0,
+		.flush_count		= 0,
 		.init_intra_frame_skip	= 0,
-		.ss_intra_frame_skip	= 2,
-		.ss_frame_number	= 3,
+		.ss_intra_frame_skip	= 0,
+		.ss_frame_number	= 0,
 		.coarse_time		= 0x0C53,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
@@ -790,11 +792,11 @@ static struct imx091_mode_data imx091_1948x1096 = {
 		.region_start_y		= 0,
 		.x_scale		= 1,
 		.y_scale		= 1,
-		.bracket_caps		= 1,
-		.flush_count		= 2,
+		.bracket_caps		= 0,
+		.flush_count		= 0,
 		.init_intra_frame_skip	= 0,
-		.ss_intra_frame_skip	= 2,
-		.ss_frame_number	= 3,
+		.ss_intra_frame_skip	= 0,
+		.ss_frame_number	= 0,
 	.coarse_time		= 0x08A1,
 	.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
@@ -833,11 +835,11 @@ static struct imx091_mode_data imx091_1308x736 = {
 		.region_start_y		= 0,
 		.x_scale		= 1,
 		.y_scale		= 1,
-		.bracket_caps		= 1,
-		.flush_count		= 2,
+		.bracket_caps		= 0,
+		.flush_count		= 0,
 		.init_intra_frame_skip	= 0,
-		.ss_intra_frame_skip	= 2,
-		.ss_frame_number	= 3,
+		.ss_intra_frame_skip	= 0,
+		.ss_frame_number	= 0,
 		.coarse_time		= 0x0448,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
@@ -876,11 +878,11 @@ static struct imx091_mode_data imx091_2104x1560 = {
 		.region_start_y		= 0,
 		.x_scale		= 1,
 		.y_scale		= 1,
-		.bracket_caps		= 1,
-		.flush_count		= 2,
+		.bracket_caps		= 0,
+		.flush_count		= 0,
 		.init_intra_frame_skip	= 0,
-		.ss_intra_frame_skip	= 2,
-		.ss_frame_number	= 3,
+		.ss_intra_frame_skip	= 0,
+		.ss_frame_number	= 0,
 		.coarse_time		= 0x0653,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
@@ -919,11 +921,11 @@ static struct imx091_mode_data imx091_524x390 = {
 		.region_start_y		= 0,
 		.x_scale		= 1,
 		.y_scale		= 1,
-		.bracket_caps		= 1,
-		.flush_count		= 2,
+		.bracket_caps		= 0,
+		.flush_count		= 0,
 		.init_intra_frame_skip	= 0,
-		.ss_intra_frame_skip	= 2,
-		.ss_frame_number	= 3,
+		.ss_intra_frame_skip	= 0,
+		.ss_frame_number	= 0,
 		.coarse_time		= 0x0191,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
@@ -1122,48 +1124,6 @@ static void imx091_edp_lowest(struct imx091_info *info)
 		dev_err(&info->i2c_client->dev,
 			"UNABLE TO SET LOWEST EDP STATE!\n");
 	}
-}
-
-static void imx091_edp_register(struct imx091_info *info)
-{
-	struct edp_manager *edp_manager;
-	struct edp_client *edpc = &info->pdata->edpc_config;
-	int ret;
-
-	info->edpc = NULL;
-	if (!edpc->num_states) {
-		dev_warn(&info->i2c_client->dev,
-			"%s: NO edp states defined.\n", __func__);
-		return;
-	}
-
-	strncpy(edpc->name, "imx091", EDP_NAME_LEN - 1);
-	edpc->name[EDP_NAME_LEN - 1] = 0;
-	edpc->private_data = info;
-
-	dev_dbg(&info->i2c_client->dev, "%s: %s, e0 = %d, p %d\n",
-		__func__, edpc->name, edpc->e0_index, edpc->priority);
-	for (ret = 0; ret < edpc->num_states; ret++)
-		dev_dbg(&info->i2c_client->dev, "e%d = %d mA",
-			ret - edpc->e0_index, edpc->states[ret]);
-
-	edp_manager = edp_get_manager("battery");
-	if (!edp_manager) {
-		dev_err(&info->i2c_client->dev,
-			"unable to get edp manager: battery\n");
-		return;
-	}
-
-	ret = edp_register_client(edp_manager, edpc);
-	if (ret) {
-		dev_err(&info->i2c_client->dev,
-			"unable to register edp client\n");
-		return;
-	}
-
-	info->edpc = edpc;
-	/* set to lowest state at init */
-	imx091_edp_lowest(info);
 }
 
 static int imx091_edp_req(struct imx091_info *info, unsigned new_state)
@@ -1545,8 +1505,15 @@ static void imx091_gpio_init(struct imx091_info *info)
 			 info->pdata->num, imx091_gpios[i].label);
 		err = gpio_request_one(info->gpio[type].gpio, flags, label);
 		if (err) {
-			dev_err(&info->i2c_client->dev, "%s ERR %s %u\n",
+			if (err & -EBUSY) {
+				dev_info(&info->i2c_client->dev,
+				"%s INFO %s %u\n",
 				__func__, label, info->gpio[type].gpio);
+			} else {
+				dev_err(&info->i2c_client->dev,
+				"%s ERR %s %u\n",
+				__func__, label, info->gpio[type].gpio);
+			}
 		} else {
 			info->gpio[type].own = true;
 			dev_dbg(&info->i2c_client->dev, "%s %s %u\n",
@@ -1611,6 +1578,7 @@ static int imx091_pm_wr(struct imx091_info *info, int pwr)
 {
 	int ret;
 	int err = 0;
+	u16 val;
 
 	if ((info->pdata->cfg & (NVC_CFG_OFF2STDBY | NVC_CFG_BOOT_INIT)) &&
 			(pwr == NVC_PWR_OFF ||
@@ -1649,6 +1617,8 @@ static int imx091_pm_wr(struct imx091_info *info, int pwr)
 		ret &= !imx091_gpio_reset(info, 1);
 		if (ret) /* if no reset && pwrdn changed states then delay */
 			msleep(IMX091_STARTUP_DELAY_MS);
+		if (err > 0)
+			err = imx091_i2c_rd16(info, IMX091_ID_ADDRESS, &val);
 		break;
 
 	default:
@@ -2312,6 +2282,27 @@ static int imx091_param_wr(struct imx091_info *info, unsigned long arg)
 	}
 }
 
+static int imx091_get_fuse_id(struct imx091_info *info)
+{
+	int ret, i;
+
+	if (info->fuse_id.size)
+		return 0;
+
+	ret = imx091_i2c_wr8(info, 0x34C9, 0x10);
+
+	for (i = 0; i < IMX091_FUSE_ID_SIZE ; i++) {
+		ret |= imx091_i2c_rd8(info,
+				0x3580 + i,
+				&info->fuse_id.data[i]);
+	}
+
+	if (!ret)
+		info->fuse_id.size = i;
+
+	return ret;
+}
+
 static long imx091_ioctl(struct file *file,
 			 unsigned int cmd,
 			 unsigned long arg)
@@ -2328,6 +2319,22 @@ static long imx091_ioctl(struct file *file,
 	int err;
 
 	switch (cmd) {
+	case NVC_IOCTL_FUSE_ID:
+		err = imx091_get_fuse_id(info);
+
+		if (err) {
+			pr_err("%s %d %d\n", __func__, __LINE__, err);
+			return err;
+		}
+		if (copy_to_user((void __user *)arg,
+				&info->fuse_id,
+				sizeof(struct nvc_fuseid))) {
+			pr_err("%s: %d: fail copy fuse id to user space\n",
+				__func__, __LINE__);
+			return -EFAULT;
+		}
+		return 0;
+
 	case NVC_IOCTL_PARAM_WR:
 		err = imx091_param_wr(info, arg);
 		return err;
@@ -2756,6 +2763,61 @@ err_out:
 	return -ENOMEM;
 }
 #endif
+
+static void imx091_edp_throttle(unsigned int new_state, void *priv_data)
+{
+	struct imx091_info *info = priv_data;
+
+	imx091_gpio_pwrdn(info, 1);
+	imx091_vreg_dis_all(info);
+	imx091_gpio_able(info, 0);
+	imx091_gpio_reset(info, 0);
+	info->mode_valid = false;
+	info->bin_en = 0;
+}
+
+static void imx091_edp_register(struct imx091_info *info)
+{
+	struct edp_manager *edp_manager;
+	struct edp_client *edpc = &info->pdata->edpc_config;
+	int ret;
+
+	info->edpc = NULL;
+	if (!edpc->num_states) {
+		dev_info(&info->i2c_client->dev,
+			"%s: NO edp states defined.\n", __func__);
+		return;
+	}
+
+	strncpy(edpc->name, "imx091", EDP_NAME_LEN - 1);
+	edpc->name[EDP_NAME_LEN - 1] = 0;
+	edpc->private_data = info;
+	edpc->throttle = imx091_edp_throttle;
+
+	dev_dbg(&info->i2c_client->dev, "%s: %s, e0 = %d, p %d\n",
+		__func__, edpc->name, edpc->e0_index, edpc->priority);
+	for (ret = 0; ret < edpc->num_states; ret++)
+		dev_dbg(&info->i2c_client->dev, "e%d = %d mA",
+			ret - edpc->e0_index, edpc->states[ret]);
+
+	edp_manager = edp_get_manager("battery");
+	if (!edp_manager) {
+		dev_err(&info->i2c_client->dev,
+			"unable to get edp manager: battery\n");
+		return;
+	}
+
+	ret = edp_register_client(edp_manager, edpc);
+	if (ret) {
+		dev_err(&info->i2c_client->dev,
+			"unable to register edp client\n");
+		return;
+	}
+
+	info->edpc = edpc;
+	/* set to lowest state at init */
+	imx091_edp_lowest(info);
+}
 
 static int imx091_probe(
 	struct i2c_client *client,

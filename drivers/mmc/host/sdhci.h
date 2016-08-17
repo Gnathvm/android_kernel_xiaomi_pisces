@@ -4,7 +4,7 @@
  * Header file for Host Controller registers and I/O accessors.
  *
  *  Copyright (C) 2005-2008 Pierre Ossman, All Rights Reserved.
- *  Copyright (c) 2013 NVIDIA Corporation, All Rights Reserved.
+ *  Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -285,10 +285,13 @@ struct sdhci_ops {
 	void	(*switch_signal_voltage_exit)(struct sdhci_host *host);
 	int	(*suspend)(struct sdhci_host *host);
 	int	(*resume)(struct sdhci_host *host);
-	int	(*execute_freq_tuning)(struct sdhci_host *sdhci,
-		u32 opcode);
+	int	(*execute_freq_tuning)(struct sdhci_host *sdhci, u32 opcode);
 	int	(*get_tuning_counter)(struct sdhci_host *sdhci);
 	int	(*sd_error_stats)(struct sdhci_host *host, u32 int_status);
+	int	(*dfs_gov_init)(struct sdhci_host *host);
+	void	(*dfs_gov_exit)(struct sdhci_host *host);
+	unsigned long	(*dfs_gov_get_target_freq)(struct sdhci_host *host,
+		struct devfreq_dev_status *dev_status);
 };
 
 #ifdef CONFIG_MMC_SDHCI_IO_ACCESSORS

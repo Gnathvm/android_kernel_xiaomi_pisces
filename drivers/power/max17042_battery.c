@@ -140,6 +140,7 @@ static void max17042_set_reg(struct i2c_client *client,
 }
 
 static enum power_supply_property max17042_battery_props[] = {
+	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
@@ -156,24 +157,24 @@ static enum power_supply_property max17042_battery_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 };
 
-int maxim_get_temp()
+int maxim_get_temp(int *deci_celsius)
 {
-	int ret = 0xff;
-	if (temp_client != NULL) {
-		ret = max17042_read_reg(temp_client, MAX17042_TEMP);
-		if (ret < 0)
-			return ret;
+	int ret = -ENODEV;
+	s16 temp;
 
-		/* The value is signed. */
-		if (ret & 0x8000) {
-			ret = (0x7fff & ~ret) + 1;
-			ret *= -1;
-		}
-		/* The value is converted into deci-centigrade scale */
-		/* Units of LSB = 1 / 256 degree Celsius */
-		ret = ret * 10 / 256;
-	}
-	return ret;
+	*deci_celsius = -2732;
+	if (temp_client == NULL)
+		return ret;
+
+	ret = max17042_read_reg(temp_client, MAX17042_TEMP);
+	if (ret < 0)
+		return ret;
+
+	temp = ret & 0xFFFF;
+	/* The value is converted into deci-centigrade scale */
+	/* Units of LSB = 1 / 256 degree Celsius */
+	*deci_celsius = temp * 10 / 256;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(maxim_get_temp);
 
@@ -207,6 +208,9 @@ static int max17042_get_property(struct power_supply *psy,
 		return -EAGAIN;
 
 	switch (psp) {
+	case POWER_SUPPLY_PROP_TECHNOLOGY:
+		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
+		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		ret = max17042_read_reg(chip->client, MAX17042_STATUS);
 		if (ret < 0)
@@ -933,6 +937,7 @@ static int __devinit max17042_probe(struct i2c_client *client,
 	struct max17042_chip *chip;
 	int ret;
 	int reg;
+	int temp;
 
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_WORD_DATA))
 		return -EIO;
@@ -1016,11 +1021,16 @@ static int __devinit max17042_probe(struct i2c_client *client,
 	}
 
 	/* Check for battery presence */
-	ret = maxim_get_temp();
-	if (ret == 0xff) {
-		dev_err(&client->dev, "failed in reading temperaure\n");
+	ret = maxim_get_temp(&temp);
+	if (ret < 0) {
+		dev_err(&client->dev, "failed reading temperaure: %d\n", ret);
 		return -ENODEV;
-	} else if ((ret < MIN_TEMP) || (ret > MAX_TEMP)) {
+	} else if ((temp < MIN_TEMP) || (temp > MAX_TEMP)) {
+		dev_err(&client->dev, "Battery temperaure abnormal, exit\n");
+		return -ENODEV;
+	}
+
+	if (!chip->pdata->is_battery_present) {
 		dev_err(&client->dev, "Battery not detected exiting driver\n");
 		return -ENODEV;
 	}

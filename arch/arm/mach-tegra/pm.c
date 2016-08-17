@@ -3,7 +3,7 @@
  *
  * CPU complex suspend & resume functions for Tegra SoCs
  *
- * Copyright (c) 2009-2012, NVIDIA Corporation.
+ * Copyright (c) 2009-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -123,6 +123,7 @@ static u64 resume_time;
 static u64 resume_entry_time;
 static u64 suspend_time;
 static u64 suspend_entry_time;
+static u64 suspend_end_time;
 #endif
 
 struct suspend_context tegra_sctx;
@@ -136,6 +137,8 @@ struct suspend_context tegra_sctx;
 #define TEGRA_POWER_CPU_PWRREQ_POLARITY (1 << 15)  /* CPU power request polarity */
 #define TEGRA_POWER_CPU_PWRREQ_OE	(1 << 16)  /* CPU power request enable */
 #define TEGRA_POWER_CPUPWRGOOD_EN	(1 << 19)  /* CPU power good enable */
+
+#define TEGRA_DPAD_ORIDE_SYS_CLK_REQ	(1 << 21)
 
 #define PMC_CTRL		0x0
 #define PMC_CTRL_LATCH_WAKEUPS	(1 << 5)
@@ -248,11 +251,13 @@ void tegra_log_resume_time(void)
 void tegra_log_suspend_time(void)
 {
 	suspend_entry_time = readl(tmrus_reg_base + TIMERUS_CNTR_1US);
+	suspend_end_time = 0;
 }
 
 static void tegra_get_suspend_time(void)
 {
-	u64 suspend_end_time;
+	if (suspend_end_time)
+		return;
 	suspend_end_time = readl(tmrus_reg_base + TIMERUS_CNTR_1US);
 
 	if (suspend_entry_time > suspend_end_time)
@@ -647,7 +652,10 @@ unsigned int tegra_idle_power_down_last(unsigned int sleep_time,
 	 * are in LP2 state and irqs are disabled
 	 */
 	if (flags & TEGRA_POWER_CLUSTER_MASK) {
-		trace_nvcpu_cluster(NVPOWER_CPU_CLUSTER_START);
+		if (is_idle_task(current))
+			trace_nvcpu_cluster_rcuidle(NVPOWER_CPU_CLUSTER_START);
+		else
+			trace_nvcpu_cluster(NVPOWER_CPU_CLUSTER_START);
 		set_power_timers(pdata->cpu_timer, 2,
 			clk_get_rate_all_locked(tegra_pclk));
 		if (flags & TEGRA_POWER_CLUSTER_G) {
@@ -758,6 +766,13 @@ unsigned int tegra_idle_power_down_last(unsigned int sleep_time,
 	return remain;
 }
 
+#ifdef CONFIG_TEGRA_LP1_LOW_COREVOLTAGE
+int tegra_is_lp1_suspend_mode(void)
+{
+	return (current_suspend_mode == TEGRA_SUSPEND_LP1);
+}
+#endif
+
 static int tegra_common_suspend(void)
 {
 	void __iomem *mc = IO_ADDRESS(TEGRA_MC_BASE);
@@ -765,6 +780,19 @@ static int tegra_common_suspend(void)
 	tegra_sctx.mc[0] = readl(mc + MC_SECURITY_START);
 	tegra_sctx.mc[1] = readl(mc + MC_SECURITY_SIZE);
 	tegra_sctx.mc[2] = readl(mc + MC_SECURITY_CFG2);
+
+#ifdef CONFIG_TEGRA_LP1_LOW_COREVOLTAGE
+	if (pdata && pdata->lp1_lowvolt_support) {
+		u32 lp1_core_lowvolt =
+			(tegra_is_voice_call_active() ||
+			tegra_dvfs_rail_get_thermal_floor(tegra_core_rail)) ?
+			pdata->lp1_core_volt_low_cold << 8 :
+			pdata->lp1_core_volt_low << 8;
+
+		lp1_core_lowvolt |= pdata->core_reg_addr;
+		memcpy(tegra_lp1_register_core_lowvolt(), &lp1_core_lowvolt, 4);
+	}
+#endif
 
 	/* copy the reset vector and SDRAM shutdown code into IRAM */
 	memcpy(iram_save, iram_code, iram_save_size);
@@ -940,10 +968,18 @@ static void tegra_suspend_check_pwr_stats(void)
 	for (partid = 0; partid < TEGRA_NUM_POWERGATE; partid++)
 		if ((1 << partid) & pwrgate_partid_mask)
 			if (tegra_powergate_is_powered(partid))
-				pr_warning("partition %s is left on before suspend\n",
+				pr_info("partition %s is left on before suspend\n",
 					tegra_powergate_get_name(partid));
 
 	return;
+}
+
+static void tegra_suspend_powergate_control(int partid, bool turn_off)
+{
+	if (turn_off)
+		tegra_powergate_partition(partid);
+	else
+		tegra_unpowergate_partition(partid);
 }
 
 int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
@@ -951,6 +987,7 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 	int err = 0;
 	u32 scratch37 = 0xDEADBEEF;
 	u32 reg;
+	bool tegra_suspend_vde_powergated = false;
 
 	if (WARN_ON(mode <= TEGRA_SUSPEND_NONE ||
 		mode >= TEGRA_MAX_SUSPEND_MODE)) {
@@ -974,6 +1011,15 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 
 	if ((mode == TEGRA_SUSPEND_LP0) || (mode == TEGRA_SUSPEND_LP1))
 		tegra_suspend_check_pwr_stats();
+
+	/* turn off VDE partition in LP1 */
+	if (mode == TEGRA_SUSPEND_LP1 &&
+		tegra_powergate_is_powered(TEGRA_POWERGATE_VDEC)) {
+		pr_info("turning off partition %s in LP1\n",
+			tegra_powergate_get_name(TEGRA_POWERGATE_VDEC));
+		tegra_suspend_powergate_control(TEGRA_POWERGATE_VDEC, true);
+		tegra_suspend_vde_powergated = true;
+	}
 
 	tegra_common_suspend();
 
@@ -1089,6 +1135,13 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 	local_fiq_enable();
 
 	tegra_common_resume();
+
+	/* turn on VDE partition in LP1 */
+	if (mode == TEGRA_SUSPEND_LP1 && tegra_suspend_vde_powergated) {
+		pr_info("turning on partition %s in LP1\n",
+			tegra_powergate_get_name(TEGRA_POWERGATE_VDEC));
+		tegra_suspend_powergate_control(TEGRA_POWERGATE_VDEC, false);
+	}
 
 fail:
 	return err;
@@ -1327,7 +1380,7 @@ out:
 		plat->suspend_mode = TEGRA_SUSPEND_LP2;
 	}
 
-#ifdef CONFIG_TEGRA_LP1_950
+#ifdef CONFIG_TEGRA_LP1_LOW_COREVOLTAGE
 	if (pdata->lp1_lowvolt_support) {
 		u32 lp1_core_lowvolt, lp1_core_highvolt;
 		memcpy(tegra_lp1_register_pmuslave_addr(), &pdata->pmuslave_addr, 4);
@@ -1380,6 +1433,12 @@ out:
 	if (!pdata->combined_req)
 		reg |= TEGRA_POWER_PWRREQ_OE;
 	pmc_32kwritel(reg, PMC_CTRL);
+
+	if (pdata->sysclkreq_gpio) {
+		reg = readl(pmc + PMC_DPAD_ORIDE);
+		reg &= ~TEGRA_DPAD_ORIDE_SYS_CLK_REQ;
+		pmc_32kwritel(reg, PMC_DPAD_ORIDE);
+	}
 
 	if (pdata->suspend_mode == TEGRA_SUSPEND_LP0)
 		tegra_lp0_suspend_init();

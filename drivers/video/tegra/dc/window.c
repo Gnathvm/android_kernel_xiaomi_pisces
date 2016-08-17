@@ -132,8 +132,6 @@ static void tegra_dc_blend_parallel(struct tegra_dc *dc,
 				DC_CMD_DISPLAY_WINDOW_HEADER);
 		tegra_dc_writel(dc, BLEND(NOKEY, FIX, 0xff, 0xff),
 				DC_WIN_BLEND_NOKEY);
-		tegra_dc_writel(dc, BLEND(NOKEY, FIX, 0xff, 0xff),
-				DC_WIN_BLEND_1WIN);
 		tegra_dc_writel(dc, blend_2win(idx, mask, blend->flags, 0,
 				win_num), DC_WIN_BLEND_2WIN_X);
 		tegra_dc_writel(dc, blend_2win(idx, mask, blend->flags, 1,
@@ -324,6 +322,7 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 	bool update_blend_par = false;
 	bool update_blend_seq = false;
 	int i;
+	struct tegra_dc_win *all_wins[DC_N_WINDOWS];
 
 	dc = windows[0]->dc;
 	trace_update_windows(dc);
@@ -356,6 +355,7 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 
 	for (i = 0; i < n; i++) {
 		struct tegra_dc_win *win = windows[i];
+		struct tegra_dc_win *dc_win = tegra_dc_get_window(dc, win->idx);
 		bool scan_column = 0;
 		fixed20_12 h_offset, v_offset;
 		bool invert_h = (win->flags & TEGRA_WIN_FLAG_INVERT_H) != 0;
@@ -390,14 +390,16 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 		if (!no_vsync)
 			update_mask |= WIN_A_ACT_REQ << win->idx;
 
-		if (!WIN_IS_ENABLED(win)) {
-			dc->windows[i].dirty = 1;
+		if (!WIN_IS_ENABLED(win) || !win->phys_addr) {
+			dc_win->dirty = no_vsync ? 0 : 1;
 			tegra_dc_writel(dc, 0, DC_WIN_WIN_OPTIONS);
 			continue;
 		}
 
-		tegra_dc_writel(dc, win->fmt & 0x1f, DC_WIN_COLOR_DEPTH);
-		tegra_dc_writel(dc, win->fmt >> 6, DC_WIN_BYTE_SWAP);
+		tegra_dc_writel(dc, tegra_dc_fmt(win->fmt),
+			DC_WIN_COLOR_DEPTH);
+		tegra_dc_writel(dc, tegra_dc_fmt_byteorder(win->fmt),
+			DC_WIN_BYTE_SWAP);
 
 		tegra_dc_writel(dc,
 			V_POSITION(win->out_y) | H_POSITION(win->out_x),
@@ -485,6 +487,20 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 			win_options |= CP_ENABLE;
 		}
 #endif
+		if (!tegra_dc_feature_is_gen2_blender(dc, win->idx)) {
+			if (win->flags &
+					TEGRA_WIN_FLAG_BLEND_COVERAGE) {
+				tegra_dc_writel(dc,
+					BLEND(NOKEY, ALPHA, 0xff, 0xff),
+					DC_WIN_BLEND_1WIN);
+			} else {
+				/* global_alpha is 255 if not in use */
+				tegra_dc_writel(dc,
+					BLEND(NOKEY, FIX, win->global_alpha,
+						win->global_alpha),
+					DC_WIN_BLEND_1WIN);
+			}
+		}
 
 		if (win->ppflags & TEGRA_WIN_PPFLAG_CP_ENABLE)
 			win_options |= CP_ENABLE;
@@ -494,7 +510,7 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 
 		tegra_dc_writel(dc, win_options, DC_WIN_WIN_OPTIONS);
 
-		win->dirty = no_vsync ? 0 : 1;
+		dc_win->dirty = no_vsync ? 0 : 1;
 
 		trace_window_update(dc, win);
 	}
@@ -511,7 +527,10 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 		}
 	}
 
-	tegra_dc_set_dynamic_emc(windows, n);
+	/* Consider all windows while calculating emc bandwidth requirement */
+	for (i = 0; i < DC_N_WINDOWS; i++)
+		all_wins[i] = &(dc->windows[i]);
+	tegra_dc_set_dynamic_emc(all_wins, DC_N_WINDOWS);
 
 	tegra_dc_writel(dc, update_mask << 8, DC_CMD_STATE_CONTROL);
 

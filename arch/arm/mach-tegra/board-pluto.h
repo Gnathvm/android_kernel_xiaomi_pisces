@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-pluto.h
  *
- * Copyright (c) 2012, NVIDIA Corporation.
+ * Copyright (c) 2012-2013, NVIDIA CORPORATION. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -25,6 +25,9 @@
 #include <linux/mfd/palmas.h>
 #include <linux/mfd/max77665.h>
 #include "gpio-names.h"
+#include <linux/thermal.h>
+#include <linux/platform_data/thermal_sensors.h>
+#include "tegra11_soctherm.h"
 
 /* External peripheral act as gpio */
 /* PALMAS GPIO */
@@ -38,9 +41,12 @@
 #define TEGRA_GPIO_INT_MIC_EN		-1
 #define TEGRA_GPIO_EXT_MIC_EN		-1
 
+#define TEGRA_SOC_OC_IRQ_BASE		TEGRA_NR_IRQS
+#define TEGRA_SOC_OC_NUM_IRQ		TEGRA_SOC_OC_IRQ_MAX
+
 /* External peripheral act as interrupt controller */
 /* PLUTO IRQs */
-#define PALMAS_TEGRA_IRQ_BASE	TEGRA_NR_IRQS
+#define PALMAS_TEGRA_IRQ_BASE	(TEGRA_SOC_OC_IRQ_BASE + TEGRA_SOC_OC_NUM_IRQ)
 #define MAX77665_TEGRA_IRQ_BASE	(PALMAS_TEGRA_IRQ_BASE + PALMAS_NUM_IRQ)
 
 /* AIC326X IRQs */
@@ -83,7 +89,7 @@
 #define MPU_COMPASS_IRQ_GPIO	0
 #define MPU_COMPASS_ADDR	0x0D
 #define MPU_COMPASS_BUS_NUM	0
-#define MPU_COMPASS_ORIENTATION	{ 0, 1, 0, -1, 0, 0, 0, 0, 1 }
+#define MPU_COMPASS_ORIENTATION	{ -1, 0, 0, 0, -1, 0, 0, 0, 1 }
 
 /* Modem1 related GPIOs */
 #define MDM_RST				TEGRA_GPIO_PR3
@@ -98,6 +104,12 @@
 #define MDM2_REQ2			TEGRA_GPIO_PV1
 #define MDM2_ACK2			TEGRA_GPIO_PO3
 
+/* Modem2 related GPIOs (for Pluto Rev A02 only) */
+#define MDM2_PWR_ON_FOR_PLUTO_A02	TEGRA_GPIO_PR6
+					/* If Pluto A03 or later, use PX1 */
+
+/* OEM1 Modem related GPIOs */
+
 #define BB_OEM1_GPIO_RST		TEGRA_GPIO_PR5
 #define BB_OEM1_GPIO_ON			TEGRA_GPIO_PR6
 #define BB_OEM1_GPIO_ON_V		TEGRA_GPIO_PX1
@@ -105,6 +117,21 @@
 #define BB_OEM1_GPIO_CWR		TEGRA_GPIO_PV1
 #define BB_OEM1_GPIO_SPARE		TEGRA_GPIO_PO2
 #define BB_OEM1_GPIO_WDI		TEGRA_GPIO_PV0
+
+/* OEM2 Modem related GPIOs */
+
+#define XMM_GPIO_BB_ON			MDM2_PWR_ON /* AP -> BB */
+				/* E1193 Rev B7: pin 55 = MDM_PWRON_AP2BB */
+#define XMM_GPIO_BB_RST			MDM2_RST /* AP -> BB */
+				/* E1193 Rev B7: pin 53 = RESET_AP2BB* */
+#define XMM_GPIO_IPC_HSIC_ACTIVE	MDM2_ACK2 /* AP -> BB */
+				/* E1193 Rev B7: pin 46 = HS2_AP2BB */
+#define XMM_GPIO_IPC_HSIC_SUS_REQ	MDM2_REQ2 /* BB -> AP */
+				/* E1193 Rev B7: pin 41 = HS2_BB2AP */
+#define XMM_GPIO_IPC_BB_WAKE		MDM2_ACK1 /* AP -> BB */
+				/* E1193 Rev B7: pin 45 = HS1_AP2BB */
+#define XMM_GPIO_IPC_AP_WAKE		MDM2_REQ1 /* BB -> AP */
+				/* E1193 Rev B7: pin 43 = HS1_BB2AP */
 
 int pluto_regulator_init(void);
 int pluto_suspend_init(void);
@@ -118,6 +145,9 @@ int pluto_kbc_init(void);
 int pluto_baseband_init(void);
 int pluto_pmon_init(void);
 int pluto_soctherm_init(void);
+void pluto_sysedp_init(void);
+void pluto_sysedp_core_init(void);
+void pluto_sysedp_psydepl_init(void);
 
 /* PCA954x I2C bus expander bus addresses */
 #define PCA954x_I2C_BUS_BASE	5

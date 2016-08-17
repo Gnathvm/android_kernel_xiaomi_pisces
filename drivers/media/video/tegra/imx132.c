@@ -1,15 +1,19 @@
 /*
  * imx132.c - imx132 sensor driver
  *
- * Copyright (c) 2012, NVIDIA, All Rights Reserved.
- *
- * Contributors:
- *      Krupal Divvela <kdivvela@nvidia.com>
- *
- *
- * This file is licensed under the terms of the GNU General Public License
- * version 2. This program is licensed "as is" without any warranty of any
- * kind, whether express or implied.
+ * Copyright (c) 2012 - 2013, NVIDIA CORPORATION.  All rights reserved.
+
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
+
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <linux/delay.h>
@@ -20,9 +24,15 @@
 #include <linux/uaccess.h>
 #include <linux/regulator/consumer.h>
 #include <media/imx132.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+#include <linux/of_gpio.h>
+#include <media/nvc.h>
 #include <linux/gpio.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
+
+#define IMX132_SIZEOF_I2C_BUF 16
 
 struct imx132_reg {
 	u16 addr;
@@ -33,7 +43,7 @@ struct imx132_info {
 	struct miscdevice		miscdev_info;
 	int				mode;
 	struct imx132_power_rail	power;
-	struct imx132_sensordata	sensor_data;
+	struct nvc_fuseid		fuse_id;
 	struct i2c_client		*i2c_client;
 	struct imx132_platform_data	*pdata;
 	atomic_t			in_use;
@@ -41,9 +51,8 @@ struct imx132_info {
 
 #define IMX132_TABLE_WAIT_MS 0
 #define IMX132_TABLE_END 1
-
 #define IMX132_WAIT_MS 5
-
+#define IMX132_FUSE_ID_SIZE 8
 
 static struct imx132_reg mode_1976x1200[] = {
 	/* Stand by */
@@ -257,6 +266,18 @@ imx132_write_reg(struct i2c_client *client, u16 addr, u8 val)
 	return err;
 }
 
+static int imx132_i2c_wr_blk(struct i2c_client *client, u8 *buf, int len)
+{
+	struct i2c_msg msg;
+	msg.addr = client->addr;
+	msg.flags = 0;
+	msg.len = len;
+	msg.buf = buf;
+	if (i2c_transfer(client->adapter, &msg, 1) != 1)
+		return -EIO;
+	return 0;
+}
+
 static int
 imx132_write_table(struct i2c_client *client,
 			 const struct imx132_reg table[],
@@ -264,9 +285,11 @@ imx132_write_table(struct i2c_client *client,
 			 int num_override_regs)
 {
 	int err;
+	u8 i2c_transfer_buf[IMX132_SIZEOF_I2C_BUF];
 	const struct imx132_reg *next;
-	int i;
-	u16 val;
+	const struct imx132_reg *n_next;
+	u8 *b_ptr = i2c_transfer_buf;
+	u16 buf_count = 0;
 
 	for (next = table; next->addr != IMX132_TABLE_END; next++) {
 		if (next->addr == IMX132_TABLE_WAIT_MS) {
@@ -274,28 +297,31 @@ imx132_write_table(struct i2c_client *client,
 			continue;
 		}
 
-		val = next->val;
-
-		/*
-		 * When an override list is passed in, replace the reg
-		 * value to write if the reg is in the list
-		 */
-		if (override_list) {
-			for (i = 0; i < num_override_regs; i++) {
-				if (next->addr == override_list[i].addr) {
-					val = override_list[i].val;
-					break;
-				}
-			}
+		if (!buf_count) {
+			b_ptr = i2c_transfer_buf;
+			*b_ptr++ = next->addr >> 8;
+			*b_ptr++ = next->addr & 0xFF;
+			buf_count = 2;
 		}
+		*b_ptr++ = next->val;
+		buf_count++;
+		n_next = next + 1;
+		if ((n_next->addr == next->addr + 1) &&
+			(n_next->addr != IMX132_TABLE_WAIT_MS) &&
+			(buf_count < IMX132_SIZEOF_I2C_BUF) &&
+			(n_next->addr != IMX132_TABLE_END))
+				continue;
 
-		err = imx132_write_reg(client, next->addr, val);
+		err = imx132_i2c_wr_blk(client, i2c_transfer_buf, buf_count);
 		if (err) {
-			dev_err(&client->dev, "%s:imx132_write_table:%d",
-				__func__, err);
+			pr_err("%s:imx132_write_table:%d", __func__, err);
 			return err;
 		}
+
+		buf_count = 0;
+
 	}
+
 	return 0;
 }
 
@@ -311,7 +337,7 @@ imx132_set_mode(struct imx132_info *info, struct imx132_mode *mode)
 		__func__, mode->xres, mode->yres,
 		mode->frame_length, mode->coarse_time, mode->gain);
 
-	if (mode->xres == 1976 && mode->yres == 1200)
+	if ((mode->xres == 1976) && (mode->yres == 1200))
 		sensor_mode = IMX132_MODE_1976X1200;
 	else {
 		dev_err(dev, "%s: invalid resolution to set mode %d %d\n",
@@ -484,13 +510,13 @@ imx132_set_group_hold(struct imx132_info *info, struct imx132_ae *ae)
 	return 0;
 }
 
-static int imx132_get_sensor_id(struct imx132_info *info)
+static int imx132_get_fuse_id(struct imx132_info *info)
 {
 	int ret = 0;
 	int i;
 	u8 bak = 0;
 
-	if (info->sensor_data.fuse_id_size)
+	if (info->fuse_id.size)
 		return 0;
 
 	/*
@@ -499,13 +525,13 @@ static int imx132_get_sensor_id(struct imx132_info *info)
 	 */
 
 	ret |= imx132_write_reg(info->i2c_client, 0x34C9, 0x10);
-	for (i = 0; i < NUM_OF_SENSOR_ID_SPECIFIC_REG ; i++) {
+	for (i = 0; i < IMX132_FUSE_ID_SIZE ; i++) {
 		ret |= imx132_read_reg(info->i2c_client, 0x3580 + i, &bak);
-		info->sensor_data.fuse_id[i] = bak;
+		info->fuse_id.data[i] = bak;
 	}
 
 	if (!ret)
-		info->sensor_data.fuse_id_size = i;
+		info->fuse_id.size = i;
 
 	return ret;
 }
@@ -551,9 +577,9 @@ imx132_ioctl(struct file *file,
 		}
 		return 0;
 	}
-	case IMX132_IOCTL_GET_SENSORDATA:
+	case IMX132_IOCTL_GET_FUSEID:
 	{
-		err = imx132_get_sensor_id(info);
+		err = imx132_get_fuse_id(info);
 
 		if (err) {
 			dev_err(dev, "%s:Failed to get fuse id info.\n",
@@ -561,8 +587,8 @@ imx132_ioctl(struct file *file,
 			return err;
 		}
 		if (copy_to_user((void __user *)arg,
-				&info->sensor_data,
-				sizeof(struct imx132_sensordata))) {
+				&info->fuse_id,
+				sizeof(struct nvc_fuseid))) {
 			dev_info(dev, "%s:Fail copy fuse id to user space\n",
 				__func__);
 			return -EFAULT;
@@ -669,7 +695,7 @@ static int imx132_power_get(struct imx132_info *info)
 	struct imx132_power_rail *pw = &info->power;
 
 	imx132_regulator_get(info, &pw->dvdd, "vdig"); /* digital 1.2v */
-	imx132_regulator_get(info, &pw->avdd, "vana"); /* analog 2.7v */
+	imx132_regulator_get(info, &pw->avdd, "vana_imx132"); /* analog 2.7v */
 	imx132_regulator_get(info, &pw->iovdd, "vif"); /* interface 1.8v */
 
 	return 0;
@@ -739,6 +765,7 @@ imx132_remove(struct i2c_client *client)
 
 static const struct i2c_device_id imx132_id[] = {
 	{ "imx132", 0 },
+	{ }
 };
 
 MODULE_DEVICE_TABLE(i2c, imx132_id);

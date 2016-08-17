@@ -381,7 +381,7 @@ int tegra_usb_phy_power_off(struct tegra_usb_phy *phy)
 		 * support through OTG is supported on the board.
 		 */
 		if (phy->pdata->u_data.dev.vbus_pmu_irq &&
-			phy->pdata->builtin_host_disabled) {
+			phy->pdata->id_det_type == TEGRA_USB_VIRTUAL_ID) {
 			tegra_clk_disable_unprepare(phy->ctrlr_clk);
 			phy->ctrl_clk_on = false;
 			if (phy->vdd_reg && phy->vdd_reg_on) {
@@ -836,3 +836,10 @@ fail_inval:
 	return ERR_PTR(err);
 }
 EXPORT_SYMBOL_GPL(tegra_usb_phy_open);
+
+void tegra_usb_phy_pmc_disable(struct tegra_usb_phy *phy)
+{
+	if (phy->ops && phy->ops->pmc_disable)
+		phy->ops->pmc_disable(phy);
+}
+EXPORT_SYMBOL_GPL(tegra_usb_phy_pmc_disable);

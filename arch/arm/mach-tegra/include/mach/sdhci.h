@@ -55,7 +55,10 @@ struct tegra_sdhci_platform_data {
 	unsigned int uhs_mask;
 	unsigned int sd_detect_in_suspend;
 	struct mmc_platform_data mmc_data;
+	bool edp_support;
+	unsigned int edp_states[SD_EDP_NUM_STATES];
 	bool power_off_rail;
+	bool en_freq_scaling;
 };
 
 #endif

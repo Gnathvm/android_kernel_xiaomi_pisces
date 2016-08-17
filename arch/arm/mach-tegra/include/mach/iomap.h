@@ -2,7 +2,7 @@
  * arch/arm/mach-tegra/include/mach/iomap.h
  *
  * Copyright (C) 2010 Google, Inc.
- * Copyright (C) 2011-2012, NVIDIA Corporation.
+ * Copyright (C) 2011-2013, NVIDIA CORPORATION. All rights reserved.
  *
  * Author:
  *	Colin Cross <ccross@google.com>
@@ -76,6 +76,12 @@
 
 #define TEGRA_ISP_BASE			0x54100000
 #define TEGRA_ISP_SIZE			SZ_256K
+
+#define TEGRA_GR2D_BASE			0x54140000
+#define TEGRA_GR2D_SIZE			SZ_256K
+
+#define TEGRA_GR3D_BASE			0x54180000
+#define TEGRA_GR3D_SIZE			SZ_256K
 
 #define TEGRA_DISPLAY_BASE		0x54200000
 #define TEGRA_DISPLAY_SIZE		SZ_256K
@@ -291,6 +297,9 @@
 
 #define TEGRA_CEC_BASE			0x70015000
 #define TEGRA_CEC_SIZE			SZ_4K
+
+#define TEGRA_ATOMICS_BASE		0x70016000
+#define TEGRA_ATOMICS_SIZE		SZ_8K
 
 #define TEGRA_HDA_BASE			0x70030000
 #define TEGRA_HDA_SIZE			SZ_64K

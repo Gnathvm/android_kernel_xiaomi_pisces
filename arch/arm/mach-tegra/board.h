@@ -2,21 +2,23 @@
  * arch/arm/mach-tegra/board.h
  *
  * Copyright (C) 2010 Google, Inc.
- * Copyright (C) 2011-2012 NVIDIA Corporation.
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * Author:
  *	Colin Cross <ccross@google.com>
  *	Erik Gilling <konkers@google.com>
  *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
  *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef __MACH_TEGRA_BOARD_H
@@ -115,6 +117,7 @@ static inline void tegra_clear_framebuffer(unsigned long to, unsigned long size)
 bool is_tegra_debug_uartport_hs(void);
 int get_tegra_uart_debug_port_id(void);
 int arb_lost_recovery(int scl_gpio, int sda_gpio);
+int __init tegra_register_fuse(void);
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 void __init tegra_ram_console_debug_reserve(unsigned long ram_console_size);
@@ -145,6 +148,11 @@ extern unsigned long nvdumper_reserved;
 #endif
 extern bool tegra_lp0_vec_relocate;
 extern unsigned long tegra_grhost_aperture;
+#ifdef CONFIG_TEGRA_USE_NCT
+/* info for NCK(NCT for Kernel) carveout area */
+extern unsigned long tegra_nck_start;
+extern unsigned long tegra_nck_size;
+#endif
 
 extern struct sys_timer tegra_timer;
 
@@ -188,13 +196,13 @@ void tegra_get_joystick_board_info(struct board_info *bi);
 void tegra_get_rightspeaker_board_info(struct board_info *bi);
 void tegra_get_leftspeaker_board_info(struct board_info *bi);
 int tegra_get_board_panel_id(void);
-int tegra_get_touch_panel_id(void);
 
 int get_core_edp(void);
 enum panel_type get_panel_type(void);
 int tegra_get_usb_port_owner_info(void);
 int tegra_get_modem_id(void);
 int tegra_get_commchip_id(void);
+u8 get_power_config(void);
 enum power_supply_type get_power_supply_type(void);
 enum audio_codec_type get_audio_codec_type(void);
 int get_maximum_cpu_current_supported(void);
@@ -206,4 +214,10 @@ enum image_type get_tegra_image_type(void);
 int tegra_get_cvb_alignment_uV(void);
 int tegra_soc_device_init(const char *machine);
 int get_pwr_i2c_clk_rate(void);
+int tegra_get_pmic_rst_reason(void);
+#ifdef CONFIG_ANDROID
+bool get_androidboot_mode_charger(void);
+#endif
+extern void tegra_set_usb_vbus_internal_wake(bool enable);
+extern void tegra_set_usb_id_internal_wake(bool enable);
 #endif

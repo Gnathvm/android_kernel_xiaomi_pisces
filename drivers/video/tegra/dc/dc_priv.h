@@ -4,7 +4,7 @@
  * Copyright (C) 2010 Google, Inc.
  * Author: Erik Gilling <konkers@android.com>
  *
- * Copyright (c) 2010-2012, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2010-2013, NVIDIA CORPORATION, All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -25,6 +25,7 @@
 # include <trace/events/display.h>
 #endif
 #include <mach/powergate.h>
+#include <video/tegra_dc_ext.h>
 
 static inline void tegra_dc_io_start(struct tegra_dc *dc)
 {
@@ -96,9 +97,22 @@ static inline unsigned long tegra_dc_get_default_emc_clk_rate(
 	return dc->pdata->emc_clk_rate ? dc->pdata->emc_clk_rate : ULONG_MAX;
 }
 
+/* return the color format field */
+static inline int tegra_dc_fmt(int fmt)
+{
+	return (fmt & TEGRA_DC_EXT_FMT_MASK) >> TEGRA_DC_EXT_FMT_SHIFT;
+}
+
+/* return the byte swap field */
+static inline int tegra_dc_fmt_byteorder(int fmt)
+{
+	return (fmt & TEGRA_DC_EXT_FMT_BYTEORDER_MASK) >>
+		TEGRA_DC_EXT_FMT_BYTEORDER_SHIFT;
+}
+
 static inline int tegra_dc_fmt_bpp(int fmt)
 {
-	switch (fmt) {
+	switch (tegra_dc_fmt(fmt)) {
 	case TEGRA_WIN_FMT_P1:
 		return 1;
 
@@ -144,7 +158,7 @@ static inline int tegra_dc_fmt_bpp(int fmt)
 
 static inline bool tegra_dc_is_yuv(int fmt)
 {
-	switch (fmt) {
+	switch (tegra_dc_fmt(fmt)) {
 	case TEGRA_WIN_FMT_YUV420P:
 	case TEGRA_WIN_FMT_YCbCr420P:
 	case TEGRA_WIN_FMT_YCbCr422P:
@@ -162,7 +176,7 @@ static inline bool tegra_dc_is_yuv(int fmt)
 
 static inline bool tegra_dc_is_yuv_planar(int fmt)
 {
-	switch (fmt) {
+	switch (tegra_dc_fmt(fmt)) {
 	case TEGRA_WIN_FMT_YUV420P:
 	case TEGRA_WIN_FMT_YCbCr420P:
 	case TEGRA_WIN_FMT_YCbCr422P:
@@ -182,6 +196,21 @@ static inline u32 tegra_dc_unmask_interrupt(struct tegra_dc *dc, u32 int_val)
 
 	val = tegra_dc_readl(dc, DC_CMD_INT_MASK);
 	tegra_dc_writel(dc, val | int_val, DC_CMD_INT_MASK);
+	return val;
+}
+
+static inline u32 tegra_dc_flush_interrupt(struct tegra_dc *dc, u32 int_val)
+{
+	u32 val;
+	unsigned long flag;
+
+	local_irq_save(flag);
+
+	val = tegra_dc_readl(dc, DC_CMD_INT_STATUS);
+	tegra_dc_writel(dc, (val | int_val), DC_CMD_INT_STATUS);
+
+	local_irq_restore(flag);
+
 	return val;
 }
 
@@ -208,7 +237,7 @@ static inline unsigned long tegra_dc_clk_get_rate(struct tegra_dc *dc)
 #endif
 }
 
-#ifdef CONFIG_ARCH_TEGRA_11x_SOC
+#if !defined(CONFIG_ARCH_TEGRA_2x_SOC) && !defined(CONFIG_ARCH_TEGRA_3x_SOC)
 static inline void _tegra_dc_powergate_locked(struct tegra_dc *dc)
 {
 	tegra_powergate_partition(dc->powergate_id);
@@ -221,12 +250,28 @@ static inline void _tegra_dc_unpowergate_locked(struct tegra_dc *dc)
 	dc->powered = 1;
 }
 
+static inline bool tegra_dc_is_powered(struct tegra_dc *dc)
+{
+	return tegra_powergate_is_powered(dc->powergate_id);
+}
+
 void tegra_dc_powergate_locked(struct tegra_dc *dc);
 void tegra_dc_unpowergate_locked(struct tegra_dc *dc);
 #else
 static inline void tegra_dc_powergate_locked(struct tegra_dc *dc) { }
 static inline void tegra_dc_unpowergate_locked(struct tegra_dc *dc) { }
+static inline bool tegra_dc_is_powered(struct tegra_dc *dc)
+{
+	return true;
+}
 #endif
+
+
+static inline void tegra_dc_hotplug_init(struct tegra_dc *dc)
+{
+	if (dc->out && dc->out->hotplug_init)
+		dc->out->hotplug_init(&dc->ndev->dev);
+}
 
 extern struct tegra_dc_out_ops tegra_dc_rgb_ops;
 extern struct tegra_dc_out_ops tegra_dc_hdmi_ops;

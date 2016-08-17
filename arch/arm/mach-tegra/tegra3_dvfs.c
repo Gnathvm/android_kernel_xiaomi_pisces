@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/tegra3_dvfs.c
  *
- * Copyright (C) 2010-2012, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (C) 2010-2013, NVIDIA CORPORATION. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -552,8 +552,10 @@ static void __init init_dvfs_cold(struct dvfs *d, int nominal_mv_index)
 			cpu_cold_freqs[i] = d->freqs[i] - offs;
 		else {
 			cpu_cold_freqs[i] = d->freqs[i];
-			pr_warn("tegra3_dvfs: cold offset %lu is too high for"
-				" regular dvfs limit %lu\n", offs, d->freqs[i]);
+			if (d->freqs[i] > 1 * MHZ)
+				pr_warn(
+				"%s: offset %lu too high for dvfs limit %lu\n",
+				__func__, offs, d->freqs[i]);
 		}
 
 		if (i)
@@ -1031,8 +1033,8 @@ static struct core_dvfs_cap_table tegra3_core_cap_table[] = {
 	{ .cap_name = "cap.emc" },
 };
 
-static struct core_bus_cap_table tegra3_bus_cap_table[] = {
-	{ .cap_name = "cap.profile.cbus",
+static struct core_bus_limit_table tegra3_bus_cap_table[] = {
+	{ .limit_clk_name = "cap.profile.cbus",
 	  .refcnt_attr = {.attr = {.name = "cbus_cap_state", .mode = 0644} },
 	  .level_attr  = {.attr = {.name = "cbus_cap_level", .mode = 0644} },
 	},

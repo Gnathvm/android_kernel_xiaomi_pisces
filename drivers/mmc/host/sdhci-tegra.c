@@ -30,6 +30,7 @@
 #include <linux/module.h>
 #include <linux/mmc/sd.h>
 #include <linux/mmc/mmc.h>
+#include <linux/mmc/card.h>
 #include <linux/regulator/consumer.h>
 #include <linux/delay.h>
 #include <linux/pm_runtime.h>
@@ -37,10 +38,10 @@
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/reboot.h>
+#include <linux/devfreq.h>
 
 #include <mach/gpio-tegra.h>
 #include <mach/sdhci.h>
-#include <mach/io_dpd.h>
 #include <mach/pinmux.h>
 #include <mach/clk.h>
 
@@ -85,10 +86,6 @@
 #define SDHOST_LOW_VOLT_MIN	1800000
 #define SDHOST_LOW_VOLT_MAX	1800000
 
-#define TEGRA_SDHOST_MIN_FREQ	50000000
-#define TEGRA2_SDHOST_STD_FREQ	50000000
-#define TEGRA3_SDHOST_STD_FREQ	104000000
-
 #define MAX_DIVISOR_VALUE	128
 #define DEFAULT_SDHOST_FREQ	50000000
 
@@ -98,8 +95,14 @@
 #define TUNING_FREQ_COUNT	3
 #define TUNING_VOLTAGES_COUNT	2
 #define TUNING_RETRIES	1
+#define SDMMC_AHB_MAX_FREQ	150000000
+#define SDMMC_EMC_MAX_FREQ	150000000
 
-struct sdhci_host *sdhci_host_for_sdio;
+#define TAP_CMD_SUSPEND_CONTROLLER	0
+#define TAP_CMD_TRIM_DEFAULT_VOLTAGE	1
+#define TAP_CMD_TRIM_HIGH_VOLTAGE	2
+#define TAP_CMD_GO_COMMAND		3
+
 
 static unsigned int uhs_max_freq_MHz[] = {
 	[MMC_TIMING_UHS_SDR50] = 100,
@@ -111,9 +114,10 @@ static unsigned int uhs_max_freq_MHz[] = {
 static void tegra_3x_sdhci_set_card_clock(struct sdhci_host *sdhci, unsigned int clock);
 #endif
 
-static unsigned int tegra_sdhost_min_freq;
-static unsigned int tegra_sdhost_std_freq;
-
+static unsigned long get_nearest_clock_freq(unsigned long pll_rate,
+		unsigned long desired_rate);
+static void sdhci_tegra_set_tap_delay(struct sdhci_host *sdhci,
+	unsigned int tap_delay);
 
 struct tegra_sdhci_hw_ops {
 	/* Set the internal clk and card clk.*/
@@ -166,6 +170,13 @@ static struct tegra_sdhci_hw_ops tegra_11x_sdhci_ops = {
 #define NVQUIRK_DISABLE_AUTO_CMD23		BIT(15)
 /* ENAABLE FEEDBACK IO CLOCK */
 #define NVQUIRK_EN_FEEDBACK_CLK			BIT(16)
+/* Shadow write xfer mode reg and write it alongwith CMD register */
+#define NVQUIRK_SHADOW_XFER_MODE_REG		BIT(17)
+/* In SDR50 mode, run the sdmmc controller at freq greater than
+ * 104MHz to ensure the core voltage is at 1.2V. If the core voltage
+ * is below 1.2V, CRC errors would occur during data transfers
+ */
+#define NVQUIRK_BROKEN_SDR50_CONTROLLER_CLOCK	BIT(19)
 
 struct sdhci_tegra_soc_data {
 	struct sdhci_pltfm_data *pdata;
@@ -178,6 +189,32 @@ struct sdhci_tegra_sd_stats {
 	unsigned int data_to_count;
 	unsigned int cmd_to_count;
 };
+
+#ifdef CONFIG_MMC_FREQ_SCALING
+struct freq_gov_params {
+	u8	idle_mon_cycles;
+	u8	polling_interval_ms;
+	u8	active_load_threshold;
+};
+
+static struct freq_gov_params gov_params[3] = {
+	[MMC_TYPE_MMC] = {
+		.idle_mon_cycles = 3,
+		.polling_interval_ms = 50,
+		.active_load_threshold = 25,
+	},
+	[MMC_TYPE_SDIO] = {
+		.idle_mon_cycles = 3,
+		.polling_interval_ms = 50,
+		.active_load_threshold = 25,
+	},
+	[MMC_TYPE_SD] = {
+		.idle_mon_cycles = 3,
+		.polling_interval_ms = 50,
+		.active_load_threshold = 25,
+	},
+};
+#endif
 
 enum tegra_tuning_freq {
 	TUNING_LOW_FREQ,
@@ -220,13 +257,24 @@ struct tap_window_data {
 };
 
 struct tegra_tuning_data {
-	unsigned int		best_tap_value;
-	unsigned int		best_hv_tap_value;
+	/* need to store multiple values if DVFS */
+	unsigned int		best_tap_value[TUNING_FREQ_COUNT];
 	bool			select_partial_win;
 	bool			nominal_vcore_tuning_done;
 	bool			overide_vcore_tuning_done;
 	bool			one_shot_tuning;
 	struct tap_window_data	*tap_data[TUNING_VOLTAGES_COUNT];
+};
+
+struct tegra_freq_gov_data {
+	unsigned int		curr_active_load;
+	unsigned int		avg_active_load;
+	unsigned int		act_load_high_threshold;
+	unsigned int		max_idle_monitor_cycles;
+	unsigned int		curr_freq;
+	unsigned int		freqs[TUNING_FREQ_COUNT];
+	unsigned int		freq_switch_count;
+	bool			monitor_idle_load;
 };
 
 struct sdhci_tegra {
@@ -250,12 +298,13 @@ struct sdhci_tegra {
 	unsigned int ddr_clk_limit;
 	/* SD Hot Plug in Suspend State */
 	unsigned int sd_detect_in_suspend;
-	struct tegra_io_dpd *dpd;
 	bool card_present;
 	bool is_rail_enabled;
 	struct clk *emc_clk;
 	bool emc_clk_enabled;
 	unsigned int emc_max_clk;
+	struct clk *sclk;
+	bool is_sdmmc_sclk_on;
 	struct sdhci_tegra_sd_stats *sd_stat_head;
 	unsigned int nominal_vcore_mv;
 	unsigned int min_vcore_override_mv;
@@ -266,15 +315,16 @@ struct sdhci_tegra {
 	unsigned int tuning_bsize;
 	/* Tuning status */
 	unsigned int tuning_status;
-	unsigned int tuning_turbo_enable;
-	bool is_hv_tuning_done;
+	unsigned int tap_cmd;
+	struct mutex retune_lock;
 #define TUNING_STATUS_DONE	1
 #define TUNING_STATUS_RETUNE	2
 	/* Freq tuning information for each sampling clock freq */
-	struct tegra_tuning_data tuning_data;
+	struct tegra_tuning_data tuning_data[TUNING_FREQ_COUNT];
 	bool set_tuning_override;
 	bool is_parent_pllc;
 	struct notifier_block reboot_notify;
+	struct tegra_freq_gov_data *gov_data;
 };
 
 static struct clk *pll_c;
@@ -299,10 +349,42 @@ static int show_error_stats_dump(struct seq_file *s, void *data)
 	return 0;
 }
 
+static int show_dfs_stats_dump(struct seq_file *s, void *data)
+{
+	struct sdhci_host *host = s->private;
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_tegra *tegra_host = pltfm_host->priv;
+	struct tegra_freq_gov_data *gov_data = tegra_host->gov_data;
+
+	seq_printf(s, "DFS statistics:\n");
+
+	if (host->mmc->dev_stats != NULL)
+		seq_printf(s, "Polling_period: %d\n",
+			host->mmc->dev_stats->polling_interval);
+
+	if (gov_data != NULL) {
+		seq_printf(s, "cur_active_load: %d\n",
+			gov_data->curr_active_load);
+		seq_printf(s, "avg_active_load: %d\n",
+			gov_data->avg_active_load);
+		seq_printf(s, "act_load_high_threshold: %d\n",
+			gov_data->act_load_high_threshold);
+		seq_printf(s, "freq_switch_count: %d\n",
+			gov_data->freq_switch_count);
+	}
+	return 0;
+}
+
 static int sdhci_error_stats_dump(struct inode *inode, struct file *file)
 {
 	return single_open(file, show_error_stats_dump, inode->i_private);
 }
+
+static int sdhci_dfs_stats_dump(struct inode *inode, struct file *file)
+{
+	return single_open(file, show_dfs_stats_dump, inode->i_private);
+}
+
 
 static const struct file_operations sdhci_host_fops = {
 	.open		= sdhci_error_stats_dump,
@@ -311,9 +393,16 @@ static const struct file_operations sdhci_host_fops = {
 	.release	= single_release,
 };
 
+static const struct file_operations sdhci_host_dfs_fops = {
+	.open		= sdhci_dfs_stats_dump,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+
 static u32 tegra_sdhci_readl(struct sdhci_host *host, int reg)
 {
-#ifndef CONFIG_ARCH_TEGRA_11x_SOC
 	u32 val;
 
 	if (unlikely(reg == SDHCI_PRESENT_STATE)) {
@@ -321,13 +410,13 @@ static u32 tegra_sdhci_readl(struct sdhci_host *host, int reg)
 		val = readl(host->ioaddr + reg);
 		return val | SDHCI_WRITE_PROTECT;
 	}
-#endif
 	return readl(host->ioaddr + reg);
 }
 
+
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 static u16 tegra_sdhci_readw(struct sdhci_host *host, int reg)
 {
-#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
 	struct sdhci_tegra *tegra_host = pltfm_host->priv;
 	const struct sdhci_tegra_soc_data *soc_data = tegra_host->soc_data;
@@ -336,9 +425,8 @@ static u16 tegra_sdhci_readw(struct sdhci_host *host, int reg)
 			(reg == SDHCI_HOST_VERSION))) {
 		return SDHCI_SPEC_200;
 	}
-#endif
-	return readw(host->ioaddr + reg);
 }
+#endif
 
 static void tegra_sdhci_writel(struct sdhci_host *host, u32 val, int reg)
 {
@@ -370,6 +458,246 @@ static void tegra_sdhci_writel(struct sdhci_host *host, u32 val, int reg)
 #endif
 }
 
+static void tegra_sdhci_writew(struct sdhci_host *host, u16 val, int reg)
+{
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_tegra *tegra_host = pltfm_host->priv;
+	const struct sdhci_tegra_soc_data *soc_data = tegra_host->soc_data;
+
+	if (soc_data->nvquirks & NVQUIRK_SHADOW_XFER_MODE_REG) {
+		switch (reg) {
+		case SDHCI_TRANSFER_MODE:
+			/*
+			 * Postpone this write, we must do it together with a
+			 * command write that is down below.
+			 */
+			pltfm_host->xfer_mode_shadow = val;
+			return;
+		case SDHCI_COMMAND:
+			writel((val << 16) | pltfm_host->xfer_mode_shadow,
+				host->ioaddr + SDHCI_TRANSFER_MODE);
+			pltfm_host->xfer_mode_shadow = 0;
+			return;
+		}
+	}
+
+	writew(val, host->ioaddr + reg);
+}
+
+#ifdef CONFIG_MMC_FREQ_SCALING
+/*
+ * Dynamic frequency calculation.
+ * The active load for the current period and the average active load
+ * are calculated at the end of each polling interval.
+ *
+ * If the current active load is greater than the threshold load, then the
+ * frequency is boosted(156MHz).
+ * If the active load is lower than the threshold, then the load is monitored
+ * for a max of three cycles before reducing the frequency(82MHz). If the
+ * average active load is lower, then the monitoring cycles is reduced.
+ *
+ * The active load threshold value for both eMMC and SDIO is set to 25 which
+ * is found to give the optimal power and performance. The polling interval is
+ * set to 50 msec.
+ *
+ * The polling interval and active load threshold values can be changed by
+ * the user through sysfs.
+*/
+static unsigned long calculate_mmc_target_freq(
+	struct tegra_freq_gov_data *gov_data)
+{
+	unsigned long desired_freq = gov_data->curr_freq;
+	unsigned int type = MMC_TYPE_MMC;
+
+	if (gov_data->curr_active_load >= gov_data->act_load_high_threshold) {
+		desired_freq = gov_data->freqs[TUNING_HIGH_FREQ];
+		gov_data->monitor_idle_load = false;
+		gov_data->max_idle_monitor_cycles =
+			gov_params[type].idle_mon_cycles;
+	} else {
+		if (gov_data->monitor_idle_load) {
+			if (!gov_data->max_idle_monitor_cycles) {
+				desired_freq = gov_data->freqs[TUNING_LOW_FREQ];
+				gov_data->max_idle_monitor_cycles =
+					gov_params[type].idle_mon_cycles;
+			} else {
+				gov_data->max_idle_monitor_cycles--;
+			}
+		} else {
+			gov_data->monitor_idle_load = true;
+			gov_data->max_idle_monitor_cycles *=
+				gov_data->avg_active_load;
+			gov_data->max_idle_monitor_cycles /= 100;
+		}
+	}
+
+	return desired_freq;
+}
+
+static unsigned long calculate_sdio_target_freq(
+	struct tegra_freq_gov_data *gov_data)
+{
+	unsigned long desired_freq = gov_data->curr_freq;
+	unsigned int type = MMC_TYPE_SDIO;
+
+	if (gov_data->curr_active_load >= gov_data->act_load_high_threshold) {
+		desired_freq = gov_data->freqs[TUNING_HIGH_FREQ];
+		gov_data->monitor_idle_load = false;
+		gov_data->max_idle_monitor_cycles =
+			gov_params[type].idle_mon_cycles;
+	} else {
+		if (gov_data->monitor_idle_load) {
+			if (!gov_data->max_idle_monitor_cycles) {
+				desired_freq = gov_data->freqs[TUNING_LOW_FREQ];
+				gov_data->max_idle_monitor_cycles =
+					gov_params[type].idle_mon_cycles;
+			} else {
+				gov_data->max_idle_monitor_cycles--;
+			}
+		} else {
+			gov_data->monitor_idle_load = true;
+			gov_data->max_idle_monitor_cycles *=
+				gov_data->avg_active_load;
+			gov_data->max_idle_monitor_cycles /= 100;
+		}
+	}
+
+	return desired_freq;
+}
+
+static unsigned long calculate_sd_target_freq(
+	struct tegra_freq_gov_data *gov_data)
+{
+	unsigned long desired_freq = gov_data->curr_freq;
+	unsigned int type = MMC_TYPE_SD;
+
+	if (gov_data->curr_active_load >= gov_data->act_load_high_threshold) {
+		desired_freq = gov_data->freqs[TUNING_HIGH_FREQ];
+		gov_data->monitor_idle_load = false;
+		gov_data->max_idle_monitor_cycles =
+			gov_params[type].idle_mon_cycles;
+	} else {
+		if (gov_data->monitor_idle_load) {
+			if (!gov_data->max_idle_monitor_cycles) {
+				desired_freq = gov_data->freqs[TUNING_LOW_FREQ];
+				gov_data->max_idle_monitor_cycles =
+					gov_params[type].idle_mon_cycles;
+			} else {
+				gov_data->max_idle_monitor_cycles--;
+			}
+		} else {
+			gov_data->monitor_idle_load = true;
+			gov_data->max_idle_monitor_cycles *=
+				gov_data->avg_active_load;
+			gov_data->max_idle_monitor_cycles /= 100;
+		}
+	}
+
+	return desired_freq;
+}
+
+static unsigned long sdhci_tegra_get_target_freq(struct sdhci_host *sdhci,
+	struct devfreq_dev_status *dfs_stats)
+{
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
+	struct sdhci_tegra *tegra_host = pltfm_host->priv;
+	struct tegra_freq_gov_data *gov_data = tegra_host->gov_data;
+	unsigned long freq = sdhci->mmc->actual_clock;
+
+	if (!gov_data) {
+		dev_err(mmc_dev(sdhci->mmc),
+			"No gov data. Continue using current freq %ld", freq);
+		return freq;
+	}
+
+	/*
+	 * If clock gating is enabled and clock is currently disabled, then
+	 * return freq as 0.
+	 */
+	if (!tegra_host->clk_enabled)
+		return 0;
+
+	if (dfs_stats->total_time) {
+		gov_data->curr_active_load = (dfs_stats->busy_time * 100) /
+			dfs_stats->total_time;
+	} else {
+		gov_data->curr_active_load = 0;
+	}
+
+	gov_data->avg_active_load += gov_data->curr_active_load;
+	gov_data->avg_active_load >>= 1;
+
+	if (sdhci->mmc->card) {
+		if (sdhci->mmc->card->type == MMC_TYPE_SDIO)
+			freq = calculate_sdio_target_freq(gov_data);
+		else if (sdhci->mmc->card->type == MMC_TYPE_MMC)
+			freq = calculate_mmc_target_freq(gov_data);
+		else if (sdhci->mmc->card->type == MMC_TYPE_SD)
+			freq = calculate_sd_target_freq(gov_data);
+		if (gov_data->curr_freq != freq)
+			gov_data->freq_switch_count++;
+		gov_data->curr_freq = freq;
+	}
+
+	return freq;
+}
+
+static int sdhci_tegra_freq_gov_init(struct sdhci_host *sdhci)
+{
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
+	struct sdhci_tegra *tegra_host = pltfm_host->priv;
+	unsigned int i;
+	unsigned int freq;
+	unsigned int type;
+
+	if (!((sdhci->mmc->ios.timing == MMC_TIMING_UHS_SDR104) ||
+		(sdhci->mmc->ios.timing == MMC_TIMING_MMC_HS200))) {
+		dev_info(mmc_dev(sdhci->mmc),
+			"DFS not required for current operating mode\n");
+		return -EACCES;
+	}
+
+	if (!tegra_host->gov_data) {
+		tegra_host->gov_data = devm_kzalloc(mmc_dev(sdhci->mmc),
+			sizeof(struct tegra_freq_gov_data), GFP_KERNEL);
+		if (!tegra_host->gov_data) {
+			dev_err(mmc_dev(sdhci->mmc),
+				"Failed to allocate memory for dfs data\n");
+			return -ENOMEM;
+		}
+	}
+
+	/* Find the supported frequencies */
+	for (i = 0; i < TUNING_FREQ_COUNT; i++) {
+		freq = tuning_params[i].freq_hz;
+		/*
+		 * Check the nearest possible clock with pll_c and pll_p as
+		 * the clock sources. Choose the higher frequency.
+		 */
+		tegra_host->gov_data->freqs[i] =
+			get_nearest_clock_freq(pll_c_rate, freq);
+		freq = get_nearest_clock_freq(pll_p_rate, freq);
+		if (freq > tegra_host->gov_data->freqs[i])
+			tegra_host->gov_data->freqs[i] = freq;
+	}
+
+	tegra_host->gov_data->monitor_idle_load = false;
+	tegra_host->gov_data->curr_freq = sdhci->mmc->actual_clock;
+	if (sdhci->mmc->card) {
+		type = sdhci->mmc->card->type;
+		sdhci->mmc->dev_stats->polling_interval =
+			gov_params[type].polling_interval_ms;
+		tegra_host->gov_data->act_load_high_threshold =
+			gov_params[type].active_load_threshold;
+		tegra_host->gov_data->max_idle_monitor_cycles =
+			gov_params[type].idle_mon_cycles;
+	}
+
+	return 0;
+}
+
+#endif
+
 static unsigned int tegra_sdhci_get_cd(struct sdhci_host *sdhci)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
@@ -378,7 +706,6 @@ static unsigned int tegra_sdhci_get_cd(struct sdhci_host *sdhci)
 	return tegra_host->card_present;
 }
 
-#ifndef CONFIG_ARCH_TEGRA_11x_SOC
 static unsigned int tegra_sdhci_get_ro(struct sdhci_host *sdhci)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
@@ -390,7 +717,7 @@ static unsigned int tegra_sdhci_get_ro(struct sdhci_host *sdhci)
 
 	return gpio_get_value(plat->wp_gpio);
 }
-#endif
+
 
 static int tegra_sdhci_set_uhs_signaling(struct sdhci_host *host,
 		unsigned int uhs)
@@ -411,6 +738,8 @@ static int tegra_sdhci_set_uhs_signaling(struct sdhci_host *host,
 		ctrl_2 |= SDHCI_CTRL_UHS_SDR25;
 		break;
 	case MMC_TIMING_UHS_SDR50:
+		ctrl_2 |= SDHCI_CTRL_UHS_SDR50;
+		break;
 	case MMC_TIMING_UHS_SDR104:
 	case MMC_TIMING_MMC_HS200:
 		ctrl_2 |= SDHCI_CTRL_UHS_SDR104;
@@ -435,6 +764,7 @@ static void tegra_sdhci_reset_exit(struct sdhci_host *sdhci, u8 mask)
 {
 	u16 misc_ctrl;
 	u32 vendor_ctrl;
+	unsigned int best_tap_value;
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
 	struct sdhci_tegra *tegra_host = pltfm_host->priv;
 	const struct tegra_sdhci_platform_data *plat = tegra_host->plat;
@@ -447,6 +777,10 @@ static void tegra_sdhci_reset_exit(struct sdhci_host *sdhci, u8 mask)
 			tegra_host->sd_stat_head->data_to_count = 0;
 			tegra_host->sd_stat_head->cmd_to_count = 0;
 		}
+
+		if (tegra_host->gov_data != NULL)
+			tegra_host->gov_data->freq_switch_count = 0;
+
 		vendor_ctrl = sdhci_readl(sdhci, SDHCI_VNDR_CLK_CTRL);
 		if (soc_data->nvquirks & NVQUIRK_ENABLE_PADPIPE_CLKEN) {
 			vendor_ctrl |=
@@ -460,30 +794,36 @@ static void tegra_sdhci_reset_exit(struct sdhci_host *sdhci, u8 mask)
 			vendor_ctrl &=
 				~SDHCI_VNDR_CLK_CNTL_INPUT_IO_CLK;
 		}
+
 		if (soc_data->nvquirks & NVQUIRK_SET_TAP_DELAY) {
-			if ((tegra_host->tuning_status == TUNING_STATUS_DONE) &&
-				(sdhci->mmc->pm_flags & MMC_PM_KEEP_POWER)) {
-					vendor_ctrl &= ~(0xFF <<
-					SDHCI_VNDR_CLK_CTRL_TAP_VALUE_SHIFT);
-					vendor_ctrl |=
-					(tegra_host->tuning_data.best_tap_value
-					<< SDHCI_VNDR_CLK_CTRL_TAP_VALUE_SHIFT);
+			if ((tegra_host->tuning_status == TUNING_STATUS_DONE)
+				&& (sdhci->mmc->pm_flags &
+				MMC_PM_KEEP_POWER)) {
+				if (sdhci->mmc->ios.clock >
+					tuning_params[TUNING_LOW_FREQ].freq_hz) {
+					if (tegra_host->tap_cmd == TAP_CMD_TRIM_HIGH_VOLTAGE)
+						best_tap_value = tegra_host->
+							tuning_data[TUNING_HIGH_FREQ_HV].best_tap_value[TUNING_HIGH_FREQ_HV];
+					else
+						best_tap_value = tegra_host->
+							tuning_data[TUNING_HIGH_FREQ].best_tap_value[TUNING_HIGH_FREQ];
+				} else
+					best_tap_value = tegra_host->
+						tuning_data[TUNING_LOW_FREQ].best_tap_value[TUNING_LOW_FREQ];
 			} else {
-				if (plat->tap_delay) {
-					vendor_ctrl &= ~(0xFF <<
-					SDHCI_VNDR_CLK_CTRL_TAP_VALUE_SHIFT);
-					vendor_ctrl |= (plat->tap_delay <<
-					SDHCI_VNDR_CLK_CTRL_TAP_VALUE_SHIFT);
-				}
+				best_tap_value = plat->tap_delay;
 			}
+			vendor_ctrl &= ~(0xFF <<
+				SDHCI_VNDR_CLK_CTRL_TAP_VALUE_SHIFT);
+			vendor_ctrl |= (best_tap_value <<
+				SDHCI_VNDR_CLK_CTRL_TAP_VALUE_SHIFT);
 		}
+
 		if (soc_data->nvquirks & NVQUIRK_SET_TRIM_DELAY) {
-			if (plat->trim_delay) {
-				vendor_ctrl &= ~(0x1F <<
+			vendor_ctrl &= ~(0x1F <<
 				SDHCI_VNDR_CLK_CTRL_TRIM_VALUE_SHIFT);
-				vendor_ctrl |= (plat->trim_delay <<
+			vendor_ctrl |= (plat->trim_delay <<
 				SDHCI_VNDR_CLK_CTRL_TRIM_VALUE_SHIFT);
-			}
 		}
 		if (soc_data->nvquirks & NVQUIRK_ENABLE_SDR50_TUNING)
 			vendor_ctrl |= SDHCI_VNDR_CLK_CTRL_SDR50_TUNING;
@@ -500,17 +840,17 @@ static void tegra_sdhci_reset_exit(struct sdhci_host *sdhci, u8 mask)
 			misc_ctrl |=
 			SDHCI_VNDR_MISC_CTRL_ENABLE_SDR50_SUPPORT;
 		}
-		/* Enable DDR mode support only for SDMMC4 */
-		if (soc_data->nvquirks & NVQUIRK_ENABLE_DDR50) {
-			if (tegra_host->instance == 3) {
-				misc_ctrl |=
-				SDHCI_VNDR_MISC_CTRL_ENABLE_DDR50_SUPPORT;
-			}
-		}
 		if (soc_data->nvquirks & NVQUIRK_INFINITE_ERASE_TIMEOUT) {
 			misc_ctrl |=
 			SDHCI_VNDR_MISC_CTRL_INFINITE_ERASE_TIMEOUT;
 		}
+
+		/* Enable DDR mode support only if supported */
+		if (plat->uhs_mask & MMC_UHS_MASK_DDR50)
+			sdhci->mmc->caps &= ~MMC_CAP_UHS_DDR50;
+		else if (soc_data->nvquirks & NVQUIRK_ENABLE_DDR50)
+			misc_ctrl |= SDHCI_VNDR_MISC_CTRL_ENABLE_DDR50_SUPPORT;
+
 		sdhci_writew(sdhci, misc_ctrl, SDHCI_VNDR_MISC_CTRL);
 
 		/* Mask Auto CMD23 if CMD23 is enabled */
@@ -521,9 +861,6 @@ static void tegra_sdhci_reset_exit(struct sdhci_host *sdhci, u8 mask)
 		/* Mask the support for any UHS modes if specified */
 		if (plat->uhs_mask & MMC_UHS_MASK_SDR104)
 			sdhci->mmc->caps &= ~MMC_CAP_UHS_SDR104;
-
-		if (plat->uhs_mask & MMC_UHS_MASK_DDR50)
-			sdhci->mmc->caps &= ~MMC_CAP_UHS_DDR50;
 
 		if (plat->uhs_mask & MMC_UHS_MASK_SDR50)
 			sdhci->mmc->caps &= ~MMC_CAP_UHS_SDR50;
@@ -551,13 +888,7 @@ static void sdhci_status_notify_cb(int card_present, void *dev_id)
 
 	plat = pdev->dev.platform_data;
 	if (!plat->mmc_data.status) {
-		if (card_present == 1) {
-			sdhci->mmc->rescan_disable = 0;
-			mmc_detect_change(sdhci->mmc, 0);
-		} else if (card_present == 0) {
-			sdhci->mmc->detect_change = 0;
-			sdhci->mmc->rescan_disable = 1;
-		}
+		mmc_detect_change(sdhci->mmc, 0);
 		return;
 	}
 
@@ -716,6 +1047,7 @@ static void tegra_sdhci_set_clk_rate(struct sdhci_host *sdhci,
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
 	struct sdhci_tegra *tegra_host = pltfm_host->priv;
+	const struct sdhci_tegra_soc_data *soc_data = tegra_host->soc_data;
 	unsigned int clk_rate;
 	unsigned int emc_clk;
 
@@ -734,26 +1066,22 @@ static void tegra_sdhci_set_clk_rate(struct sdhci_host *sdhci,
 		} else {
 			clk_rate = clock * 2;
 		}
-	} else 	if (sdhci->mmc->ios.timing == MMC_TIMING_UHS_SDR50) {
+	} else if ((sdhci->mmc->ios.timing == MMC_TIMING_UHS_SDR50) &&
+		(soc_data->nvquirks & NVQUIRK_BROKEN_SDR50_CONTROLLER_CLOCK)) {
+
 		/*
-		 * In SDR50 mode, run the sdmmc controller at freq greater than
-		 * 104MHz to ensure the core voltage is at 1.2V.
-		 * If the core voltage is below 1.2V, CRC errors would occur
-		 * during data transfers.
+		 * In SDR50 mode, run the sdmmc controller at freq greater
+		 * than 104MHz to ensure the core voltage is at 1.2V.
+		 * If the core voltage is below 1.2V, CRC errors would
+		 * occur during data transfers.
 		 */
 		clk_rate = clock * 2;
-	} else {
-		if (clock <= tegra_sdhost_min_freq)
-			clk_rate = tegra_sdhost_min_freq;
-		else if (clock <= tegra_sdhost_std_freq)
-			clk_rate = tegra_sdhost_std_freq;
-		else
-			clk_rate = clock;
-	}
+	} else
+		clk_rate = clock;
 
 	if (tegra_host->max_clk_limit &&
 		(clk_rate > tegra_host->max_clk_limit))
-		clk_rate = tegra_host->max_clk_limit;
+			clk_rate = tegra_host->max_clk_limit;
 
 	tegra_sdhci_clock_set_parent(sdhci, clk_rate);
 	clk_set_rate(pltfm_host->clk, clk_rate);
@@ -761,6 +1089,28 @@ static void tegra_sdhci_set_clk_rate(struct sdhci_host *sdhci,
 #ifdef CONFIG_TEGRA_FPGA_PLATFORM
 	/* FPGA supports 26MHz of clock for SDMMC. */
 	sdhci->max_clk = 26000000;
+#endif
+
+	if (tegra_host->tuning_status == TUNING_STATUS_RETUNE)
+		sdhci->flags |= SDHCI_NEEDS_RETUNING;
+
+#ifdef CONFIG_MMC_FREQ_SCALING
+	/* Set the tap delay if tuning is done and dfs is enabled */
+	if (sdhci->mmc->df &&
+		(tegra_host->tuning_status == TUNING_STATUS_DONE)) {
+		int freq_band;
+
+		if (clock > tuning_params[TUNING_LOW_FREQ].freq_hz) {
+			if (tegra_host->tap_cmd == TAP_CMD_TRIM_HIGH_VOLTAGE)
+				freq_band = TUNING_HIGH_FREQ_HV;
+			else
+				freq_band = TUNING_HIGH_FREQ;
+		} else
+			freq_band = TUNING_LOW_FREQ;
+
+		sdhci_tegra_set_tap_delay(sdhci,
+			tegra_host->tuning_data[freq_band].best_tap_value[freq_band]);
+	}
 #endif
 }
 #ifdef CONFIG_ARCH_TEGRA_3x_SOC
@@ -861,14 +1211,6 @@ static void tegra_sdhci_set_clock(struct sdhci_host *sdhci, unsigned int clock)
 		mmc_hostname(sdhci->mmc), clock, tegra_host->clk_enabled);
 
 	if (clock) {
-		/* bring out sd instance from io dpd mode */
-		if (tegra_host->dpd) {
-			mutex_lock(&tegra_host->dpd->delay_lock);
-			cancel_delayed_work_sync(&tegra_host->dpd->delay_dpd);
-			tegra_io_dpd_disable(tegra_host->dpd);
-			mutex_unlock(&tegra_host->dpd->delay_lock);
-		}
-
 		if (!tegra_host->clk_enabled) {
 			pm_runtime_get_sync(&pdev->dev);
 			clk_prepare_enable(pltfm_host->clk);
@@ -880,7 +1222,27 @@ static void tegra_sdhci_set_clock(struct sdhci_host *sdhci, unsigned int clock)
 		tegra_sdhci_set_clk_rate(sdhci, clock);
 		if (tegra_host->hw_ops->set_card_clock)
 			tegra_host->hw_ops->set_card_clock(sdhci, clock);
+
+		if (tegra_host->emc_clk && (!tegra_host->emc_clk_enabled)) {
+			clk_prepare_enable(tegra_host->emc_clk);
+			tegra_host->emc_clk_enabled = true;
+		}
+
+		if (tegra_host->sclk && (!tegra_host->is_sdmmc_sclk_on)) {
+			clk_prepare_enable(tegra_host->sclk);
+			tegra_host->is_sdmmc_sclk_on = true;
+		}
 	} else if (!clock && tegra_host->clk_enabled) {
+		if (tegra_host->emc_clk && tegra_host->emc_clk_enabled) {
+			clk_disable_unprepare(tegra_host->emc_clk);
+			tegra_host->emc_clk_enabled = false;
+		}
+
+		if (tegra_host->sclk && tegra_host->is_sdmmc_sclk_on) {
+			clk_disable_unprepare(tegra_host->sclk);
+			tegra_host->is_sdmmc_sclk_on = false;
+		}
+
 		if (tegra_host->hw_ops->set_card_clock)
 			tegra_host->hw_ops->set_card_clock(sdhci, clock);
 		ctrl = sdhci_readb(sdhci, SDHCI_VNDR_CLK_CTRL);
@@ -889,19 +1251,6 @@ static void tegra_sdhci_set_clock(struct sdhci_host *sdhci, unsigned int clock)
 		clk_disable_unprepare(pltfm_host->clk);
 		pm_runtime_put_sync(&pdev->dev);
 		tegra_host->clk_enabled = false;
-		/* io dpd enable call for sd instance */
-
-		if (tegra_host->dpd) {
-			mutex_lock(&tegra_host->dpd->delay_lock);
-			if (tegra_host->dpd->need_delay_dpd) {
-				schedule_delayed_work(
-					&tegra_host->dpd->delay_dpd,
-					msecs_to_jiffies(100));
-			} else {
-				tegra_io_dpd_enable(tegra_host->dpd);
-			}
-			mutex_unlock(&tegra_host->dpd->delay_lock);
-		}
 	}
 }
 static void tegra_sdhci_do_calibration(struct sdhci_host *sdhci)
@@ -912,7 +1261,7 @@ static void tegra_sdhci_do_calibration(struct sdhci_host *sdhci)
 	const struct sdhci_tegra_soc_data *soc_data = tegra_host->soc_data;
 	unsigned int timeout = 10;
 
-	/* No Calibration for sdmmc4 */
+	/* No Calibration for sdmmc4 -- chip bug */
 	if (tegra_host->instance == 3)
 		return;
 
@@ -1066,8 +1415,9 @@ static void tegra_sdhci_reset(struct sdhci_host *sdhci, u8 mask)
 	/* hw clears the bit when it's done */
 	while (sdhci_readb(sdhci, SDHCI_SOFTWARE_RESET) & mask) {
 		if (timeout == 0) {
-			dev_err(mmc_dev(sdhci->mmc), "Reset 0x%x never"
-				"completed.\n", (int)mask);
+			dev_err(mmc_dev(sdhci->mmc), "%s: Reset 0x%x never " \
+				"completed.\n", mmc_hostname(sdhci->mmc),
+				(int)mask);
 			return;
 		}
 		timeout--;
@@ -1113,37 +1463,43 @@ static void sdhci_tegra_dump_tuning_data(struct sdhci_host *sdhci, u8 freq_band)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
 	struct sdhci_tegra *tegra_host = pltfm_host->priv;
+	struct tegra_tuning_data *tuning_data;
+	char *freq[TUNING_FREQ_COUNT] = {"Low", "Normal", "High"};
 
-	if (tegra_host->tuning_data.tap_data[0]) {
-		dev_info(mmc_dev(sdhci->mmc), "Tuning window data at %d mV\n",
-			 tuning_params[freq_band].voltages[0]);
+	tuning_data = &tegra_host->tuning_data[freq_band];
+
+	if (tuning_data->tap_data[0]) {
+		pr_info("%s: Tuning window data at %d mV, frequency band: %s\n",
+			mmc_hostname(sdhci->mmc),
+			tuning_params[freq_band].voltages[0],
+			freq[freq_band]);
 		pr_info("Partial window %d\n",
-			tegra_host->tuning_data.tap_data[0]->partial_win);
+			tuning_data->tap_data[0]->partial_win);
 		pr_info("full window start %d\n",
-			tegra_host->tuning_data.tap_data[0]->full_win_begin);
+			tuning_data->tap_data[0]->full_win_begin);
 		pr_info("full window end %d\n",
-			tegra_host->tuning_data.tap_data[0]->full_win_end);
+			tuning_data->tap_data[0]->full_win_end);
 	}
 
 	if (((freq_band == TUNING_HIGH_FREQ) ||
 		(freq_band == TUNING_HIGH_FREQ_HV)) &&
-		(tegra_host->tuning_data.tap_data[1])) {
-		dev_info(mmc_dev(sdhci->mmc), "Tuning window data at %d mV\n",
+		(tuning_data->tap_data[1])) {
+		pr_info("%s: Tuning window data at %d-%d mV\n",
+			mmc_hostname(sdhci->mmc),
+			tuning_params[freq_band].voltages[0],
 			tuning_params[freq_band].voltages[1]);
-			pr_info("partial window %d\n",
-		tegra_host->tuning_data.tap_data[1]->partial_win);
+		pr_info("partial window %d\n",
+		    tuning_data->tap_data[1]->partial_win);
 		pr_info("full window being %d\n",
-			tegra_host->tuning_data.tap_data[1]->full_win_begin);
+			tuning_data->tap_data[1]->full_win_begin);
 		pr_info("full window end %d\n",
-			tegra_host->tuning_data.tap_data[1]->full_win_end);
+			tuning_data->tap_data[1]->full_win_end);
 	}
-		pr_info("%s window chosen\n",
-			tegra_host->tuning_data.select_partial_win ?
-			"partial" : "full");
-		pr_info("Best tap value %d\n",
-			tegra_host->tuning_data.best_hv_tap_value);
-		pr_info("Best tap value %d\n",
-			tegra_host->tuning_data.best_tap_value);
+	pr_info("%s window chosen\n",
+		tuning_data->select_partial_win ?
+		"partial" : "full");
+	pr_info("Best tap value %d\n",
+		tuning_data->best_tap_value[freq_band]);
 }
 
 /*
@@ -1160,7 +1516,7 @@ static void sdhci_tegra_dump_tuning_data(struct sdhci_host *sdhci, u8 freq_band)
  * best tap = (X-(Z-Y))+(0.1025*UI)
  * If best tap<0, best tap = 0
  */
-static void calculate_low_freq_tap_value(struct sdhci_host *sdhci)
+static unsigned int calculate_low_freq_tap_value(struct sdhci_host *sdhci)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
 	struct sdhci_tegra *tegra_host = pltfm_host->priv;
@@ -1170,13 +1526,12 @@ static void calculate_low_freq_tap_value(struct sdhci_host *sdhci)
 	struct tap_window_data *tap_data;
 	struct tegra_tuning_data *tuning_data;
 
-	tuning_data = &tegra_host->tuning_data;
+	tuning_data = &tegra_host->tuning_data[TUNING_LOW_FREQ];
 	tap_data = tuning_data->tap_data[0];
 
 	if (tap_data->abandon_full_win) {
 		if (tap_data->abandon_partial_win) {
-			tuning_data->best_tap_value = 0;
-			return;
+			return 0;
 		} else {
 			tuning_data->select_partial_win = true;
 			goto calculate_best_tap;
@@ -1205,12 +1560,13 @@ calculate_best_tap:
 		best_tap_value = (tap_data->partial_win -
 			(tap_data->full_win_end - tap_data->full_win_begin)) +
 			tap_data->sampling_point;
-		tuning_data->best_tap_value = (best_tap_value < 0) ? 0 :
-			best_tap_value;
+		if (best_tap_value < 0)
+			best_tap_value = 0;
 	} else {
-		tuning_data->best_tap_value = tap_data->full_win_begin +
+		best_tap_value = tap_data->full_win_begin +
 			tap_data->sampling_point;
 	}
+	return best_tap_value;
 }
 
 /*
@@ -1238,7 +1594,7 @@ calculate_best_tap:
  * If there is no margin window for both cases,
  * best tap=(Y+Z')/2.
  */
-static unsigned int calculate_high_freq_tap_value(struct sdhci_host *sdhci)
+static unsigned int calculate_high_freq_tap_value(struct sdhci_host *sdhci, int freq_band)
 {
 	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci);
 	struct sdhci_tegra *tegra_host = pltfm_host->priv;
@@ -1254,13 +1610,13 @@ static unsigned int calculate_high_freq_tap_value(struct sdhci_host *sdhci)
 	int full_win_quality;
 	int partial_win_quality;
 
-	tuning_data = &tegra_host->tuning_data;
+	tuning_data = &tegra_host->tuning_data[freq_band];
 	vmax_tap_data = tuning_data->tap_data[0];
 	vmid_tap_data = tuning_data->tap_data[1];
 
 	/*
 	 * If tuning at min override voltage is not done or one shot tuning is
-	 * done, set the best tap value as 70% of the full window.
+	 * done, set the best tap value as 50% of the full window.
 	 */
 	if (!tuning_data->overide_vcore_tuning_done ||
 		tuning_data->one_shot_tuning) {
@@ -1323,7 +1679,6 @@ static unsigned int calculate_high_freq_tap_value(struct sdhci_host *sdhci)
 	} else {
 		if (full_win_quality > partial_win_quality) {
 			best_tap = full_win_tap;
-			tuning_data->select_partial_win = false;
 		} else {
 			best_tap = partial_win_tap;
 			tuning_data->select_partial_win = true;
@@ -1342,10 +1697,6 @@ static int sdhci_tegra_run_frequency_tuning(struct sdhci_host *sdhci)
 	unsigned int timeout = 10;
 	int flags;
 	u32 intstatus;
-
-	if (gpio_is_valid(tegra_host->plat->cd_gpio) &&
-			(gpio_get_value(tegra_host->plat->cd_gpio) != 0))
-		return -ENOMEDIUM;
 
 	mask = SDHCI_CMD_INHIBIT | SDHCI_DATA_INHIBIT;
 	while (sdhci_readl(sdhci, SDHCI_PRESENT_STATE) & mask) {
@@ -1380,7 +1731,7 @@ static int sdhci_tegra_run_frequency_tuning(struct sdhci_host *sdhci)
 
 	sdhci_writeb(sdhci, 0xE, SDHCI_TIMEOUT_CONTROL);
 
-	sdhci_writeb(sdhci, SDHCI_TRNS_READ, SDHCI_TRANSFER_MODE);
+	sdhci_writew(sdhci, SDHCI_TRNS_READ, SDHCI_TRANSFER_MODE);
 
 	sdhci_writel(sdhci, 0x0, SDHCI_ARGUMENT);
 
@@ -1438,8 +1789,6 @@ static int sdhci_tegra_scan_tap_values(struct sdhci_host *sdhci,
 
 		/* Run frequency tuning */
 		err = sdhci_tegra_run_frequency_tuning(sdhci);
-		if (err == -ENOMEDIUM)
-			return err;
 		if (err && retry) {
 			retry--;
 			continue;
@@ -1465,7 +1814,6 @@ static int sdhci_tegra_get_tap_window_data(struct sdhci_host *sdhci,
 	struct tap_window_data *tap_data)
 {
 	unsigned int tap_value;
-	unsigned int full_win_percentage = 0;
 	int err = 0;
 
 	if (!tap_data) {
@@ -1476,10 +1824,7 @@ static int sdhci_tegra_get_tap_window_data(struct sdhci_host *sdhci,
 	/* Get the partial window data */
 	tap_value = 0;
 	tap_value = sdhci_tegra_scan_tap_values(sdhci, tap_value, false);
-	if (tap_value < 0) {
-		err = tap_value;
-		goto out;
-	} else if (!tap_value) {
+	if (!tap_value) {
 		tap_data->abandon_partial_win = true;
 		tap_data->partial_win = 0;
 	} else if (tap_value > MAX_TAP_VALUES) {
@@ -1500,47 +1845,31 @@ static int sdhci_tegra_get_tap_window_data(struct sdhci_host *sdhci,
 		}
 	}
 
-	do {
-		/* Get the full window start */
-		tap_value++;
-		tap_value = sdhci_tegra_scan_tap_values(sdhci, tap_value, true);
-		if (tap_value < 0) {
-			err = tap_value;
-			goto out;
-		} else if (tap_value > MAX_TAP_VALUES) {
-			/* All tap values exhausted. No full window */
-			tap_data->abandon_full_win = true;
-			goto out;
-		} else {
-			tap_data->full_win_begin = tap_value;
-			/*
-			 * If full win start is 0xFF, then set that as
-			 * full win end and exit.
-			 */
-			if (tap_value == MAX_TAP_VALUES) {
-				tap_data->full_win_end = tap_value;
-				goto out;
-			}
-		}
-
-		/* Get the full window end */
-		tap_value++;
-		tap_value = sdhci_tegra_scan_tap_values(sdhci,
-				tap_value, false);
-		if (tap_value < 0) {
-			err = tap_value;
-			goto out;
-		}
-		tap_data->full_win_end = tap_value - 1;
-		if (tap_value > MAX_TAP_VALUES)
-			tap_data->full_win_end = MAX_TAP_VALUES;
-		full_win_percentage = ((tap_data->full_win_end -
-				tap_data->full_win_begin) * 100) /
-				(tap_data->partial_win + 1);
-	} while (full_win_percentage < 50 && tap_value < MAX_TAP_VALUES);
-
-	if (full_win_percentage < 50)
+	/* Get the full window start */
+	tap_value++;
+	tap_value = sdhci_tegra_scan_tap_values(sdhci, tap_value, true);
+	if (tap_value > MAX_TAP_VALUES) {
+		/* All tap values exhausted. No full window */
 		tap_data->abandon_full_win = true;
+		goto out;
+	} else {
+		tap_data->full_win_begin = tap_value;
+		/*
+		 * If full win start is 0xFF, then set that as full win end
+		 * and exit.
+		 */
+		if (tap_value == MAX_TAP_VALUES) {
+			tap_data->full_win_end = tap_value;
+			goto out;
+		}
+	}
+
+	/* Get the full window end */
+	tap_value++;
+	tap_value = sdhci_tegra_scan_tap_values(sdhci, tap_value, false);
+	tap_data->full_win_end = tap_value - 1;
+	if (tap_value > MAX_TAP_VALUES)
+		tap_data->full_win_end = MAX_TAP_VALUES;
 out:
 	/*
 	 * Mark tuning as failed if both partial and full windows are
@@ -1560,10 +1889,12 @@ static int sdhci_tegra_execute_tuning(struct sdhci_host *sdhci, u32 opcode)
 	int err;
 	u16 ctrl_2;
 	u32 ier;
-	unsigned int freq_band;
+	int freq_band;
 	unsigned int i = 0;
-	unsigned int j = 0;
 	unsigned int voltage = 0;
+#ifdef CONFIG_MMC_FREQ_SCALING
+	bool single_freq_tuning = true;
+#endif
 	bool vcore_override_failed = false;
 	static unsigned int vcore_lvl;
 
@@ -1597,21 +1928,24 @@ static int sdhci_tegra_execute_tuning(struct sdhci_host *sdhci, u32 opcode)
 	sdhci_writel(sdhci, SDHCI_INT_DATA_AVAIL |
 		SDHCI_INT_DATA_CRC, SDHCI_INT_ENABLE);
 
-	if (sdhci->max_clk > tuning_params[TUNING_LOW_FREQ].freq_hz)
-		freq_band = TUNING_HIGH_FREQ;
-	else
+	if (sdhci->max_clk > tuning_params[TUNING_LOW_FREQ].freq_hz) {
+		if (tegra_host->tap_cmd == TAP_CMD_TRIM_HIGH_VOLTAGE)
+			freq_band = TUNING_HIGH_FREQ_HV;
+		else
+			freq_band = TUNING_HIGH_FREQ;
+	} else
 		freq_band = TUNING_LOW_FREQ;
-	tuning_data = &tegra_host->tuning_data;
+
+	tuning_data = &tegra_host->tuning_data[freq_band];
 
 	/*
 	 * If tuning is already done and retune request is not set, then skip
 	 * best tap value calculation and use the old best tap value.
 	 */
-	if ((tegra_host->tuning_status == TUNING_STATUS_DONE) &&
-			(tegra_host->instance != 0)) {
+	if (tegra_host->tuning_status == TUNING_STATUS_DONE) {
 			dev_info(mmc_dev(sdhci->mmc),
 			"Tuning already done. Setting tuned tap value %d\n",
-			tegra_host->tuning_data.best_tap_value);
+			tuning_data->best_tap_value[freq_band]);
 			goto set_best_tap;
 	}
 
@@ -1624,6 +1958,19 @@ static int sdhci_tegra_execute_tuning(struct sdhci_host *sdhci, u32 opcode)
 		tegra_host->set_tuning_override = false;
 	}
 
+#ifdef CONFIG_MMC_FREQ_SCALING
+	for (freq_band = 0; freq_band < TUNING_FREQ_COUNT; freq_band++) {
+		if (sdhci->mmc->caps2 & MMC_CAP2_FREQ_SCALING) {
+			spin_unlock(&sdhci->lock);
+			tegra_sdhci_set_clock(sdhci,
+				tuning_params[freq_band].freq_hz);
+			spin_lock(&sdhci->lock);
+			single_freq_tuning = false;
+		} else {
+			single_freq_tuning = true;
+		}
+#endif
+
 	/*
 	 * Run tuning and get the passing tap window info for all frequencies
 	 * and core voltages required to calculate the final tap value. The
@@ -1631,11 +1978,7 @@ static int sdhci_tegra_execute_tuning(struct sdhci_host *sdhci, u32 opcode)
 	 * holding a lock. The spinlock needs to be released when calling
 	 * non-atomic context functions like regulator calls etc.
 	 */
-	for (j = 2 ; j >= 1; j--) {
-	if ((tegra_host->instance == 0) && (freq_band != TUNING_LOW_FREQ))
-		freq_band = j;
-	else
-		j = j-1;
+	tuning_data = &tegra_host->tuning_data[freq_band];
 	for (i = 0; i < tuning_params[freq_band].nr_voltages; i++) {
 		spin_unlock(&sdhci->lock);
 		if (!tuning_data->tap_data[i]) {
@@ -1645,7 +1988,8 @@ static int sdhci_tegra_execute_tuning(struct sdhci_host *sdhci, u32 opcode)
 			if (!tuning_data->tap_data[i]) {
 				err = -ENOMEM;
 				dev_err(mmc_dev(sdhci->mmc),
-					"Insufficient memory for tap window info\n");
+					"Insufficient memory for tap window " \
+					"info\n");
 				spin_lock(&sdhci->lock);
 				goto out;
 			}
@@ -1741,7 +2085,6 @@ skip_vcore_override:
 
 		spin_lock(&sdhci->lock);
 	}
-
 	/* If setting min override voltage failed for the first time, set
 	 * nominal core voltage as override until retuning is done.
 	 */
@@ -1751,27 +2094,19 @@ skip_vcore_override:
 		tegra_host->set_tuning_override = true;
 
 	/* Calculate best tap for current freq band */
-	if (freq_band == TUNING_LOW_FREQ) {
-		calculate_low_freq_tap_value(sdhci);
-	} else {
-		if (freq_band == TUNING_HIGH_FREQ) {
-			tegra_host->tuning_data.best_tap_value =
-			calculate_high_freq_tap_value(sdhci);
-			goto set_best_tap;
-		} else {
-			tegra_host->tuning_data.best_hv_tap_value =
-			calculate_high_freq_tap_value(sdhci);
-			goto set_best_tap;
-		}
-	}
-
+	if (freq_band == TUNING_LOW_FREQ)
+		tuning_data->best_tap_value[freq_band] =
+			calculate_low_freq_tap_value(sdhci);
+	else
+		tuning_data->best_tap_value[freq_band] =
+			calculate_high_freq_tap_value(sdhci, freq_band);
 set_best_tap:
 
 	/* Dump the tap window data */
-	sdhci_tegra_dump_tuning_data(sdhci, freq_band);
-	}
 	sdhci_tegra_set_tap_delay(sdhci,
-			tegra_host->tuning_data.best_tap_value);
+			tuning_data->best_tap_value[freq_band]);
+	sdhci_tegra_dump_tuning_data(sdhci, freq_band);
+
 
 	/*
 	 * Run tuning with the best tap value. If tuning fails, set the status
@@ -1789,15 +2124,18 @@ set_best_tap:
 		else
 			tegra_host->tuning_status = TUNING_STATUS_RETUNE;
 	}
-
+#ifdef CONFIG_MMC_FREQ_SCALING
+		if (single_freq_tuning)
+			break;
+	}
+#endif
 out:
 	/*
 	 * Lock down the core voltage if tuning at override voltage failed
 	 * for the first time. The override setting will be removed once
 	 * retuning is called.
 	 */
-	if ((tegra_host->set_tuning_override) &&
-			(err != -ENOMEDIUM)) {
+	if (tegra_host->set_tuning_override) {
 		dev_info(mmc_dev(sdhci->mmc),
 			"Nominal core voltage being set until retuning\n");
 		spin_unlock(&sdhci->lock);
@@ -1838,12 +2176,6 @@ static int tegra_sdhci_suspend(struct sdhci_host *sdhci)
 				regulator_disable(tegra_host->vdd_slot_reg);
 			tegra_host->is_rail_enabled = 0;
 		}
-	}
-
-	if (tegra_host->dpd) {
-		mutex_lock(&tegra_host->dpd->delay_lock);
-		tegra_host->dpd->need_delay_dpd = 1;
-		mutex_unlock(&tegra_host->dpd->delay_lock);
 	}
 
 	return 0;
@@ -1908,9 +2240,69 @@ static void tegra_sdhci_post_resume(struct sdhci_host *sdhci)
 	}
 }
 
+static int show_polling_period(void *data, u64 *value)
+{
+	struct sdhci_host *host = (struct sdhci_host *)data;
+
+	if (host->mmc->dev_stats != NULL)
+		*value = host->mmc->dev_stats->polling_interval;
+
+	return 0;
+}
+
+static int set_polling_period(void *data, u64 value)
+{
+	struct sdhci_host *host = (struct sdhci_host *)data;
+
+	if (host->mmc->dev_stats != NULL) {
+		/* Limiting the maximum polling period to 1 sec */
+		if (value > 1000)
+			value = 1000;
+		host->mmc->dev_stats->polling_interval = value;
+	}
+
+	return 0;
+}
+static int show_active_load_high_threshold(void *data, u64 *value)
+{
+	struct sdhci_host *host = (struct sdhci_host *)data;
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_tegra *tegra_host = pltfm_host->priv;
+	struct tegra_freq_gov_data *gov_data = tegra_host->gov_data;
+
+	if (gov_data != NULL)
+		*value = gov_data->act_load_high_threshold;
+
+	return 0;
+}
+
+static int set_active_load_high_threshold(void *data, u64 value)
+{
+	struct sdhci_host *host = (struct sdhci_host *)data;
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_tegra *tegra_host = pltfm_host->priv;
+	struct tegra_freq_gov_data *gov_data = tegra_host->gov_data;
+
+	if (gov_data != NULL) {
+		/* Maximum threshold load percentage is 100.*/
+		if (value > 100)
+			value = 100;
+		gov_data->act_load_high_threshold = value;
+	}
+
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(sdhci_polling_period_fops, show_polling_period,
+		set_polling_period, "%llu\n");
+DEFINE_SIMPLE_ATTRIBUTE(sdhci_active_load_high_threshold_fops,
+		show_active_load_high_threshold,
+		set_active_load_high_threshold, "%llu\n");
+
 static void sdhci_tegra_error_stats_debugfs(struct sdhci_host *host)
 {
 	struct dentry *root;
+	struct dentry *dfs_root;
 
 	root = debugfs_create_dir(dev_name(mmc_dev(host->mmc)), NULL);
 	if (IS_ERR(root))
@@ -1923,8 +2315,22 @@ static void sdhci_tegra_error_stats_debugfs(struct sdhci_host *host)
 
 	host->debugfs_root = root;
 
+	dfs_root = debugfs_create_dir("dfs_stats_dir", root);
+	if (IS_ERR_OR_NULL(dfs_root))
+		goto err_node;
+
 	if (!debugfs_create_file("error_stats", S_IRUSR, root, host,
 				&sdhci_host_fops))
+		goto err_node;
+	if (!debugfs_create_file("dfs_stats", S_IRUSR, dfs_root, host,
+				&sdhci_host_dfs_fops))
+		goto err_node;
+	if (!debugfs_create_file("polling_period", 0644, dfs_root, (void *)host,
+				&sdhci_polling_period_fops))
+		goto err_node;
+	if (!debugfs_create_file("active_load_high_threshold", 0644,
+				dfs_root, (void *)host,
+				&sdhci_active_load_high_threshold_fops))
 		goto err_node;
 	return;
 
@@ -1937,13 +2343,14 @@ err_root:
 }
 
 static struct sdhci_ops tegra_sdhci_ops = {
-#ifndef CONFIG_ARCH_TEGRA_11x_SOC
 	.get_ro     = tegra_sdhci_get_ro,
-#endif
 	.get_cd     = tegra_sdhci_get_cd,
 	.read_l     = tegra_sdhci_readl,
+#ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	.read_w     = tegra_sdhci_readw,
+#endif
 	.write_l    = tegra_sdhci_writel,
+	.write_w    = tegra_sdhci_writew,
 	.platform_8bit_width = tegra_sdhci_8bit,
 	.set_clock		= tegra_sdhci_set_clock,
 	.suspend		= tegra_sdhci_suspend,
@@ -1955,6 +2362,10 @@ static struct sdhci_ops tegra_sdhci_ops = {
 	.switch_signal_voltage_exit = tegra_sdhci_do_calibration,
 	.execute_freq_tuning	= sdhci_tegra_execute_tuning,
 	.sd_error_stats		= sdhci_tegra_sd_error_stats,
+#ifdef CONFIG_MMC_FREQ_SCALING
+	.dfs_gov_init		= sdhci_tegra_freq_gov_init,
+	.dfs_gov_get_target_freq	= sdhci_tegra_get_target_freq,
+#endif
 };
 
 static struct sdhci_pltfm_data sdhci_tegra20_pdata = {
@@ -2084,62 +2495,78 @@ static int tegra_sdhci_reboot_notify(struct notifier_block *nb,
 static ssize_t sdhci_handle_boost_mode_tap(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
-	int tap_enable;
-	u32 present_state;
+	int tap_cmd;
+	struct mmc_card *card;
 	char *p = (char *)buf;
-	/* struct mmc_host *mmc = container_of(dev, struct mmc_host, class_dev);
-	 * struct sdhci_host *host = mmc_priv(mmc);
-	 * struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
-	 * struct sdhci_tegra *tegra_host = pltfm_host->priv;
-	 */
-	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci_host_for_sdio);
+	struct sdhci_host *host = dev_get_drvdata(dev);
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
 	struct sdhci_tegra *tegra_host = pltfm_host->priv;
-	tap_enable = memparse(p, &p);
+	struct tegra_tuning_data *tuning_data;
 
-	present_state = sdhci_readl(sdhci_host_for_sdio, SDHCI_PRESENT_STATE);
-	while ((present_state & (SDHCI_DOING_WRITE | SDHCI_DOING_READ))) {
-		present_state = sdhci_readl(sdhci_host_for_sdio,
-					SDHCI_PRESENT_STATE);
+	tap_cmd = memparse(p, &p);
+
+	card = host->mmc->card;
+	if (!card)
+		return count;
+
+	/* if not uhs -- no tuning and no tap value to set */
+	if (!mmc_sd_card_uhs(card) && !mmc_card_hs200(card))
+		return count;
+
+	/* if no change in tap value -- just exit */
+	if (tap_cmd == tegra_host->tap_cmd)
+		return count;
+
+	switch (tap_cmd) {
+	case TAP_CMD_GO_COMMAND:
+	case TAP_CMD_SUSPEND_CONTROLLER:
+		return count;
+
+	case TAP_CMD_TRIM_DEFAULT_VOLTAGE:
+	case TAP_CMD_TRIM_HIGH_VOLTAGE:
+		break;
+
+	default:
+		pr_info("\necho 1 > cmd_state  # to set normal voltage\n" \
+			  "echo 2 > cmd_state  # to set high voltage\n");
+		return count;
 	}
 
-	if (tap_enable == 1) {
-		/* set tap value which is calculated for 1.25 to 1.39 volts*/
-		tegra_host->tuning_turbo_enable = 1;
-		dev_err(mmc_dev(sdhci_host_for_sdio->mmc),
-		"Setting tap value for Voltage turbo mode\n");
-		disable_irq(sdhci_host_for_sdio->irq);
-		spin_lock(&sdhci_host_for_sdio->lock);
-		sdhci_tegra_set_tap_delay(sdhci_host_for_sdio,
-			tegra_host->tuning_data.best_hv_tap_value);
-		spin_unlock(&sdhci_host_for_sdio->lock);
-		enable_irq(sdhci_host_for_sdio->irq);
-	} else if (tap_enable == 0) {
-		/* set tap value calculated for voltage range 1.1 to 1.25 */
-		tegra_host->tuning_turbo_enable = 0;
-		dev_err(mmc_dev(sdhci_host_for_sdio->mmc),
-			"Setting tap value for voltage non-turbo mode\n");
-		disable_irq(sdhci_host_for_sdio->irq);
-		spin_lock(&sdhci_host_for_sdio->lock);
-		sdhci_tegra_set_tap_delay(sdhci_host_for_sdio,
-			tegra_host->tuning_data.best_tap_value);
-		spin_unlock(&sdhci_host_for_sdio->lock);
-		enable_irq(sdhci_host_for_sdio->irq);
-	} else {
-		dev_err(mmc_dev(sdhci_host_for_sdio->mmc),
-		"Wrong value 1: enable turbo mode 0: disable turbo mode\n");
+	spin_lock(&host->lock);
+	disable_irq(host->irq);
+	tegra_host->tap_cmd = tap_cmd;
+	tuning_data = &tegra_host->tuning_data[tap_cmd];
+	switch (tap_cmd) {
+	case TAP_CMD_TRIM_DEFAULT_VOLTAGE:
+		/* set tap value for voltage range 1.1 to 1.25 */
+		sdhci_tegra_set_tap_delay(host,
+			tuning_data->best_tap_value[TUNING_HIGH_FREQ]);
+		break;
+
+	case TAP_CMD_TRIM_HIGH_VOLTAGE:
+		/*  set tap value for voltage range 1.25 to 1.39 volts */
+		sdhci_tegra_set_tap_delay(host,
+			tuning_data->best_tap_value[TUNING_HIGH_FREQ_HV]);
+		break;
+	default:
+		break;
 	}
+	spin_unlock(&host->lock);
+	enable_irq(host->irq);
 	return count;
 }
 
 static ssize_t sdhci_show_turbo_mode(struct device *dev,
 			struct device_attribute *attr, char *buf)
 {
-	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(sdhci_host_for_sdio);
+	struct sdhci_host *host = dev_get_drvdata(dev);
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
 	struct sdhci_tegra *tegra_host = pltfm_host->priv;
-	return sprintf(buf, "%d\n", tegra_host->tuning_turbo_enable);
+
+	return sprintf(buf, "%d\n", tegra_host->tap_cmd);
 }
 
-static DEVICE_ATTR(handle_turbo_mode, 0644, sdhci_show_turbo_mode,
+static DEVICE_ATTR(cmd_state, 0644, sdhci_show_turbo_mode,
 			sdhci_handle_boost_mode_tap);
 
 static int __devinit sdhci_tegra_probe(struct platform_device *pdev)
@@ -2359,14 +2786,22 @@ static int __devinit sdhci_tegra_probe(struct platform_device *pdev)
 			clk_set_rate(tegra_host->emc_clk, 900000000);
 	}
 
+	tegra_host->sclk = devm_clk_get(mmc_dev(host->mmc), "sclk");
+	if (IS_ERR_OR_NULL(tegra_host->sclk)) {
+		dev_err(mmc_dev(host->mmc), "Can't get sclk clock\n");
+		tegra_host->sclk = NULL;
+	} else {
+		clk_set_rate(tegra_host->sclk, 900000000);
+	}
+
 	pltfm_host->priv = tegra_host;
 	tegra_host->clk_enabled = true;
 	tegra_host->max_clk_limit = plat->max_clk_limit;
 	tegra_host->ddr_clk_limit = plat->ddr_clk_limit;
 	tegra_host->sd_detect_in_suspend = plat->sd_detect_in_suspend;
 	tegra_host->instance = pdev->id;
-	tegra_host->dpd = tegra_io_dpd_get(mmc_dev(host->mmc));
-
+	tegra_host->tap_cmd = TAP_CMD_TRIM_DEFAULT_VOLTAGE;
+	mutex_init(&tegra_host->retune_lock);
 	host->mmc->pm_caps |= plat->pm_caps;
 	host->mmc->pm_flags |= plat->pm_flags;
 
@@ -2385,18 +2820,26 @@ static int __devinit sdhci_tegra_probe(struct platform_device *pdev)
 #ifdef CONFIG_MMC_BKOPS
 	host->mmc->caps2 |= MMC_CAP2_BKOPS;
 #endif
-	tegra_sdhost_min_freq = TEGRA_SDHOST_MIN_FREQ;
 #if defined(CONFIG_ARCH_TEGRA_2x_SOC)
 	tegra_host->hw_ops = &tegra_2x_sdhci_ops;
-	tegra_sdhost_std_freq = TEGRA2_SDHOST_STD_FREQ;
 #elif defined(CONFIG_ARCH_TEGRA_3x_SOC)
 	tegra_host->hw_ops = &tegra_3x_sdhci_ops;
-	tegra_sdhost_std_freq = TEGRA3_SDHOST_STD_FREQ;
 #else
 	tegra_host->hw_ops = &tegra_11x_sdhci_ops;
-	tegra_sdhost_std_freq = TEGRA3_SDHOST_STD_FREQ;
 	host->mmc->caps2 |= MMC_CAP2_HS200;
+	host->mmc->caps2 |= MMC_CAP2_CACHE_CTRL;
 	host->mmc->caps |= MMC_CAP_CMD23;
+	host->mmc->caps2 |= MMC_CAP2_PACKED_CMD;
+#endif
+
+#ifdef CONFIG_MMC_FREQ_SCALING
+	/*
+	 * Enable dyamic frequency scaling support only if the platform clock
+	 * limit is higher than the lowest supported frequency by tuning.
+	 */
+	if (plat->en_freq_scaling && (plat->max_clk_limit >
+		tuning_params[TUNING_LOW_FREQ].freq_hz))
+		host->mmc->caps2 |= MMC_CAP2_FREQ_SCALING;
 #endif
 
 	if (plat->nominal_vcore_mv)
@@ -2404,14 +2847,17 @@ static int __devinit sdhci_tegra_probe(struct platform_device *pdev)
 	if (plat->min_vcore_override_mv)
 		tegra_host->min_vcore_override_mv = plat->min_vcore_override_mv;
 
-	pr_err("nominal vcore %d, override %d\n", tegra_host->nominal_vcore_mv,
+	host->edp_support = plat->edp_support ? true : false;
+	if (host->edp_support)
+		for (rc = 0; rc < SD_EDP_NUM_STATES; rc++)
+			host->edp_states[rc] = plat->edp_states[rc];
+
+	pr_err("nominal vcore %d, override %d\n",
+		tegra_host->nominal_vcore_mv,
 		tegra_host->min_vcore_override_mv);
 	rc = sdhci_add_host(host);
 
-	if (tegra_host->instance == 0) {
-		device_create_file(&pdev->dev, &dev_attr_handle_turbo_mode);
-		sdhci_host_for_sdio = host;
-	}
+	device_create_file(&pdev->dev, &dev_attr_cmd_state);
 
 	sdhci_tegra_error_stats_debugfs(host);
 	if (rc)
@@ -2489,6 +2935,11 @@ static int __devexit sdhci_tegra_remove(struct platform_device *pdev)
 		pm_runtime_put_sync(&pdev->dev);
 	}
 	clk_put(pltfm_host->clk);
+
+	if (tegra_host->emc_clk && tegra_host->emc_clk_enabled)
+		clk_disable_unprepare(tegra_host->emc_clk);
+	if (tegra_host->sclk && tegra_host->is_sdmmc_sclk_on)
+		clk_disable_unprepare(tegra_host->sclk);
 
 	if (plat->power_off_rail)
 		unregister_reboot_notifier(&tegra_host->reboot_notify);

@@ -4,7 +4,7 @@
  * Copyright (C) 2010 Google, Inc.
  * Author: Colin Cross <ccross@android.com>
  *
- * Copyright (C) 2010-2012 NVIDIA Corporation
+ * Copyright (C) 2010-2013 NVIDIA CORPORATION. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -719,6 +719,10 @@ err:
 	if (i2c_dev->chipdata->has_xfer_complete_interrupt)
 		mask |= I2C_INT_ALL_PACKETS_XFER_COMPLETE;
 
+	if (!(i2c_dev->use_single_xfer_complete &&
+			i2c_dev->chipdata->has_xfer_complete_interrupt))
+		mask |= I2C_INT_ALL_PACKETS_XFER_COMPLETE;
+
 	if (i2c_dev->chipdata->has_hw_arb_support)
 		mask |= I2C_INT_BUS_CLEAR_DONE;
 
@@ -869,6 +873,10 @@ static int tegra_i2c_xfer_msg(struct tegra_i2c_bus *i2c_bus,
 		int_mask |= I2C_INT_RX_FIFO_DATA_REQ;
 		i2c_dev->use_single_xfer_complete = false;
 	}
+
+	if (!(i2c_dev->use_single_xfer_complete &&
+			i2c_dev->chipdata->has_xfer_complete_interrupt))
+		int_mask |= I2C_INT_ALL_PACKETS_XFER_COMPLETE;
 
 	if (!i2c_dev->chipdata->has_xfer_complete_interrupt)
 		spin_unlock_irqrestore(&i2c_dev->fifo_lock, flags);
@@ -1038,9 +1046,8 @@ static int tegra_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[],
 				else
 					next_msg_end_type = MSG_END_REPEAT_START;
 			}
-			if ((!(msgs[i].flags & I2C_M_RD)) && (msgs[i].len <= 8)
-					&& (msgs[i+1].flags & I2C_M_RD)	&& (next_msg_end_type != MSG_END_CONTINUE)
-					&& (end_type == MSG_END_REPEAT_START)) {
+			if ((!(msgs[i].flags & I2C_M_RD)) && (msgs[i].len <= 8) && (msgs[i+1].flags & I2C_M_RD)
+					&& (next_msg_end_type != MSG_END_CONTINUE) && (end_type == MSG_END_REPEAT_START)) {
 				ret = tegra_i2c_xfer_msg(i2c_bus, &msgs[i], end_type, &msgs[i+1], next_msg_end_type);
 				if (ret)
 					break;
@@ -1103,7 +1110,7 @@ static struct tegra_i2c_chipdata tegra11_i2c_chipdata = {
 
 /* Match table for of_platform binding */
 static const struct of_device_id tegra_i2c_of_match[] __devinitconst = {
-	{ .compatible = "nvidia,tegra11-i2c", .data = &tegra11_i2c_chipdata, },
+	{ .compatible = "nvidia,tegra114-i2c", .data = &tegra11_i2c_chipdata, },
 	{ .compatible = "nvidia,tegra20-i2c", .data = &tegra20_i2c_chipdata, },
 	{ .compatible = "nvidia,tegra20-i2c-dvc", .data = &tegra20_i2c_chipdata, },
 	{},
@@ -1265,7 +1272,8 @@ static int __devinit tegra_i2c_probe(struct platform_device *pdev)
 	}
 
 	ret = devm_request_irq(&pdev->dev, i2c_dev->irq,
-			tegra_i2c_isr, 0, dev_name(&pdev->dev), i2c_dev);
+			tegra_i2c_isr, IRQF_NO_SUSPEND,
+			dev_name(&pdev->dev), i2c_dev);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to request irq %i\n", i2c_dev->irq);
 		return ret;

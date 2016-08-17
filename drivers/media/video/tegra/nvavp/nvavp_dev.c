@@ -1,7 +1,7 @@
 /*
  * drivers/media/video/tegra/nvavp/nvavp_dev.c
  *
- * Copyright (c) 2012, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This file is licensed under the terms of the GNU General Public License
  * version 2. This program is licensed "as is" without any warranty of any
@@ -115,6 +115,9 @@ struct nvavp_info {
 	/* used for dvfs */
 	struct clk			*sclk;
 	struct clk			*emc_clk;
+#if defined(CONFIG_ARCH_TEGRA_11x_SOC)
+	struct clk			*vde_emc_clk;
+#endif
 	unsigned long			sclk_rate;
 	unsigned long			emc_clk_rate;
 
@@ -140,7 +143,6 @@ struct nvavp_info {
 
 	struct nvavp_channel		channel_info[NVAVP_NUM_CHANNELS];
 	bool				pending;
-	bool				stay_on;
 
 	u32				syncpt_id;
 	u32				syncpt_value;
@@ -228,18 +230,19 @@ static void nvavp_set_channel_control_area(struct nvavp_info *nvavp, int channel
 		control->put (0x%08x) control->get (0x%08x)\n",
 		channel_id, (u32) &control->put, (u32) &control->get);
 
-	/* Clock gating disabled for video and enabled for audio  */
-	if (IS_VIDEO_CHANNEL_ID(channel_id))
-		writel(0x1, &control->idle_clk_enable);
-	else
-		writel(0x0, &control->idle_clk_enable);
-
-	/* Disable iram clock gating */
+	/* enable avp VDE clock control and disable iram clock gating */
+	writel(0x0, &control->idle_clk_enable);
 	writel(0x0, &control->iram_clk_gating);
 
 	/* enable avp idle timeout interrupt */
 	writel(0x1, &control->idle_notify_enable);
 	writel(NVAVP_OS_IDLE_TIMEOUT, &control->idle_notify_delay);
+
+#if defined(CONFIG_ARCH_TEGRA_11x_SOC)
+	/* enable sync pt trap enable for avp */
+	if (IS_VIDEO_CHANNEL_ID(channel_id))
+		writel(0x1, &control->sync_pt_incr_trap_enable);
+#endif
 
 	/* init dma start and end pointers */
 	writel(channel_info->pushbuf_phys, &control->dma_start);
@@ -262,6 +265,10 @@ static struct clk *nvavp_clk_get(struct nvavp_info *nvavp, int id)
 		return nvavp->vde_clk;
 	if (id == NVAVP_MODULE_ID_EMC)
 		return nvavp->emc_clk;
+#if defined(CONFIG_ARCH_TEGRA_11x_SOC)
+	if (id == NVAVP_MODULE_ID_VDE_EMC)
+		return nvavp->vde_emc_clk;
+#endif
 
 	return NULL;
 }
@@ -316,7 +323,7 @@ static void nvavp_clks_enable(struct nvavp_info *nvavp)
 
 static void nvavp_clks_disable(struct nvavp_info *nvavp)
 {
-	if ((--nvavp->clk_enabled == 0) && !nvavp->stay_on) {
+	if (--nvavp->clk_enabled == 0) {
 		clk_disable_unprepare(nvavp->bsev_clk);
 		clk_disable_unprepare(nvavp->vde_clk);
 		clk_set_rate(nvavp->emc_clk, 0);
@@ -329,6 +336,13 @@ static void nvavp_clks_disable(struct nvavp_info *nvavp)
 		dev_dbg(&nvavp->nvhost_dev->dev, "%s: resetting emc_clk "
 				"and sclk\n", __func__);
 	}
+#if defined(CONFIG_ARCH_TEGRA_11x_SOC)
+	/* Disable vde emc clock */
+	if (tegra_is_clk_enabled(nvavp->vde_emc_clk)) {
+		clk_set_rate(nvavp->vde_emc_clk, 0);
+		clk_disable_unprepare(nvavp->vde_emc_clk);
+	}
+#endif
 }
 
 static u32 nvavp_check_idle(struct nvavp_info *nvavp, int channel_id)
@@ -380,8 +394,15 @@ static int nvavp_service(struct nvavp_info *nvavp)
 	if (!(inbox & NVAVP_INBOX_VALID))
 		inbox = 0x00000000;
 
-	if ((inbox & NVE276_OS_INTERRUPT_VIDEO_IDLE) && (!nvavp->stay_on))
+	if (inbox & NVE276_OS_INTERRUPT_VIDEO_IDLE)
 		schedule_work(&nvavp->clock_disable_work);
+
+	if (inbox & NVE276_OS_INTERRUPT_SYNCPT_INCR_TRAP) {
+		/* sync pnt incr */
+		if (nvavp->syncpt_id == NVE276_OS_SYNCPT_INCR_TRAP_GET_SYNCPT(inbox))
+			nvhost_syncpt_cpu_incr_ext(
+				nvavp->nvhost_dev, nvavp->syncpt_id);
+	}
 
 #if defined(CONFIG_TEGRA_NVAVP_AUDIO)
 	if (inbox & NVE276_OS_INTERRUPT_AUDIO_IDLE)
@@ -1136,6 +1157,33 @@ static int nvavp_set_clock_ioctl(struct file *filp, unsigned int cmd,
 	if (copy_to_user((void __user *)arg, &config, sizeof(struct nvavp_clock_args)))
 		return -EFAULT;
 
+#if defined(CONFIG_ARCH_TEGRA_11x_SOC)
+	if (config.id == NVAVP_MODULE_ID_EMC) {
+		/*
+		 * WAR for bug 1266369
+		 * vde.emc clock enabled only when playback is going on.
+		 * dc check whether vde.emc clock is enabled or not.
+		 * If vde.emc clock in on, then it set iso efficiency to 45%.
+		 * vde.emc clock is enabled when user mode driver ask for non-zero
+		 * emc_clk_rate and disabled when it asks 0 clk_rate.
+		 * we set minimum clk_rate for vde.emc as clk_rate for vde.emc is
+		 * not used.
+		 */
+		c = nvavp_clk_get(nvavp, NVAVP_MODULE_ID_VDE_EMC);
+		if (nvavp->emc_clk_rate) {
+			if (!tegra_is_clk_enabled(c)) {
+				clk_prepare_enable(c);
+				clk_set_rate(c, 0);
+			}
+		} else {
+			if (tegra_is_clk_enabled(c)) {
+				clk_set_rate(c, 0);
+				clk_disable_unprepare(c);
+			}
+		}
+	}
+#endif
+
 	return 0;
 }
 
@@ -1348,18 +1396,11 @@ static int nvavp_force_clock_stay_on_ioctl(struct file *filp, unsigned int cmd,
 
 	mutex_lock(&nvavp->open_lock);
 	if (clock.state) {
-		if (clientctx->clk_reqs++ == 0) {
-			mutex_unlock(&nvavp->open_lock);
-			cancel_work_sync(&nvavp->clock_disable_work);
-			mutex_lock(&nvavp->open_lock);
+		if (clientctx->clk_reqs++ == 0)
 			nvavp_clks_enable(nvavp);
-			nvavp->stay_on = true;
-		}
 	} else {
-		if (--clientctx->clk_reqs == 0) {
-			nvavp->stay_on = false;
+		if (--clientctx->clk_reqs == 0)
 			nvavp_clks_disable(nvavp);
-		}
 	}
 	mutex_unlock(&nvavp->open_lock);
 	return 0;
@@ -1743,6 +1784,15 @@ static int tegra_nvavp_probe(struct platform_device *ndev)
 		goto err_get_emc_clk;
 	}
 
+#if defined(CONFIG_ARCH_TEGRA_11x_SOC)
+	nvavp->vde_emc_clk = clk_get(&ndev->dev, "emc_vde");
+	if (IS_ERR(nvavp->vde_emc_clk)) {
+		dev_err(&ndev->dev, "cannot get emc clock\n");
+		ret = -ENOENT;
+		goto err_get_vde_emc_clk;
+	}
+#endif
+
 #if defined(CONFIG_TEGRA_NVAVP_AUDIO)
 	nvavp->bsea_clk = clk_get(&ndev->dev, "bsea");
 	if (IS_ERR(nvavp->bsea_clk)) {
@@ -1824,6 +1874,10 @@ err_get_vcp_clk:
 	clk_put(nvavp->bsea_clk);
 err_get_bsea_clk:
 #endif
+#if defined(CONFIG_ARCH_TEGRA_11x_SOC)
+	clk_put(nvavp->vde_emc_clk);
+err_get_vde_emc_clk:
+#endif
 	clk_put(nvavp->emc_clk);
 err_get_emc_clk:
 	clk_put(nvavp->sclk);
@@ -1881,6 +1935,9 @@ static int tegra_nvavp_remove(struct platform_device *ndev)
 	clk_put(nvavp->vde_clk);
 	clk_put(nvavp->cop_clk);
 
+#if defined(CONFIG_ARCH_TEGRA_11x_SOC)
+	clk_put(nvavp->vde_emc_clk);
+#endif
 	clk_put(nvavp->emc_clk);
 	clk_put(nvavp->sclk);
 

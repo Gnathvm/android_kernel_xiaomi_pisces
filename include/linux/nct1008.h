@@ -30,7 +30,7 @@
 
 struct nct1008_data;
 
-enum nct1008_chip { NCT1008, NCT72 };
+enum nct1008_chip { NCT1008, NCT72, NCT218 };
 
 struct nct1008_platform_data {
 	bool supported_hwrev;
@@ -44,5 +44,8 @@ struct nct1008_platform_data {
 	struct thermal_trip_info trips[THERMAL_MAX_TRIPS];
 	struct thermal_zone_params *tzp;
 	const char *loc_name;
+	long suspend_ext_limit_hi;
+	long suspend_ext_limit_lo;
+	int (*suspend_with_wakeup)(void);
 };
 #endif /* _LINUX_NCT1008_H */

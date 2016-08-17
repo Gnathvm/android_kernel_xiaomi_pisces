@@ -86,6 +86,7 @@ static void rev_sku_to_speedo_ids(int rev, int sku)
 	case 0x10: /* Eng */
 	case 0x05: /* T40S */
 	case 0x06: /* AP40 */
+	case 0x20: /* T40DC */
 		if (!a01)
 			cpu_speedo_id = 1;
 		soc_speedo_id = 0;
@@ -96,6 +97,13 @@ static void rev_sku_to_speedo_ids(int rev, int sku)
 	case 0x04: /* T40T */
 		if (!a01)
 			cpu_speedo_id = 2;
+		soc_speedo_id = 1;
+		threshold_index = 1;
+		break;
+
+	case 0x08: /* AP40X */
+		if (!a01)
+			cpu_speedo_id = 3;
 		soc_speedo_id = 1;
 		threshold_index = 1;
 		break;
@@ -207,7 +215,7 @@ int tegra_core_speedo_mv(void)
 			return 1170;
 	/* fall thru if core_process_id = 0 */
 	case 1:
-		if (tegra_sku_id == 0x4)
+		if ((tegra_sku_id == 0x4) || (tegra_sku_id == 0x8))
 			return 1390;
 		return 1250;
 	default:

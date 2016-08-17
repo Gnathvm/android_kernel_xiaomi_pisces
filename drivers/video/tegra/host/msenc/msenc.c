@@ -3,7 +3,7 @@
  *
  * Tegra MSENC Module Support
  *
- * Copyright (c) 2012, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -21,10 +21,14 @@
 #include <linux/slab.h>         /* for kzalloc */
 #include <linux/firmware.h>
 #include <linux/module.h>
+#include <linux/pm_runtime.h>
 #include <mach/clk.h>
 #include <asm/byteorder.h>      /* for parsing ucode image wrt endianness */
 #include <linux/delay.h>	/* for udelay */
 #include <linux/scatterlist.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+#include <linux/of_platform.h>
 #include <mach/iomap.h>
 #include "dev.h"
 #include "msenc.h"
@@ -33,6 +37,7 @@
 #include "nvhost_acm.h"
 #include "chip_support.h"
 #include "nvhost_memmgr.h"
+#include "t114/t114.h"
 
 #define MSENC_IDLE_TIMEOUT_DEFAULT	10000	/* 10 milliseconds */
 #define MSENC_IDLE_CHECK_PERIOD		10	/* 10 usec */
@@ -131,6 +136,10 @@ int msenc_boot(struct platform_device *dev)
 	u32 offset;
 	int err = 0;
 	struct msenc *m = get_msenc(dev);
+
+	/* check if firmware is loaded or not */
+	if (!m || !m->valid)
+		return -ENOMEDIUM;
 
 	nvhost_device_writel(dev, msenc_dmactl_r(), 0);
 	nvhost_device_writel(dev, msenc_dmatrfbase_r(),
@@ -247,7 +256,6 @@ int msenc_read_ucode(struct platform_device *dev, const char *fw_name)
 {
 	struct msenc *m = get_msenc(dev);
 	const struct firmware *ucode_fw;
-	void *ucode_ptr = NULL;
 	int err;
 
 	ucode_fw  = nvhost_client_request_firmware(dev, fw_name);
@@ -275,14 +283,14 @@ int msenc_read_ucode(struct platform_device *dev, const char *fw_name)
 		goto clean_up;
 	}
 
-	ucode_ptr = mem_op().mmap(m->mem_r);
-	if (IS_ERR_OR_NULL(ucode_ptr)) {
+	m->mapped = mem_op().mmap(m->mem_r);
+	if (IS_ERR_OR_NULL(m->mapped)) {
 		dev_err(&dev->dev, "nvmap mmap failed");
 		err = -ENOMEM;
 		goto clean_up;
 	}
 
-	err = msenc_setup_ucode_image(dev, ucode_ptr, ucode_fw);
+	err = msenc_setup_ucode_image(dev, (u32 *)m->mapped, ucode_fw);
 	if (err) {
 		dev_err(&dev->dev, "failed to parse firmware image\n");
 		return err;
@@ -290,26 +298,29 @@ int msenc_read_ucode(struct platform_device *dev, const char *fw_name)
 
 	m->valid = true;
 
-	mem_op().munmap(m->mem_r, ucode_ptr);
 	release_firmware(ucode_fw);
 
 	return 0;
 
 clean_up:
-	if (ucode_ptr)
-		mem_op().munmap(m->mem_r, ucode_ptr);
-	if (m->pa)
+	if (m->mapped) {
+		mem_op().munmap(m->mem_r, (u32 *)m->mapped);
+		m->mapped = NULL;
+	}
+	if (m->pa) {
 		mem_op().unpin(nvhost_get_host(dev)->memmgr, m->mem_r, m->pa);
-	if (m->mem_r)
+		m->pa = NULL;
+	}
+	if (m->mem_r) {
 		mem_op().put(nvhost_get_host(dev)->memmgr, m->mem_r);
+		m->mem_r = NULL;
+	}
 	release_firmware(ucode_fw);
 	return err;
 }
 
 void nvhost_msenc_init(struct platform_device *dev)
 {
-	struct nvhost_device_data *pdata =
-		(struct nvhost_device_data *)dev->dev.platform_data;
 	int err = 0;
 	struct msenc *m;
 	char *fw_name;
@@ -337,29 +348,38 @@ void nvhost_msenc_init(struct platform_device *dev)
 		goto clean_up;
 	}
 
-	if (!pdata->can_powergate) {
-		nvhost_module_busy(dev);
-		msenc_boot(dev);
-		nvhost_module_idle(dev);
-	}
+	nvhost_module_busy(dev);
+	msenc_boot(dev);
+	nvhost_module_idle(dev);
 
 	return;
 
- clean_up:
+clean_up:
 	dev_err(&dev->dev, "failed");
-	mem_op().unpin(nvhost_get_host(dev)->memmgr, m->mem_r, m->pa);
 }
 
 void nvhost_msenc_deinit(struct platform_device *dev)
 {
 	struct msenc *m = get_msenc(dev);
 
+	if (!m)
+		return;
+
 	/* unpin, free ucode memory */
-	if (m->mem_r) {
-		mem_op().unpin(nvhost_get_host(dev)->memmgr, m->mem_r, m->pa);
-		mem_op().put(nvhost_get_host(dev)->memmgr, m->mem_r);
-		m->mem_r = 0;
+	if (m->mapped) {
+		mem_op().munmap(m->mem_r, m->mapped);
+		m->mapped = NULL;
 	}
+	if (m->pa) {
+		mem_op().unpin(nvhost_get_host(dev)->memmgr, m->mem_r,
+			m->pa);
+		m->pa = NULL;
+	}
+	if (m->mem_r) {
+		mem_op().put(nvhost_get_host(dev)->memmgr, m->mem_r);
+		m->mem_r = NULL;
+	}
+	m->valid = false;
 }
 
 void nvhost_msenc_finalize_poweron(struct platform_device *dev)
@@ -367,11 +387,30 @@ void nvhost_msenc_finalize_poweron(struct platform_device *dev)
 	msenc_boot(dev);
 }
 
+static struct of_device_id tegra_msenc_of_match[] __devinitdata = {
+	{ .compatible = "nvidia,tegra114-msenc",
+		.data = (struct nvhost_device_data *)&t11_msenc_info },
+	{ },
+};
 static int __devinit msenc_probe(struct platform_device *dev)
 {
 	int err = 0;
-	struct nvhost_device_data *pdata =
-		(struct nvhost_device_data *)dev->dev.platform_data;
+	struct nvhost_device_data *pdata = NULL;
+
+	if (dev->dev.of_node) {
+		const struct of_device_id *match;
+
+		match = of_match_device(tegra_msenc_of_match, &dev->dev);
+		if (match)
+			pdata = (struct nvhost_device_data *)match->data;
+	} else
+		pdata = (struct nvhost_device_data *)dev->dev.platform_data;
+
+	WARN_ON(!pdata);
+	if (!pdata) {
+		dev_info(&dev->dev, "no platform data\n");
+		return -ENODATA;
+	}
 
 	pdata->pdev = dev;
 	pdata->init = nvhost_msenc_init;
@@ -384,7 +423,15 @@ static int __devinit msenc_probe(struct platform_device *dev)
 	if (err)
 		return err;
 
-	return nvhost_client_device_init(dev);
+	err = nvhost_client_device_init(dev);
+	if (err)
+		return err;
+
+	pm_runtime_use_autosuspend(&dev->dev);
+	pm_runtime_set_autosuspend_delay(&dev->dev, 100);
+	pm_runtime_enable(&dev->dev);
+
+	return 0;
 }
 
 static int __exit msenc_remove(struct platform_device *dev)
@@ -416,6 +463,9 @@ static struct platform_driver msenc_driver = {
 	.driver = {
 		.owner = THIS_MODULE,
 		.name = "msenc",
+#ifdef CONFIG_OF
+		.of_match_table = tegra_msenc_of_match,
+#endif
 	}
 };
 

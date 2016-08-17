@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-cardhu.c
  *
- * Copyright (c) 2011-2012, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,6 @@
 
 #include <sound/wm8903.h>
 #include <sound/max98095.h>
-#include <media/tegra_dtv.h>
 
 #include <asm/hardware/gic.h>
 
@@ -762,8 +761,6 @@ static struct platform_device *cardhu_devices[] __initdata = {
 	&tegra_rtc_device,
 	&tegra_udc_device,
 	&tegra_wdt0_device,
-	&tegra_wdt1_device,
-	&tegra_wdt2_device,
 #if defined(CONFIG_TEGRA_AVP)
 	&tegra_avp_device,
 #endif
@@ -809,10 +806,10 @@ static struct platform_device *beaver_audio_devices[] __initdata = {
 
 };
 
-#define MXT_CFG_NAME            "Android_Cardhu_2012-01-31.cfg"
+#define MXT_CFG_NAME            "Android_Cardhu_2012-12-18.cfg"
 
 static struct mxt_platform_data atmel_mxt_info = {
-	.irqflags       = IRQF_TRIGGER_FALLING,
+	.irqflags       = IRQF_ONESHOT | IRQF_TRIGGER_LOW,
 	.read_chg       = &read_chg,
 	.mxt_cfg_name	= MXT_CFG_NAME,
 };
@@ -914,12 +911,12 @@ static int __init cardhu_touch_init(void)
 		tegra_get_board_info(&BoardInfo);
 		if ((BoardInfo.sku & SKU_TOUCH_MASK) == SKU_TOUCH_2000)
 			strncpy(atmel_mxt_info.mxt_cfg_name,
-				"Android_Cardhu_SKU2000_2012-01-31.cfg",
+				"Android_Cardhu_SKU2000_2012-12-18.cfg",
 				CFG_NAME_SIZE);
 
 		if (DisplayBoardInfo.board_id == BOARD_DISPLAY_E1506) {
 			strncpy(atmel_mxt_info.mxt_cfg_name,
-			"Android_Cardhu_Verbier_E1506_2012-06-06.cfg",
+			"Android_Cardhu_Verbier_E1506_2012-12-18.cfg",
 			CFG_NAME_SIZE);
 			e1506_atmel_i2c_info[0].irq = gpio_to_irq(TEGRA_GPIO_PH4);
 			i2c_register_board_info(1, e1506_atmel_i2c_info, 1);
@@ -1398,6 +1395,7 @@ static void __init tegra_cardhu_init(void)
 #endif
 	tegra_serial_debug_init(TEGRA_UARTD_BASE, INT_WDT_CPU, NULL, -1, -1);
 	tegra_vibrator_init();
+	tegra_register_fuse();
 }
 
 static void __init tegra_cardhu_dt_init(void)
