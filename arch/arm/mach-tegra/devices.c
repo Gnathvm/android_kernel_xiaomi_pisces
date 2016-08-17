@@ -41,6 +41,7 @@
 
 #include "gpio-names.h"
 #include "devices.h"
+#include "tegra_ptm.h"
 
 static struct resource emc_resource[] = {
 	[0] = {
@@ -150,7 +151,11 @@ static struct resource pinmux_resource[] = {
 	[1] = {
 		/* Mux registers */
 		.start	= TEGRA_APB_MISC_BASE + 0x3000,
+#ifdef CONFIG_ARCH_TEGRA_3x_SOC
 		.end	= TEGRA_APB_MISC_BASE + 0x33e0 + 3,
+#elif defined(CONFIG_ARCH_TEGRA_11x_SOC)
+		.end	= TEGRA_APB_MISC_BASE + 0x3408 + 3,
+#endif
 		.flags	= IORESOURCE_MEM,
 	},
 #endif
@@ -449,7 +454,7 @@ static struct resource spi_resource6[] = {
 };
 #endif
 
-#ifdef CONFIG_ARCH_TEGRA_3x_SOC
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
 static struct resource dtv_resource[] = {
 	[0] = {
 		.start  = INT_DTV,
@@ -745,35 +750,7 @@ struct platform_device tegra_nor_device = {
 	},
 };
 
-#ifdef CONFIG_ARCH_TEGRA_3x_SOC
-struct platform_device tegra_dtv_device = {
-	.name           = "tegra_dtv",
-	.id             = -1,
-	.resource       = dtv_resource,
-	.num_resources  = ARRAY_SIZE(dtv_resource),
-	.dev = {
-		.init_name = "dtv",
-		.coherent_dma_mask = 0xffffffff,
-	},
-};
-#endif
-
-
-#ifdef CONFIG_ARCH_TEGRA_11x_SOC
-
-static struct resource dtv_resource[] = {
-	[0] = {
-		.start  = TEGRA_DTV_BASE,
-		.end    = TEGRA_DTV_BASE + TEGRA_DTV_SIZE - 1,
-		.flags  = IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= TEGRA_DMA_REQ_SEL_DTV,
-		.end	= TEGRA_DMA_REQ_SEL_DTV,
-		.flags	= IORESOURCE_DMA
-	},
-};
-
+#ifndef CONFIG_ARCH_TEGRA_2x_SOC
 struct platform_device tegra_dtv_device = {
 	.name           = "tegra_dtv",
 	.id             = -1,
@@ -928,11 +905,10 @@ static struct resource tegra_xusb_resources[] = {
 			"ipfs"),
 	[3] = DEFINE_RES_MEM_NAMED(TEGRA_XUSB_PADCTL_BASE,
 			TEGRA_XUSB_PADCTL_SIZE, "padctl"),
-	[4] = DEFINE_RES_MEM_NAMED(TEGRA_PMC_BASE, TEGRA_PMC_SIZE, "pmc"),
-	[5] = DEFINE_RES_IRQ_NAMED(INT_XUSB_HOST_INT, "host"),
-	[6] = DEFINE_RES_IRQ_NAMED(INT_XUSB_HOST_SMI, "host-smi"),
-	[7] = DEFINE_RES_IRQ_NAMED(INT_XUSB_PADCTL, "padctl"),
-	[8] = DEFINE_RES_IRQ_NAMED(INT_USB3, "usb3"),
+	[4] = DEFINE_RES_IRQ_NAMED(INT_XUSB_HOST_INT, "host"),
+	[5] = DEFINE_RES_IRQ_NAMED(INT_XUSB_HOST_SMI, "host-smi"),
+	[6] = DEFINE_RES_IRQ_NAMED(INT_XUSB_PADCTL, "padctl"),
+	[7] = DEFINE_RES_IRQ_NAMED(INT_USB3, "usb3"),
 };
 
 static u64 tegra_xusb_dmamask = DMA_BIT_MASK(64);
@@ -1795,32 +1771,6 @@ static struct resource tegra_wdt0_resources[] = {
 #endif
 };
 
-static struct resource tegra_wdt1_resources[] = {
-	[0] = {
-		.start	= TEGRA_WDT1_BASE,
-		.end	= TEGRA_WDT1_BASE + TEGRA_WDT1_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= TEGRA_TMR8_BASE,
-		.end	= TEGRA_TMR8_BASE + TEGRA_TMR8_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct resource tegra_wdt2_resources[] = {
-	[0] = {
-		.start	= TEGRA_WDT2_BASE,
-		.end	= TEGRA_WDT2_BASE + TEGRA_WDT2_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= TEGRA_TMR9_BASE,
-		.end	= TEGRA_TMR9_BASE + TEGRA_TMR9_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
 struct platform_device tegra_wdt0_device = {
 	.name		= "tegra_wdt",
 	.id		= 0,
@@ -1828,19 +1778,6 @@ struct platform_device tegra_wdt0_device = {
 	.resource	= tegra_wdt0_resources,
 };
 
-struct platform_device tegra_wdt1_device = {
-	.name		= "tegra_wdt",
-	.id		= 1,
-	.num_resources	= ARRAY_SIZE(tegra_wdt1_resources),
-	.resource	= tegra_wdt1_resources,
-};
-
-struct platform_device tegra_wdt2_device = {
-	.name		= "tegra_wdt",
-	.id		= 2,
-	.num_resources	= ARRAY_SIZE(tegra_wdt2_resources),
-	.resource	= tegra_wdt2_resources,
-};
 #endif
 
 static struct resource tegra_pwfm0_resource = {
@@ -2198,6 +2135,63 @@ struct platform_device tegra_cl_dvfs_device = {
 	.num_resources	= ARRAY_SIZE(cl_dvfs_resource),
 };
 #endif
+
+struct platform_device tegra_fuse_device = {
+	.name	= "tegra-fuse",
+	.id	= -1,
+};
+
+static struct resource ptm_resources[] = {
+	{
+		.name  = "ptm",
+		.start = PTM0_BASE,
+		.end   = PTM0_BASE + SZ_4K - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name  = "ptm",
+		.start = PTM1_BASE,
+		.end   = PTM1_BASE + SZ_4K - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name  = "ptm",
+		.start = PTM2_BASE,
+		.end   = PTM2_BASE + SZ_4K - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name  = "ptm",
+		.start = PTM3_BASE,
+		.end   = PTM3_BASE + SZ_4K - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name  = "etb",
+		.start = ETB_BASE,
+		.end   = ETB_BASE + SZ_4K - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name  = "funnel",
+		.start = FUNNEL_BASE,
+		.end   = FUNNEL_BASE + SZ_4K - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name  = "tpiu",
+		.start = TPIU_BASE,
+		.end   = TPIU_BASE + SZ_4K - 1,
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+struct platform_device ptm_device = {
+	.name          = "ptm",
+	.id            = -1,
+	.num_resources = ARRAY_SIZE(ptm_resources),
+	.resource      = ptm_resources,
+};
 
 void __init tegra_init_debug_uart_rate(void)
 {

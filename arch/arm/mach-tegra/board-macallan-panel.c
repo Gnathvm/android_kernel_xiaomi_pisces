@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-macallan-panel.c
  *
- * Copyright (c) 2013, NVIDIA Corporation.
+ * Copyright (c) 2011-2013, NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -220,6 +220,47 @@ static int macallan_hdmi_hotplug_init(struct device *dev)
 	return 0;
 }
 
+/* Electrical characteristics for HDMI, all modes must be declared here */
+struct tmds_config macallan_tmds_config[] = {
+	{ /* 480p : 27 MHz and below */
+		.pclk = 27000000,
+		.pll0 = 0x01003010,
+		.pll1 = 0x00301b00,
+		.drive_current = 0x23232323,
+		.pe_current = 0x00000000,
+		.peak_current = 0x00000000,
+	},
+	{ /* 720p : 74.25MHz modes */
+		.pclk = 74250000,
+		.pll0 = 0x01003110,
+		.pll1 = 0x00301b00,
+		.drive_current = 0x25252525,
+		.pe_current = 0x00000000,
+		.peak_current = 0x03030303,
+	},
+	{ /* 1080p : 148.5MHz modes */
+		.pclk = 148500000,
+		.pll0 = 0x01003310,
+		.pll1 = 0x00301b00,
+		.drive_current = 0x27272727,
+		.pe_current = 0x00000000,
+		.peak_current = 0x03030303,
+	},
+	{ /* 4K : 297MHz modes */
+		.pclk = INT_MAX,
+		.pll0 = 0x01003f10,
+		.pll1 = 0x00300f00,
+		.drive_current = 0x303f3f3f,
+		.pe_current = 0x00000000,
+		.peak_current = 0x040f0f0f,
+	},
+};
+
+struct tegra_hdmi_out macallan_hdmi_out = {
+	.tmds_config = macallan_tmds_config,
+	.n_tmds_config = ARRAY_SIZE(macallan_tmds_config),
+};
+
 static struct tegra_dc_out macallan_disp2_out = {
 	.type		= TEGRA_DC_OUT_HDMI,
 	.flags		= TEGRA_DC_OUT_HOTPLUG_HIGH,
@@ -227,7 +268,7 @@ static struct tegra_dc_out macallan_disp2_out = {
 
 	.dcc_bus	= 3,
 	.hotplug_gpio	= macallan_hdmi_hpd,
-
+	.hdmi_out	= &macallan_hdmi_out,
 	.max_pixclock	= KHZ2PICOS(297000),
 
 	.align		= TEGRA_DC_ALIGN_MSB,
@@ -318,7 +359,7 @@ static struct nvmap_platform_data macallan_nvmap_data = {
 	.carveouts	= macallan_carveouts,
 	.nr_carveouts	= ARRAY_SIZE(macallan_carveouts),
 };
-static struct platform_device macallan_nvmap_device __initdata = {
+static struct platform_device macallan_nvmap_device = {
 	.name	= "tegra-nvmap",
 	.id	= -1,
 	.dev	= {
@@ -340,8 +381,8 @@ static struct tegra_dc_sd_settings macallan_sd_settings = {
 	.soft_clipping_enable = true,
 	/* Low soft clipping threshold to compensate for aggressive k_limit */
 	.soft_clipping_threshold = 128,
-	.smooth_k_enable = false,
-	.smooth_k_incr = 64,
+	.smooth_k_enable = true,
+	.smooth_k_incr = 4,
 	/* Default video coefficients */
 	.coeff = {5, 9, 2},
 	.fc = {0, 0},
@@ -383,6 +424,9 @@ static void macallan_panel_select(void)
 	tegra_get_display_board_info(&board);
 
 	switch (board.board_id) {
+	case BOARD_E1639:
+		panel = &dsi_s_wqxga_10_1;
+		break;
 	default:
 		panel = &dsi_p_wuxga_10_1;
 		break;
@@ -457,11 +501,6 @@ int __init macallan_panel_init(void)
 		tegra_fb_start, tegra_bootloader_fb_start,
 			min(tegra_fb_size, tegra_bootloader_fb_size));
 
-	res = platform_get_resource_byname(&macallan_disp2_device,
-		IORESOURCE_MEM, "fbmem");
-	res->start = tegra_fb2_start;
-	res->end = tegra_fb2_start + tegra_fb2_size - 1;
-
 	macallan_disp1_device.dev.parent = &phost1x->dev;
 	err = platform_device_register(&macallan_disp1_device);
 	if (err) {
@@ -469,12 +508,9 @@ int __init macallan_panel_init(void)
 		return err;
 	}
 
-	macallan_disp2_device.dev.parent = &phost1x->dev;
-	err = platform_device_register(&macallan_disp2_device);
-	if (err) {
-		pr_err("disp2 device registration failed\n");
+	err = tegra_init_hdmi(&macallan_disp2_device, phost1x);
+	if (err)
 		return err;
-	}
 
 #ifdef CONFIG_TEGRA_NVAVP
 	nvavp_device.dev.parent = &phost1x->dev;

@@ -2,6 +2,7 @@
  *  linux/drivers/mmc/sdio.c
  *
  *  Copyright 2006-2007 Pierre Ossman
+ *  Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -828,6 +829,19 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 finish:
 	if (!oldcard)
 		host->card = card;
+
+#ifdef CONFIG_MMC_FREQ_SCALING
+	/*
+	 * This implementation is still in experimental phase. So, don't fail
+	 * enumeration even if dev freq init fails.
+	 */
+	if (host->caps2 & MMC_CAP2_FREQ_SCALING) {
+		err = mmc_devfreq_init(host);
+		if (err)
+			dev_info(mmc_dev(host),
+				"Devfreq scaling init failed %d\n", err);
+	}
+#endif
 	return 0;
 
 remove:
@@ -854,6 +868,10 @@ static void mmc_sdio_remove(struct mmc_host *host)
 			host->card->sdio_func[i] = NULL;
 		}
 	}
+
+#ifdef CONFIG_MMC_FREQ_SCALING
+	mmc_devfreq_deinit(host);
+#endif
 
 	mmc_remove_card(host->card);
 	host->card = NULL;

@@ -1090,7 +1090,7 @@ static int snd_pcm_dev_disconnect(struct snd_device *device)
 	wake_up(&pcm->open_wait);
 	list_del_init(&pcm->list);
 	for (cidx = 0; cidx < 2; cidx++)
-		for (substream = pcm->streams[cidx].substream; substream; substream = substream->next)
+		for (substream = pcm->streams[cidx].substream; substream; substream = substream->next) {
 			snd_pcm_stream_lock_irq(substream);
 			if (substream->runtime) {
 				substream->runtime->status->state = SNDRV_PCM_STATE_DISCONNECTED;

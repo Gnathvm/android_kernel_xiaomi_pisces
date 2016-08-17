@@ -100,6 +100,7 @@ struct tegra_usb_phy *get_tegra_phy(struct usb_phy *x)
 
 static void usb_host_vbus_enable(struct tegra_usb_phy *phy, bool enable)
 {
+
 	/* OTG driver will take care for OTG port */
 	if (phy->pdata->port_otg)
 		return;
@@ -239,15 +240,8 @@ static int tegra_usb_phy_get_clocks(struct tegra_usb_phy *phy)
 		goto fail_emc;
 	}
 
-	if(phy->pdata->has_hostpc) {
-		if (phy->inst == 0) {
-			clk_set_rate(phy->emc_clk, 100000000);
-			clk_set_rate(phy->sys_clk, 80000000);
-		} else {
-			clk_set_rate(phy->emc_clk, 12750000);
-			clk_set_rate(phy->sys_clk, 12000000);
-		}
-	}
+	if(phy->pdata->has_hostpc)
+		clk_set_rate(phy->emc_clk, 100000000);
 	else
 		clk_set_rate(phy->emc_clk, 300000000);
 
@@ -381,7 +375,7 @@ int tegra_usb_phy_power_off(struct tegra_usb_phy *phy)
 		 * support through OTG is supported on the board.
 		 */
 		if (phy->pdata->u_data.dev.vbus_pmu_irq &&
-			phy->pdata->builtin_host_disabled) {
+			phy->pdata->id_det_type == TEGRA_USB_VIRTUAL_ID) {
 			tegra_clk_disable_unprepare(phy->ctrlr_clk);
 			phy->ctrl_clk_on = false;
 			if (phy->vdd_reg && phy->vdd_reg_on) {
@@ -616,18 +610,6 @@ bool tegra_usb_phy_pmc_wakeup(struct tegra_usb_phy *phy)
 }
 EXPORT_SYMBOL_GPL(tegra_usb_phy_pmc_wakeup);
 
-bool tegra_usb_phy_has_hostpc(struct tegra_usb_phy *phy)
-{
-	return phy->pdata->has_hostpc;
-}
-EXPORT_SYMBOL_GPL(tegra_usb_phy_has_hostpc);
-
-bool tegra_usb_phy_otg_supported(struct tegra_usb_phy *phy)
-{
-	return phy->pdata->port_otg;
-}
-EXPORT_SYMBOL_GPL(tegra_usb_phy_otg_supported);
-
 void tegra_usb_phy_memory_prefetch_on(struct tegra_usb_phy *phy)
 {
 	void __iomem *ahb_gizmo = IO_ADDRESS(TEGRA_AHB_GIZMO_BASE);
@@ -836,3 +818,10 @@ fail_inval:
 	return ERR_PTR(err);
 }
 EXPORT_SYMBOL_GPL(tegra_usb_phy_open);
+
+void tegra_usb_phy_pmc_disable(struct tegra_usb_phy *phy)
+{
+	if (phy->ops && phy->ops->pmc_disable)
+		phy->ops->pmc_disable(phy);
+}
+EXPORT_SYMBOL_GPL(tegra_usb_phy_pmc_disable);

@@ -6,7 +6,7 @@
  *         Colin Cross <ccross@android.com>
  *         Travis Geiselbrecht <travis@palm.com>
  *
- * Copyright (c) 2010-2014, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2010-2013, NVIDIA CORPORATION, All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -283,17 +283,25 @@ static int tegra_fb_blank(int blank, struct fb_info *info)
 		dev_dbg(&tegra_fb->ndev->dev, "unblank\n");
 		tegra_fb->win->flags = TEGRA_WIN_FLAG_ENABLED;
 		tegra_dc_enable(tegra_fb->win->dc);
+		tegra_dc_update_windows(&tegra_fb->win, 1);
+		tegra_dc_sync_windows(&tegra_fb->win, 1);
 		return 0;
 
 	case FB_BLANK_NORMAL:
 		dev_dbg(&tegra_fb->ndev->dev, "blank - normal\n");
-		tegra_dc_blank(tegra_fb->win->dc, BLANK_ALL);
+		/* To pan fb at the unblank */
+		if (tegra_fb->win->dc->enabled)
+			tegra_fb->curr_xoffset = -1;
+		tegra_dc_blank(tegra_fb->win->dc);
 		return 0;
 
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_POWERDOWN:
 		dev_dbg(&tegra_fb->ndev->dev, "blank - powerdown\n");
+		/* To pan fb while switching from X */
+		if (!tegra_fb->win->dc->suspended && tegra_fb->win->dc->enabled)
+			tegra_fb->curr_xoffset = -1;
 		tegra_dc_disable(tegra_fb->win->dc);
 		return 0;
 
@@ -313,7 +321,8 @@ static int tegra_fb_pan_display(struct fb_var_screeninfo *var,
 	/*
 	 * Do nothing if display parameters are same as current values.
 	 */
-	if ((var->xoffset == tegra_fb->curr_xoffset) &&
+	if (!(var->activate & FB_ACTIVATE_FORCE) &&
+	    (var->xoffset == tegra_fb->curr_xoffset) &&
 	    (var->yoffset == tegra_fb->curr_yoffset))
 		return 0;
 
@@ -481,6 +490,12 @@ static struct fb_ops tegra_fb_ops = {
 	.fb_ioctl = tegra_fb_ioctl,
 };
 
+/* Enabling the pan_display by resetting the cache of offset */
+void tegra_fb_pan_display_reset(struct tegra_fb_info *fb_info)
+{
+	fb_info->curr_xoffset = -1;
+}
+
 void tegra_fb_update_monspecs(struct tegra_fb_info *fb_info,
 			      struct fb_monspecs *specs,
 			      bool (*mode_filter)(const struct tegra_dc *dc,
@@ -491,6 +506,7 @@ void tegra_fb_update_monspecs(struct tegra_fb_info *fb_info,
 
 	mutex_lock(&fb_info->info->lock);
 	fb_destroy_modedb(fb_info->info->monspecs.modedb);
+	fb_info->info->monspecs.modedb = NULL; /* avoid double free */
 
 	fb_destroy_modelist(&fb_info->info->modelist);
 
@@ -528,7 +544,14 @@ void tegra_fb_update_monspecs(struct tegra_fb_info *fb_info,
 	event.info = fb_info->info;
 #ifdef CONFIG_FRAMEBUFFER_CONSOLE
 	console_lock();
+	if ((fb_info->win->dc->out != NULL) &&
+	    (fb_info->win->dc->out->type == TEGRA_DC_OUT_HDMI))
+		tegra_fb_blank(FB_BLANK_POWERDOWN, fb_info->info);
+	/* fb_call chain is blocking call */
 	fb_notifier_call_chain(FB_EVENT_NEW_MODELIST, &event);
+	if ((fb_info->win->dc->out != NULL) &&
+	    (fb_info->win->dc->out->type == TEGRA_DC_OUT_HDMI))
+		tegra_fb_blank(FB_BLANK_UNBLANK, fb_info->info);
 	console_unlock();
 #else
 	fb_notifier_call_chain(FB_EVENT_NEW_MODELIST, &event);
@@ -634,6 +657,7 @@ struct tegra_fb_info *tegra_fb_register(struct platform_device *ndev,
 	win->stride = info->fix.line_length;
 	win->stride_uv = 0;
 	win->flags = TEGRA_WIN_FLAG_ENABLED;
+	win->global_alpha = 0xFF;
 
 	if (fb_mem)
 		tegra_fb_set_par(info);

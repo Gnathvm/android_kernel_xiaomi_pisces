@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-kai.c
  *
- * Copyright (c) 2012, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2012-2013, NVIDIA CORPORATION. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -258,6 +258,7 @@ static struct regulator_consumer_supply smb349_vbus_supply[] = {
 
 static struct regulator_consumer_supply smb349_otg_vbus_supply[] = {
 	REGULATOR_SUPPLY("usb_vbus", "tegra-ehci.0"),
+	REGULATOR_SUPPLY("usb_vbus", "tegra-otg"),
 };
 
 static struct smb349_charger_platform_data smb349_charger_pdata = {
@@ -529,8 +530,6 @@ static struct platform_device *kai_devices[] __initdata = {
 	&tegra_rtc_device,
 	&tegra_udc_device,
 	&tegra_wdt0_device,
-	&tegra_wdt1_device,
-	&tegra_wdt2_device,
 #if defined(CONFIG_TEGRA_AVP)
 	&tegra_avp_device,
 #endif
@@ -879,6 +878,7 @@ static void __init tegra_kai_init(void)
 	tegra_wdt_recovery_init();
 #endif
 	tegra_serial_debug_init(TEGRA_UARTD_BASE, INT_WDT_CPU, NULL, -1, -1);
+	tegra_register_fuse();
 }
 
 static void __init kai_ramconsole_reserve(unsigned long size)

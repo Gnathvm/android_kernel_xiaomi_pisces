@@ -69,6 +69,7 @@
 #define KBC_ROW_SHIFT	3
 #define DEFAULT_SCAN_COUNT 2
 #define DEFAULT_INIT_DLY   5
+#define FIFO_ENTRY_COUNT(val) (((val) >> 4) & 0xF)
 
 struct tegra_kbc {
 	void __iomem *mmio;
@@ -365,7 +366,6 @@ static void tegra_kbc_set_fifo_interrupt(struct tegra_kbc *kbc, bool enable)
 	writel(val, kbc->mmio + KBC_CONTROL_0);
 }
 
-#ifdef CONFIG_PM_SLEEP
 static void tegra_kbc_set_keypress_interrupt(struct tegra_kbc *kbc, bool enable)
 {
 	u32 val;
@@ -377,7 +377,6 @@ static void tegra_kbc_set_keypress_interrupt(struct tegra_kbc *kbc, bool enable)
 		val &= ~KBC_CONTROL_KEYPRESS_INT_EN;
 	writel(val, kbc->mmio + KBC_CONTROL_0);
 }
-#endif
 
 static void tegra_kbc_keypress_timer(unsigned long data)
 {
@@ -410,6 +409,14 @@ static void tegra_kbc_keypress_timer(unsigned long data)
 
 		/* All keys are released so enable the keypress interrupt */
 		tegra_kbc_set_fifo_interrupt(kbc, true);
+		/*
+		 * FIFO_CNT interrupt cannot be cleared until entry register
+		 * is read. If not cleared, it will raise another interrupt.
+		*/
+		val = readl(kbc->mmio + KBC_INT_0);
+		if (!FIFO_ENTRY_COUNT(val))
+			writel(val, kbc->mmio + KBC_INT_0);
+		readl(kbc->mmio + KBC_CONTROL_0); //unblock posted write
 	}
 
 	spin_unlock_irqrestore(&kbc->lock, flags);
@@ -440,8 +447,9 @@ static irqreturn_t tegra_kbc_isr(int irq, void *args)
 	} else if (val & KBC_INT_KEYPRESS_INT_STATUS) {
 		/* We can be here only through system resume path */
 		kbc->keypress_caused_wake = true;
+		tegra_kbc_set_keypress_interrupt(kbc, false);
 	}
-
+	readl(kbc->mmio + KBC_CONTROL_0); //unblock posted write
 	spin_unlock_irqrestore(&kbc->lock, flags);
 
 	return IRQ_HANDLED;
@@ -987,7 +995,12 @@ static int tegra_kbc_resume(struct device *dev)
 }
 #endif
 
-static SIMPLE_DEV_PM_OPS(tegra_kbc_pm_ops, tegra_kbc_suspend, tegra_kbc_resume);
+static const struct dev_pm_ops tegra_kbc_pm_ops = {
+#ifdef CONFIG_PM_SLEEP
+	.suspend = tegra_kbc_suspend,
+	.resume = tegra_kbc_resume,
+#endif
+};
 
 static const struct of_device_id tegra_kbc_of_match[] = {
 	{ .compatible = "nvidia,tegra20-kbc", },

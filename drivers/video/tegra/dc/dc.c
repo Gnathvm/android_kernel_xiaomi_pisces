@@ -4,7 +4,7 @@
  * Copyright (C) 2010 Google, Inc.
  * Author: Erik Gilling <konkers@android.com>
  *
- * Copyright (c) 2010-2014, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2010-2013, NVIDIA CORPORATION, All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -264,176 +264,6 @@ static struct tegra_dc_cmu default_cmu = {
 		250,  250,  250,  250,  251,  251,  251,  251,
 		251,  252,  252,  252,  252,  253,  253,  253,
 		253,  253,  254,  254,  254,  254,  255,  255,
-	},
-};
-
-static struct tegra_dc_cmu default_limited_cmu = {
-	/* lut1 maps sRGB to linear space. */
-	{
-		0,    1,    2,    4,    5,    6,    7,    9,
-		10,   11,   12,   14,   15,   16,   18,   20,
-		21,   23,   25,   27,   29,   31,   33,   35,
-		37,   40,   42,   45,   48,   50,   53,   56,
-		59,   62,   66,   69,   72,   76,   79,   83,
-		87,   91,   95,   99,   103,  107,  112,  116,
-		121,  126,  131,  136,  141,  146,  151,  156,
-		162,  168,  173,  179,  185,  191,  197,  204,
-		210,  216,  223,  230,  237,  244,  251,  258,
-		265,  273,  280,  288,  296,  304,  312,  320,
-		329,  337,  346,  354,  363,  372,  381,  390,
-		400,  409,  419,  428,  438,  448,  458,  469,
-		479,  490,  500,  511,  522,  533,  544,  555,
-		567,  578,  590,  602,  614,  626,  639,  651,
-		664,  676,  689,  702,  715,  728,  742,  755,
-		769,  783,  797,  811,  825,  840,  854,  869,
-		884,  899,  914,  929,  945,  960,  976,  992,
-		1008, 1024, 1041, 1057, 1074, 1091, 1108, 1125,
-		1142, 1159, 1177, 1195, 1213, 1231, 1249, 1267,
-		1286, 1304, 1323, 1342, 1361, 1381, 1400, 1420,
-		1440, 1459, 1480, 1500, 1520, 1541, 1562, 1582,
-		1603, 1625, 1646, 1668, 1689, 1711, 1733, 1755,
-		1778, 1800, 1823, 1846, 1869, 1892, 1916, 1939,
-		1963, 1987, 2011, 2035, 2059, 2084, 2109, 2133,
-		2159, 2184, 2209, 2235, 2260, 2286, 2312, 2339,
-		2365, 2392, 2419, 2446, 2473, 2500, 2527, 2555,
-		2583, 2611, 2639, 2668, 2696, 2725, 2754, 2783,
-		2812, 2841, 2871, 2901, 2931, 2961, 2991, 3022,
-		3052, 3083, 3114, 3146, 3177, 3209, 3240, 3272,
-		3304, 3337, 3369, 3402, 3435, 3468, 3501, 3535,
-		3568, 3602, 3636, 3670, 3705, 3739, 3774, 3809,
-		3844, 3879, 3915, 3950, 3986, 4022, 4059, 4095,
-	},
-	/* csc */
-	{
-		0x100, 0x000, 0x000,
-		0x000, 0x100, 0x000,
-		0x000, 0x000, 0x100,
-	},
-	/*
-	 * lut2 maps linear space back to sRGB, where
-	 * the output range is [16...235] (limited).
-	 */
-	{
-		16,  17,  17,  18,  19,  19,  20,  21,
-		22,  22,  23,  24,  24,  25,  26,  26,
-		27,  27,  28,  29,  29,  30,  30,  31,
-		31,  32,  32,  32,  33,  33,  34,  34,
-		35,  35,  35,  36,  36,  36,  37,  37,
-		38,  38,  38,  39,  39,  39,  40,  40,
-		40,  41,  41,  41,  41,  42,  42,  42,
-		43,  43,  43,  43,  44,  44,  44,  45,
-		45,  45,  45,  46,  46,  46,  46,  47,
-		47,  47,  47,  48,  48,  48,  48,  49,
-		49,  49,  49,  49,  50,  50,  50,  50,
-		51,  51,  51,  51,  51,  52,  52,  52,
-		52,  53,  53,  53,  53,  53,  54,  54,
-		54,  54,  54,  55,  55,  55,  55,  55,
-		56,  56,  56,  56,  56,  56,  57,  57,
-		57,  57,  57,  58,  58,  58,  58,  58,
-		58,  59,  59,  59,  59,  59,  60,  60,
-		60,  60,  60,  60,  61,  61,  61,  61,
-		61,  61,  62,  62,  62,  62,  62,  62,
-		63,  63,  63,  63,  63,  63,  63,  64,
-		64,  64,  64,  64,  64,  65,  65,  65,
-		65,  65,  65,  65,  66,  66,  66,  66,
-		66,  66,  67,  67,  67,  67,  67,  67,
-		67,  68,  68,  68,  68,  68,  68,  68,
-		69,  69,  69,  69,  69,  69,  69,  69,
-		70,  70,  70,  70,  70,  70,  70,  71,
-		71,  71,  71,  71,  71,  71,  72,  72,
-		72,  72,  72,  72,  72,  72,  73,  73,
-		73,  73,  73,  73,  73,  73,  74,  74,
-		74,  74,  74,  74,  74,  74,  75,  75,
-		75,  75,  75,  75,  75,  75,  76,  76,
-		76,  76,  76,  76,  76,  76,  76,  77,
-		77,  77,  77,  77,  77,  77,  77,  78,
-		78,  78,  78,  78,  78,  78,  78,  78,
-		79,  79,  79,  79,  79,  79,  79,  79,
-		80,  80,  80,  80,  80,  80,  80,  80,
-		80,  81,  81,  81,  81,  81,  81,  81,
-		81,  81,  81,  82,  82,  82,  82,  82,
-		82,  82,  82,  82,  83,  83,  83,  83,
-		83,  83,  83,  83,  83,  84,  84,  84,
-		84,  84,  84,  84,  84,  84,  84,  85,
-		85,  85,  85,  85,  85,  85,  85,  85,
-		85,  86,  86,  86,  86,  86,  86,  86,
-		86,  86,  86,  87,  87,  87,  87,  87,
-		87,  87,  87,  87,  87,  88,  88,  88,
-		88,  88,  88,  88,  88,  88,  88,  89,
-		89,  89,  89,  89,  89,  89,  89,  89,
-		89,  89,  90,  90,  90,  90,  90,  90,
-		90,  90,  90,  90,  91,  91,  91,  91,
-		91,  91,  91,  91,  91,  91,  91,  92,
-		92,  92,  92,  92,  92,  92,  92,  92,
-		92,  92,  93,  93,  93,  93,  93,  93,
-		93,  93,  93,  93,  93,  94,  94,  94,
-		94,  94,  94,  94,  94,  94,  94,  94,
-		94,  95,  95,  95,  95,  95,  95,  95,
-		95,  95,  95,  95,  96,  96,  96,  96,
-		96,  96,  96,  96,  96,  96,  96,  96,
-		97,  97,  97,  97,  97,  97,  97,  97,
-		97,  97,  97,  97,  98,  98,  98,  98,
-		98,  98,  98,  98,  98,  98,  98,  98,
-		99,  99,  99,  99,  99,  99,  99,  99,
-		99,  99,  99,  99, 100, 100, 100, 100,
-		100, 100, 100, 100, 100, 100, 100, 100,
-		100, 101, 101, 101, 101, 101, 101, 101,
-		102, 102, 103, 104, 104, 105, 105, 106,
-		107, 107, 108, 108, 109, 109, 110, 111,
-		111, 112, 112, 113, 113, 114, 114, 115,
-		115, 116, 116, 117, 117, 118, 118, 119,
-		119, 120, 120, 121, 121, 122, 122, 123,
-		123, 124, 124, 125, 125, 126, 126, 127,
-		127, 127, 128, 128, 129, 129, 130, 130,
-		131, 131, 131, 132, 132, 133, 133, 134,
-		134, 134, 135, 135, 136, 136, 136, 137,
-		137, 138, 138, 139, 139, 139, 140, 140,
-		141, 141, 141, 142, 142, 142, 143, 143,
-		144, 144, 144, 145, 145, 145, 146, 146,
-		147, 147, 147, 148, 148, 148, 149, 149,
-		150, 150, 150, 151, 151, 151, 152, 152,
-		152, 153, 153, 153, 154, 154, 154, 155,
-		155, 155, 156, 156, 156, 157, 157, 157,
-		158, 158, 158, 159, 159, 159, 160, 160,
-		160, 161, 161, 161, 162, 162, 162, 163,
-		163, 163, 164, 164, 164, 165, 165, 165,
-		166, 166, 166, 166, 167, 167, 167, 168,
-		168, 168, 169, 169, 169, 169, 170, 170,
-		170, 171, 171, 171, 172, 172, 172, 172,
-		173, 173, 173, 174, 174, 174, 174, 175,
-		175, 175, 176, 176, 176, 176, 177, 177,
-		177, 178, 178, 178, 178, 179, 179, 179,
-		180, 180, 180, 180, 181, 181, 181, 181,
-		182, 182, 182, 183, 183, 183, 183, 184,
-		184, 184, 184, 185, 185, 185, 185, 186,
-		186, 186, 187, 187, 187, 187, 188, 188,
-		188, 188, 189, 189, 189, 189, 190, 190,
-		190, 190, 191, 191, 191, 191, 192, 192,
-		192, 192, 193, 193, 193, 193, 194, 194,
-		194, 194, 195, 195, 195, 195, 196, 196,
-		196, 196, 197, 197, 197, 197, 198, 198,
-		198, 198, 199, 199, 199, 199, 199, 200,
-		200, 200, 200, 201, 201, 201, 201, 202,
-		202, 202, 202, 203, 203, 203, 203, 203,
-		204, 204, 204, 204, 205, 205, 205, 205,
-		206, 206, 206, 206, 206, 207, 207, 207,
-		207, 208, 208, 208, 208, 208, 209, 209,
-		209, 209, 210, 210, 210, 210, 210, 211,
-		211, 211, 211, 212, 212, 212, 212, 212,
-		213, 213, 213, 213, 213, 214, 214, 214,
-		214, 215, 215, 215, 215, 215, 216, 216,
-		216, 216, 216, 217, 217, 217, 217, 218,
-		218, 218, 218, 218, 219, 219, 219, 219,
-		219, 220, 220, 220, 220, 220, 221, 221,
-		221, 221, 221, 222, 222, 222, 222, 222,
-		223, 223, 223, 223, 224, 224, 224, 224,
-		224, 225, 225, 225, 225, 225, 226, 226,
-		226, 226, 226, 227, 227, 227, 227, 227,
-		227, 228, 228, 228, 228, 228, 229, 229,
-		229, 229, 229, 230, 230, 230, 230, 230,
-		231, 231, 231, 231, 231, 232, 232, 232,
-		232, 232, 233, 233, 233, 233, 233, 233,
-		234, 234, 234, 234, 234, 235, 235, 235,
 	},
 };
 #endif
@@ -909,6 +739,7 @@ bool tegra_dc_hpd(struct tegra_dc *dc)
 {
 	int sense;
 	int level;
+	int hpd;
 
 	if (WARN_ON(!dc || !dc->out))
 		return false;
@@ -923,8 +754,13 @@ bool tegra_dc_hpd(struct tegra_dc *dc)
 
 	sense = dc->out->flags & TEGRA_DC_OUT_HOTPLUG_MASK;
 
-	return (sense == TEGRA_DC_OUT_HOTPLUG_HIGH && level) ||
+	hpd = (sense == TEGRA_DC_OUT_HOTPLUG_HIGH && level) ||
 		(sense == TEGRA_DC_OUT_HOTPLUG_LOW && !level);
+
+	if (dc->out->hotplug_report)
+		dc->out->hotplug_report(hpd);
+
+	return hpd;
 }
 EXPORT_SYMBOL(tegra_dc_hpd);
 
@@ -1082,14 +918,10 @@ EXPORT_SYMBOL(tegra_dc_update_cmu);
 void tegra_dc_cmu_enable(struct tegra_dc *dc, bool cmu_enable)
 {
 	dc->pdata->cmu_enable = cmu_enable;
-	if (dc->pdata->cmu) {
+	if (dc->pdata->cmu)
 		tegra_dc_update_cmu(dc, dc->pdata->cmu);
-	} else {
-		if (dc->out->type == TEGRA_DC_OUT_HDMI)
-			tegra_dc_update_cmu(dc, &default_limited_cmu);
-		else
-			tegra_dc_update_cmu(dc, &default_cmu);
-	}
+	else
+		tegra_dc_update_cmu(dc, &default_cmu);
 }
 #else
 #define tegra_dc_cache_cmu(dst_cmu, src_cmu)
@@ -1732,7 +1564,7 @@ static irqreturn_t tegra_dc_irq(int irq, void *ptr)
 	int need_disable = 0;
 
 	mutex_lock(&dc->lock);
-	if (!dc->enabled) {
+	if (!dc->enabled || !tegra_dc_is_powered(dc)) {
 		mutex_unlock(&dc->lock);
 		return IRQ_HANDLED;
 	}
@@ -1954,14 +1786,10 @@ static int tegra_dc_init(struct tegra_dc *dc)
 	tegra_dc_writel(dc, 0x00000000, DC_DISP_BORDER_COLOR);
 
 #ifdef CONFIG_TEGRA_DC_CMU
-	if (dc->pdata->cmu) {
+	if (dc->pdata->cmu)
 		_tegra_dc_update_cmu(dc, dc->pdata->cmu);
-	} else {
-		if (dc->out->type == TEGRA_DC_OUT_HDMI)
-			_tegra_dc_update_cmu(dc, &default_limited_cmu);
-		else
-			_tegra_dc_update_cmu(dc, &default_cmu);
-	}
+	else
+		_tegra_dc_update_cmu(dc, &default_cmu);
 #endif
 	tegra_dc_set_color_control(dc);
 	for (i = 0; i < DC_N_WINDOWS; i++) {
@@ -2048,11 +1876,6 @@ static bool _tegra_dc_controller_enable(struct tegra_dc *dc)
 	if (dc->out->postpoweron)
 		dc->out->postpoweron();
 
-	/*
-	 * We will need to reinitialize the display the next time panel
-	 * is enabled.
-	 */
-	dc->out->flags &= ~TEGRA_DC_OUT_INITIALIZED_MODE;
 	tegra_log_resume_time();
 
 	tegra_dc_io_end(dc);
@@ -2214,6 +2037,9 @@ static void _tegra_dc_controller_disable(struct tegra_dc *dc)
 		/* disable windows */
 		w->flags &= ~TEGRA_WIN_FLAG_ENABLED;
 
+		/* set window physical address to invalid*/
+		w->phys_addr = 0;
+
 		/* flush any pending syncpt waits */
 		while (dc->syncpt[i].min < dc->syncpt[i].max) {
 			trace_display_syncpt_flush(dc, dc->syncpt[i].id,
@@ -2261,28 +2087,19 @@ bool tegra_dc_stats_get(struct tegra_dc *dc)
 	return true;
 }
 
-/* blank selected windows by disabling them */
-void tegra_dc_blank(struct tegra_dc *dc, unsigned windows)
+/* make the screen blank by disabling all windows */
+void tegra_dc_blank(struct tegra_dc *dc)
 {
 	struct tegra_dc_win *dcwins[DC_N_WINDOWS];
 	unsigned i;
-	unsigned long int blank_windows;
-	int nr_win = 0;
 
-	if (!windows)
-		return;
-
-	blank_windows = windows;
-	for_each_set_bit(i, &blank_windows, DC_N_WINDOWS) {
-		dcwins[nr_win] = tegra_dc_get_window(dc, i);
-		if (!dcwins[nr_win])
-			continue;
-		dcwins[nr_win++]->flags &= ~TEGRA_WIN_FLAG_ENABLED;
+	for (i = 0; i < DC_N_WINDOWS; i++) {
+		dcwins[i] = tegra_dc_get_window(dc, i);
+		dcwins[i]->flags &= ~TEGRA_WIN_FLAG_ENABLED;
 	}
 
-	tegra_dc_update_windows(dcwins, nr_win);
-	tegra_dc_sync_windows(dcwins, nr_win);
-	tegra_dc_program_bandwidth(dc, true);
+	tegra_dc_update_windows(dcwins, DC_N_WINDOWS);
+	tegra_dc_sync_windows(dcwins, DC_N_WINDOWS);
 }
 
 static void _tegra_dc_disable(struct tegra_dc *dc)
@@ -2300,6 +2117,12 @@ static void _tegra_dc_disable(struct tegra_dc *dc)
 
 	if (dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE)
 		mutex_unlock(&dc->one_shot_lock);
+
+	/*
+	 * We will need to reinitialize the display the next time panel
+	 * is enabled.
+	 */
+	dc->out->flags &= ~TEGRA_DC_OUT_INITIALIZED_MODE;
 
 	tegra_log_suspend_time();
 }
@@ -2403,56 +2226,6 @@ static void tegra_dc_underflow_worker(struct work_struct *work)
 	mutex_unlock(&dc->lock);
 }
 
-#ifdef CONFIG_ARCH_TEGRA_11x_SOC
-/* A mutex used to protect the critical section used by both DC heads. */
-static struct mutex tegra_dc_powergate_status_lock;
-
-/* defer turning off DISA until DISB is turned off */
-void tegra_dc_powergate_locked(struct tegra_dc *dc)
-{
-	struct tegra_dc *dc_partner;
-
-	mutex_lock(&tegra_dc_powergate_status_lock);
-	/* Get the handler of the other display controller. */
-	dc_partner = tegra_dc_get_dc(dc->ndev->id ^ 1);
-	if (!dc_partner)
-		_tegra_dc_powergate_locked(dc);
-	else if (dc->powergate_id == TEGRA_POWERGATE_DISA) {
-		/* If DISB is powergated, then powergate DISA. */
-		if (!dc_partner->powered)
-			_tegra_dc_powergate_locked(dc);
-	} else if (dc->powergate_id == TEGRA_POWERGATE_DISB) {
-		/* If DISA is enabled, only powergate DISB;
-		 * otherwise, powergate DISA and DISB.
-		 * */
-		if (dc_partner->enabled) {
-			_tegra_dc_powergate_locked(dc);
-		} else {
-			_tegra_dc_powergate_locked(dc);
-			_tegra_dc_powergate_locked(dc_partner);
-		}
-	}
-	mutex_unlock(&tegra_dc_powergate_status_lock);
-}
-
-
-/* to turn on DISB we must first power on DISA */
-void tegra_dc_unpowergate_locked(struct tegra_dc *dc)
-{
-	mutex_lock(&tegra_dc_powergate_status_lock);
-	if (dc->powergate_id == TEGRA_POWERGATE_DISB) {
-		struct tegra_dc *dc_partner;
-
-		/* Get the handler of the other display controller. */
-		dc_partner = tegra_dc_get_dc(dc->ndev->id ^ 1);
-		if (dc_partner)
-			_tegra_dc_unpowergate_locked(dc_partner);
-	}
-	_tegra_dc_unpowergate_locked(dc);
-	mutex_unlock(&tegra_dc_powergate_status_lock);
-}
-#endif
-
 #ifdef CONFIG_SWITCH
 static ssize_t switch_modeset_print_mode(struct switch_dev *sdev, char *buf)
 {
@@ -2477,11 +2250,14 @@ static void tegra_dc_add_modes(struct tegra_dc *dc)
 	specs.modedb_len = dc->out->n_modes;
 	specs.modedb = kzalloc(specs.modedb_len *
 		sizeof(struct fb_videomode), GFP_KERNEL);
+	if (specs.modedb == NULL) {
+		dev_err(&dc->ndev->dev, "modedb allocation failed\n");
+		return;
+	}
 	for (i = 0; i < dc->out->n_modes; i++)
 		tegra_dc_to_fb_videomode(&specs.modedb[i],
 			&dc->out->modes[i]);
 	tegra_fb_update_monspecs(dc->fb, &specs, NULL);
-	kfree(specs.modedb);
 }
 
 static int tegra_dc_probe(struct platform_device *ndev)
@@ -2542,7 +2318,12 @@ static int tegra_dc_probe(struct platform_device *ndev)
 		dc->win_syncpt[0] = NVSYNCPT_DISP0_A;
 		dc->win_syncpt[1] = NVSYNCPT_DISP0_B;
 		dc->win_syncpt[2] = NVSYNCPT_DISP0_C;
-		dc->powergate_id = TEGRA_POWERGATE_DISA;
+		/* This code assumes DISB depends on DISA. DC's powergate
+		 * code will have to change if dependency is removed */
+		if (dc->out && dc->out->type == TEGRA_DC_OUT_HDMI)
+			dc->powergate_id = TEGRA_POWERGATE_DISB;
+		else
+			dc->powergate_id = TEGRA_POWERGATE_DISA;
 	} else if (TEGRA_DISPLAY2_BASE == res->start) {
 		dc->vblank_syncpt = NVSYNCPT_VBLANK1;
 		dc->win_syncpt[0] = NVSYNCPT_DISP1_A;
@@ -2593,9 +2374,6 @@ static int tegra_dc_probe(struct platform_device *ndev)
 
 	mutex_init(&dc->lock);
 	mutex_init(&dc->one_shot_lock);
-#ifdef CONFIG_ARCH_TEGRA_11x_SOC
-	mutex_init(&tegra_dc_powergate_status_lock);
-#endif
 	init_completion(&dc->frame_end_complete);
 	init_waitqueue_head(&dc->wq);
 	init_waitqueue_head(&dc->timestamp_wq);
@@ -2702,8 +2480,7 @@ static int tegra_dc_probe(struct platform_device *ndev)
 	if (dc->out && dc->out->n_modes)
 		tegra_dc_add_modes(dc);
 
-	if (dc->out && dc->out->hotplug_init)
-		dc->out->hotplug_init(&ndev->dev);
+	tegra_dc_hotplug_init(dc);
 
 	if (dc->out_ops && dc->out_ops->detect)
 		dc->out_ops->detect(dc);
@@ -2812,14 +2589,8 @@ static int tegra_dc_suspend(struct platform_device *ndev, pm_message_t state)
 		dc->suspended = true;
 	}
 
-	if (dc->out && dc->out->postsuspend) {
+	if (dc->out && dc->out->postsuspend)
 		dc->out->postsuspend();
-		if (dc->out->type && dc->out->type == TEGRA_DC_OUT_HDMI)
-			/*
-			 * avoid resume event due to voltage falling
-			 */
-			msleep(100);
-	}
 
 	tegra_dc_io_end(dc);
 	mutex_unlock(&dc->lock);
@@ -2838,14 +2609,14 @@ static int tegra_dc_resume(struct platform_device *ndev)
 	mutex_lock(&dc->lock);
 	dc->suspended = false;
 
+	/* To pan the fb on resume */
+	tegra_fb_pan_display_reset(dc->fb);
+
 	if (dc->enabled) {
 		dc->enabled = false;
 		_tegra_dc_set_default_videomode(dc);
 		dc->enabled = _tegra_dc_enable(dc);
 	}
-
-	if (dc->out && dc->out->hotplug_init)
-		dc->out->hotplug_init(&ndev->dev);
 
 	if (dc->out_ops && dc->out_ops->resume)
 		dc->out_ops->resume(dc);
@@ -2863,7 +2634,6 @@ static void tegra_dc_shutdown(struct platform_device *ndev)
 	if (!dc || !dc->enabled)
 		return;
 
-	tegra_dc_blank(dc, BLANK_ALL);
 	tegra_dc_disable(dc);
 }
 

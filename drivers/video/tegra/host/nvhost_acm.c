@@ -3,7 +3,7 @@
  *
  * Tegra Graphics Host Automatic Clock Management
  *
- * Copyright (c) 2010-2012, NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2010-2013, NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -26,6 +26,8 @@
 #include <linux/device.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
+#include <linux/pm.h>
+#include <linux/pm_runtime.h>
 #include <trace/events/nvhost.h>
 
 #include <mach/powergate.h>
@@ -139,24 +141,20 @@ static void to_state_clockgated_locked(struct platform_device *dev)
 		for (i = 0; i < pdata->num_clks; i++)
 			clk_disable_unprepare(pdata->clk[i]);
 
-		if (dev->dev.parent)
+		if (nvhost_get_parent(dev))
 			nvhost_module_idle(to_platform_device(dev->dev.parent));
+
+		if (!pdata->can_powergate) {
+			pm_runtime_mark_last_busy(&dev->dev);
+			pm_runtime_put_autosuspend(&dev->dev);
+		}
 	} else if (pdata->powerstate == NVHOST_POWER_STATE_POWERGATED
 			&& pdata->can_powergate) {
 		do_unpowergate_locked(pdata->powergate_ids[0]);
 		do_unpowergate_locked(pdata->powergate_ids[1]);
 
-		if (pdata->powerup_reset) {
-			if (pdata->clocks[0].reset)
-				tegra_periph_reset_assert(pdata->clk[0]);
-			if (pdata->clocks[1].reset)
-				tegra_periph_reset_assert(pdata->clk[1]);
-			udelay(POWERGATE_DELAY);
-			if (pdata->clocks[0].reset)
-				tegra_periph_reset_deassert(pdata->clk[0]);
-			if (pdata->clocks[1].reset)
-				tegra_periph_reset_deassert(pdata->clk[1]);
-		}
+		if (pdata->powerup_reset)
+			do_module_reset_locked(dev);
 	}
 	pdata->powerstate = NVHOST_POWER_STATE_CLOCKGATED;
 }
@@ -166,13 +164,18 @@ static void to_state_running_locked(struct platform_device *dev)
 	struct nvhost_device_data *pdata = platform_get_drvdata(dev);
 	int prev_state = pdata->powerstate;
 
-	if (pdata->powerstate == NVHOST_POWER_STATE_POWERGATED)
+	if (pdata->powerstate == NVHOST_POWER_STATE_POWERGATED) {
+		pm_runtime_get_sync(&dev->dev);
 		to_state_clockgated_locked(dev);
+	}
 
 	if (pdata->powerstate == NVHOST_POWER_STATE_CLOCKGATED) {
 		int i;
 
-		if (dev->dev.parent)
+		if (!pdata->can_powergate)
+			pm_runtime_get_sync(&dev->dev);
+
+		if (nvhost_get_parent(dev))
 			nvhost_module_busy(to_platform_device(dev->dev.parent));
 
 		for (i = 0; i < pdata->num_clks; i++) {
@@ -223,6 +226,8 @@ static int to_state_powergated_locked(struct platform_device *dev)
 	}
 
 	pdata->powerstate = NVHOST_POWER_STATE_POWERGATED;
+	pm_runtime_mark_last_busy(&dev->dev);
+	pm_runtime_put_autosuspend(&dev->dev);
 	return 0;
 }
 
@@ -351,6 +356,7 @@ static int nvhost_module_update_rate(struct platform_device *dev, int index)
 	struct nvhost_module_client *m;
 	unsigned long devfreq_rate, default_rate;
 	struct nvhost_device_data *pdata = platform_get_drvdata(dev);
+	int ret;
 
 	if (!pdata->clk[index])
 		return -EINVAL;
@@ -373,7 +379,13 @@ static int nvhost_module_update_rate(struct platform_device *dev, int index)
 	trace_nvhost_module_update_rate(dev->name,
 			pdata->clocks[index].name, rate);
 
-	return clk_set_rate(pdata->clk[index], rate);
+	ret = clk_set_rate(pdata->clk[index], rate);
+
+	if (pdata->update_clk)
+		pdata->update_clk(dev);
+
+	return ret;
+
 }
 
 int nvhost_module_set_rate(struct platform_device *dev, void *priv,
@@ -743,7 +755,7 @@ bool nvhost_module_powered_ext(struct platform_device *dev)
 {
 	struct platform_device *pdev;
 
-	BUG_ON(!dev->dev.parent);
+	BUG_ON(!nvhost_get_parent(dev));
 
 	/* get the parent */
 	pdev = to_platform_device(dev->dev.parent);
@@ -755,7 +767,7 @@ void nvhost_module_busy_ext(struct platform_device *dev)
 {
 	struct platform_device *pdev;
 
-	BUG_ON(!dev->dev.parent);
+	BUG_ON(!nvhost_get_parent(dev));
 
 	/* get the parent */
 	pdev = to_platform_device(dev->dev.parent);
@@ -767,7 +779,7 @@ void nvhost_module_idle_ext(struct platform_device *dev)
 {
 	struct platform_device *pdev;
 
-	BUG_ON(!dev->dev.parent);
+	BUG_ON(!nvhost_get_parent(dev));
 
 	/* get the parent */
 	pdev = to_platform_device(dev->dev.parent);

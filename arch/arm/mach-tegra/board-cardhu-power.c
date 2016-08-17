@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-cardhu-power.c
  *
- * Copyright (c) 2011-2012, NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2011-2013, NVIDIA Corporation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -39,6 +39,7 @@
 #include <mach/edp.h>
 #include <mach/gpio-tegra.h>
 #include <mach/pinmux-tegra30.h>
+#include <mach/hardware.h>
 
 #include "gpio-names.h"
 #include "board.h"
@@ -120,6 +121,18 @@ static struct regulator_consumer_supply tps6591x_ldo1_supply_0[] = {
 	REGULATOR_SUPPLY("avdd_pex_pll", NULL),
 	REGULATOR_SUPPLY("avdd_pexa", NULL),
 	REGULATOR_SUPPLY("vdd_pexa", NULL),
+};
+
+static struct regulator_consumer_supply tps6591x_ldo1_supply_pm315[] = {
+	REGULATOR_SUPPLY("avdd_pexb", NULL),
+	REGULATOR_SUPPLY("vdd_pexb", NULL),
+	REGULATOR_SUPPLY("avdd_pex_pll", NULL),
+	REGULATOR_SUPPLY("avdd_pexa", NULL),
+	REGULATOR_SUPPLY("vdd_pexa", NULL),
+	REGULATOR_SUPPLY("avdd_sata", NULL),
+	REGULATOR_SUPPLY("vdd_sata", NULL),
+	REGULATOR_SUPPLY("avdd_sata_pll", NULL),
+	REGULATOR_SUPPLY("avdd_plle", NULL),
 };
 
 static struct regulator_consumer_supply tps6591x_ldo2_supply_0[] = {
@@ -478,6 +491,14 @@ int __init cardhu_regulator_init(void)
 		pr_info("VSEL 1:0 %d%d\n",
 			tps62361_pdata.vsel1_def_state,
 			tps62361_pdata.vsel0_def_state);
+	} else if (board_info.board_id == BOARD_PM315) {
+		/* On PM315, SATA rails are on LDO1 */
+		pdata_ldo1_0.regulator.num_consumer_supplies =
+					ARRAY_SIZE(tps6591x_ldo1_supply_pm315);
+		pdata_ldo1_0.regulator.consumer_supplies =
+					tps6591x_ldo1_supply_pm315;
+		pdata_ldo2_0.regulator.num_consumer_supplies = 0;
+		pdata_ldo2_0.regulator.consumer_supplies = NULL;
 	}
 
 	if (((board_info.board_id == BOARD_E1291) ||
@@ -704,6 +725,7 @@ static struct regulator_consumer_supply fixed_reg_en_vbrtr_supply[] = {
 /* EN_USB1_VBUS_OC*/
 static struct regulator_consumer_supply fixed_reg_en_usb1_vbus_oc_supply[] = {
 	REGULATOR_SUPPLY("usb_vbus", "tegra-ehci.0"),
+	REGULATOR_SUPPLY("usb_vbus", "tegra-otg"),
 };
 
 /*EN_USB3_VBUS_OC*/
@@ -1206,6 +1228,7 @@ static struct tegra_suspend_platform_data cardhu_suspend_data = {
 	.i2c_base_addr = 0,
 	.pmuslave_addr = 0,
 	.core_reg_addr = 0,
+	.lp1_core_volt_low_cold = 0,
 	.lp1_core_volt_low = 0,
 	.lp1_core_volt_high = 0,
 #endif
@@ -1289,7 +1312,12 @@ int __init cardhu_edp_init(void)
 
 	regulator_mA = get_maximum_cpu_current_supported();
 	if (!regulator_mA) {
-		regulator_mA = 6000; /* regular T30/s */
+		if (tegra_get_chipid() == TEGRA_CHIPID_TEGRA3) {
+			if (tegra_get_minor_rev() == 0x03) /* T33 */
+				regulator_mA = 10000;
+			else
+				regulator_mA = 6000; /* regular T30/s */
+		}
 	}
 	pr_info("%s: CPU regulator %d mA\n", __func__, regulator_mA);
 

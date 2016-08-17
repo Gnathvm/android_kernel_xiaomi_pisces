@@ -1,8 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-pluto-sdhci.c
  *
- * Copyright (C) 2012 NVIDIA Corporation.
- * Copyright (C) 2013 NVIDIA Corporation.
+ * Copyright (c) 2012-2013 NVIDIA Corporation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -35,10 +34,20 @@
 #include "gpio-names.h"
 #include "board.h"
 #include "board-pluto.h"
+#include "dvfs.h"
 
 #define PLUTO_WLAN_PWR	TEGRA_GPIO_PCC5
 #define PLUTO_WLAN_WOW	TEGRA_GPIO_PU5
 #define PLUTO_SD_CD	TEGRA_GPIO_PV2
+#define WLAN_PWR_STR	"wlan_power"
+#define WLAN_WOW_STR	"bcmsdh_sdmmc"
+#if defined(CONFIG_BCMDHD_EDP_SUPPORT)
+/* Wifi power levels */
+#define ON  1080 /* 1080 mW */
+#define OFF 0
+static unsigned int wifi_states[] = {ON, OFF};
+#endif
+
 static void (*wifi_status_cb)(int card_present, void *dev_id);
 static void *wifi_status_cb_devid;
 static int pluto_wifi_status_register(void (*callback)(int , void *), void *);
@@ -51,6 +60,16 @@ static struct wifi_platform_data pluto_wifi_control = {
 	.set_power	= pluto_wifi_power,
 	.set_reset	= pluto_wifi_reset,
 	.set_carddetect	= pluto_wifi_set_carddetect,
+#if defined(CONFIG_BCMDHD_EDP_SUPPORT)
+	/* set the wifi edp client information here */
+	.client_info    = {
+		.name       = "wifi_edp_client",
+		.states     = wifi_states,
+		.num_states = ARRAY_SIZE(wifi_states),
+		.e0_index   = 0,
+		.priority   = EDP_MAX_PRIO,
+	},
+#endif
 };
 
 static struct resource wifi_resource[] = {
@@ -147,6 +166,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.ddr_clk_limit = 41000000,
 	.max_clk_limit = 82000000,
 	.uhs_mask = MMC_UHS_MASK_DDR50,
+	.edp_support = false,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
@@ -156,8 +176,11 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 	.tap_delay = 0x3,
 	.trim_delay = 0x3,
 	.ddr_clk_limit = 41000000,
-	.max_clk_limit = 82000000,
+	.max_clk_limit = 156000000,
 	.uhs_mask = MMC_UHS_MASK_DDR50,
+	.edp_support = true,
+	.edp_states = {966, 0},
+	.en_freq_scaling = true,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
@@ -166,13 +189,16 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.power_gpio = -1,
 	.is_8bit = 1,
 	.tap_delay = 0x5,
-	.trim_delay = 0,
+	.trim_delay = 0xA,
 	.ddr_clk_limit = 41000000,
+	.max_clk_limit = 156000000,
 	.mmc_data = {
 		.built_in = 1,
 		.ocr_mask = MMC_OCR_1V8_MASK,
 	},
-	.uhs_mask = MMC_MASK_HS200,
+	.edp_support = true,
+	.edp_states = {966, 0},
+	.en_freq_scaling = true,
 };
 
 static struct platform_device tegra_sdhci_device0 = {
@@ -244,27 +270,42 @@ static int pluto_wifi_reset(int on)
 
 static int __init pluto_wifi_init(void)
 {
-	int rc;
+	int rc = 0;
 
-	rc = gpio_request(PLUTO_WLAN_PWR, "wlan_power");
-	if (rc)
-		pr_err("WLAN_PWR gpio request failed:%d\n", rc);
-	rc = gpio_request(PLUTO_WLAN_WOW, "bcmsdh_sdmmc");
-	if (rc)
-		pr_err("WLAN_WOW gpio request failed:%d\n", rc);
+	/* init wlan_pwr gpio */
+	rc = gpio_request(PLUTO_WLAN_PWR, WLAN_PWR_STR);
+	/* Due to pre powering, sometimes gpio req returns EBUSY */
+	if ((rc < 0) && (rc != -EBUSY)) {
+		pr_err("Wifi init: gpio req failed:%d\n", rc);
+		return rc;
+	}
 
+	/* Due to pre powering, sometimes gpio req returns EBUSY */
 	rc = gpio_direction_output(PLUTO_WLAN_PWR, 0);
-	if (rc)
-		pr_err("WLAN_PWR gpio direction configuration failed:%d\n", rc);
+	if ((rc < 0) && (rc != -EBUSY)) {
+		gpio_free(PLUTO_WLAN_PWR);
+		return rc;
+	}
+	/* init wlan_wow gpio */
+	rc = gpio_request(PLUTO_WLAN_WOW, WLAN_WOW_STR);
+	if (rc < 0) {
+		pr_err("wifi init: gpio req failed:%d\n", rc);
+		gpio_free(PLUTO_WLAN_PWR);
+		return rc;
+	}
+
 	rc = gpio_direction_input(PLUTO_WLAN_WOW);
-	if (rc)
-		pr_err("WLAN_WOW gpio direction configuration failed:%d\n", rc);
+	if (rc < 0) {
+		gpio_free(PLUTO_WLAN_WOW);
+		gpio_free(PLUTO_WLAN_PWR);
+		return rc;
+	}
 
 	wifi_resource[0].start = wifi_resource[0].end =
 		gpio_to_irq(PLUTO_WLAN_WOW);
 
 	platform_device_register(&pluto_wifi_device);
-	return 0;
+	return rc;
 }
 
 #ifdef CONFIG_TEGRA_PREPOWER_WIFI
@@ -283,6 +324,30 @@ subsys_initcall_sync(pluto_wifi_prepower);
 
 int __init pluto_sdhci_init(void)
 {
+	int nominal_core_mv;
+	int min_vcore_override_mv;
+
+	nominal_core_mv =
+		tegra_dvfs_rail_get_boot_level(tegra_core_rail);
+	if (nominal_core_mv > 0) {
+		tegra_sdhci_platform_data0.nominal_vcore_mv = nominal_core_mv;
+		tegra_sdhci_platform_data2.nominal_vcore_mv = nominal_core_mv;
+		tegra_sdhci_platform_data3.nominal_vcore_mv = nominal_core_mv;
+	}
+	min_vcore_override_mv =
+		tegra_dvfs_rail_get_override_floor(tegra_core_rail);
+	if (min_vcore_override_mv) {
+		tegra_sdhci_platform_data0.min_vcore_override_mv =
+			min_vcore_override_mv;
+		tegra_sdhci_platform_data2.min_vcore_override_mv =
+			min_vcore_override_mv;
+		tegra_sdhci_platform_data3.min_vcore_override_mv =
+			min_vcore_override_mv;
+	}
+	if ((tegra_sdhci_platform_data3.uhs_mask & MMC_MASK_HS200)
+		&& (!(tegra_sdhci_platform_data3.uhs_mask &
+		MMC_UHS_MASK_DDR50)))
+		tegra_sdhci_platform_data3.trim_delay = 0;
 	platform_device_register(&tegra_sdhci_device3);
 	platform_device_register(&tegra_sdhci_device2);
 	platform_device_register(&tegra_sdhci_device0);

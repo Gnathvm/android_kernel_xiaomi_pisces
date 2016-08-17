@@ -38,7 +38,7 @@
 #define USB_MAX_CTRL_PAYLOAD		64
 
  /* Charger current limit=1800mA, as per the USB charger spec */
-#define USB_CHARGING_DCP_CURRENT_LIMIT_UA 2000000u
+#define USB_CHARGING_DCP_CURRENT_LIMIT_UA 1800000u
 #define USB_CHARGING_CDP_CURRENT_LIMIT_UA 1500000u
 #define USB_CHARGING_SDP_CURRENT_LIMIT_UA 500000u
 #define USB_CHARGING_NV_CHARGER_CURRENT_LIMIT_UA 2000000u
@@ -46,7 +46,7 @@
 
  /* 1 sec wait time for non-std charger detection after vbus is detected */
 #define NON_STD_CHARGER_DET_TIME_MS 1000
-#define BOOST_TRIGGER_SIZE 20
+#define BOOST_TRIGGER_SIZE 4096
 
 #define UDC_RESET_TIMEOUT_MS 1000
 #define UDC_RUN_TIMEOUT_MS 1000
@@ -282,6 +282,10 @@
 #define VBUS_SENSOR_REG_OFFSET			0x404
 #define VBUS_WAKEUP_REG_OFFSET			0x408
 
+#define  USB_SYS_VBUS_A_VLD_SW_VALUE		BIT(28)
+#define  USB_SYS_VBUS_A_VLD_SW_EN		BIT(27)
+#define  USB_SYS_VBUS_ASESSION_VLD_SW_VALUE	BIT(20)
+#define  USB_SYS_VBUS_ASESSION_VLD_SW_EN	BIT(19)
 #define  USB_SYS_VBUS_ASESSION_INT_EN		0x10000
 #define  USB_SYS_VBUS_ASESSION_CHANGED		0x20000
 #define  USB_SYS_VBUS_ASESSION			0x40000
@@ -436,6 +440,7 @@ struct tegra_udc {
 	/* irq work for controlling the usb power */
 	struct work_struct irq_work;
 	enum tegra_connect_type connect_type;
+	enum tegra_connect_type prev_connect_type;
 	void __iomem *regs;
 	size_t ep_qh_size;		/* size after alignment adjustment*/
 	dma_addr_t ep_qh_dma;		/* dma address of QH */
@@ -449,6 +454,7 @@ struct tegra_udc {
 	u8 device_address;	/* Device USB address */
 	u32 current_limit;
 	spinlock_t lock;
+	struct mutex sync_lock;
 	unsigned softconnect:1;
 	unsigned vbus_active:1;
 	unsigned stopped:1;
@@ -456,6 +462,10 @@ struct tegra_udc {
 	unsigned selfpowered:1;
 	bool has_hostpc;
 	bool fence_read;
+	bool support_pmu_vbus;
+#ifdef CONFIG_EXTCON
+	struct extcon_dev *edev;
+#endif
 };
 
 

@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/tegra11_dvfs.c
  *
- * Copyright (C) 2012 NVIDIA Corporation.
+ * Copyright (c) 2012-2013 NVIDIA CORPORATION. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -35,29 +35,27 @@ static bool tegra_dvfs_core_disabled;
 #define KHZ 1000
 #define MHZ 1000000
 
-#define TEGRA11_CORE_VOLTAGE_CAP	1100
+#define TEGRA11_MIN_CORE_CURRENT	6000
+#define TEGRA11_CORE_VOLTAGE_CAP	1120
 
-/* FIXME: need tegra11 step */
 #define VDD_SAFE_STEP			100
 
-static int dvfs_temperatures[] = { 20, };
+static int vdd_core_vmin_trips_table[MAX_THERMAL_LIMITS] = { 20, };
+static int vdd_core_therm_floors_table[MAX_THERMAL_LIMITS] = { 950, };
 
-static struct tegra_cooling_device cpu_dfll_cdev = {
-	.cdev_type = "cpu_dfll",
-	.trip_temperatures = dvfs_temperatures,
-	.trip_temperatures_num = ARRAY_SIZE(dvfs_temperatures),
+static int vdd_cpu_vmax_trips_table[MAX_THERMAL_LIMITS] = { 64, };
+static int vdd_cpu_therm_caps_table[MAX_THERMAL_LIMITS] = { 1240, };
+
+static struct tegra_cooling_device cpu_vmax_cdev = {
+	.cdev_type = "cpu_hot",
 };
 
-static struct tegra_cooling_device cpu_pll_cdev = {
-	.cdev_type = "cpu_pll",
-	.trip_temperatures = dvfs_temperatures,
-	.trip_temperatures_num = ARRAY_SIZE(dvfs_temperatures),
+static struct tegra_cooling_device cpu_vmin_cdev = {
+	.cdev_type = "cpu_cold",
 };
 
-static struct tegra_cooling_device core_cdev = {
-	.cdev_type = "core",
-	.trip_temperatures = dvfs_temperatures,
-	.trip_temperatures_num = ARRAY_SIZE(dvfs_temperatures),
+static struct tegra_cooling_device core_vmin_cdev = {
+	.cdev_type = "core_cold",
 };
 
 static struct dvfs_rail tegra11_dvfs_rail_vdd_cpu = {
@@ -66,9 +64,8 @@ static struct dvfs_rail tegra11_dvfs_rail_vdd_cpu = {
 	.min_millivolts = 800,
 	.step = VDD_SAFE_STEP,
 	.jmp_to_zero = true,
-	.min_millivolts_cold = 1000,
-	.dfll_mode_cdev = &cpu_dfll_cdev,
-	.pll_mode_cdev = &cpu_pll_cdev,
+	.vmin_cdev = &cpu_vmin_cdev,
+	.vmax_cdev = &cpu_vmax_cdev,
 };
 
 static struct dvfs_rail tegra11_dvfs_rail_vdd_core = {
@@ -76,8 +73,7 @@ static struct dvfs_rail tegra11_dvfs_rail_vdd_core = {
 	.max_millivolts = 1400,
 	.min_millivolts = 800,
 	.step = VDD_SAFE_STEP,
-	.min_millivolts_cold = 950,
-	.pll_mode_cdev = &core_cdev,
+	.vmin_cdev = &core_vmin_cdev,
 };
 
 static struct dvfs_rail *tegra11_dvfs_rails[] = {
@@ -129,6 +125,8 @@ static struct cpu_cvb_dvfs cpu_cvb_dvfs_table[] = {
 			{2040000, { 250050,  -6544,   0}, { 140000,    0,    0} },
 			{      0, {      0,      0,   0}, {      0,    0,    0} },
 		},
+		.therm_trips_table = { 20, },
+		.therm_floors_table = { 1000, },
 	},
 	{
 		.speedo_id = 1,
@@ -141,7 +139,7 @@ static struct cpu_cvb_dvfs cpu_cvb_dvfs_table[] = {
 			.tune_high_min_millivolts = 1050,
 			.min_millivolts = 1000,
 		},
-		.max_mv = 1350,
+		.max_mv = 1320,
 		.freqs_mult = KHZ,
 		.speedo_scale = 100,
 		.voltage_scale = 1000,
@@ -165,6 +163,8 @@ static struct cpu_cvb_dvfs cpu_cvb_dvfs_table[] = {
 			{1810500, { 3304747, -179126, 3576}, { 1400000,    0,    0} },
 			{      0, {       0,       0,    0}, {       0,    0,    0} },
 		},
+		.therm_trips_table = { 20, },
+		.therm_floors_table = { 1000, },
 	},
 	{
 		.speedo_id = 1,
@@ -177,7 +177,7 @@ static struct cpu_cvb_dvfs cpu_cvb_dvfs_table[] = {
 			.tune_high_min_millivolts = 1050,
 			.min_millivolts = 1000,
 		},
-		.max_mv = 1350,
+		.max_mv = 1320,
 		.freqs_mult = KHZ,
 		.speedo_scale = 100,
 		.voltage_scale = 1000,
@@ -201,6 +201,8 @@ static struct cpu_cvb_dvfs cpu_cvb_dvfs_table[] = {
 			{1810500, { 3304747, -179126, 3576}, { 1400000,    0,    0} },
 			{      0, {       0,       0,    0}, {       0,    0,    0} },
 		},
+		.therm_trips_table = { 20, },
+		.therm_floors_table = { 1000, },
 	},
 	{
 		.speedo_id = 2,
@@ -213,7 +215,7 @@ static struct cpu_cvb_dvfs cpu_cvb_dvfs_table[] = {
 			.tune_high_min_millivolts = 1050,
 			.min_millivolts = 1000,
 		},
-		.max_mv = 1350,
+		.max_mv = 1320,
 		.freqs_mult = KHZ,
 		.speedo_scale = 100,
 		.voltage_scale = 1000,
@@ -238,6 +240,46 @@ static struct cpu_cvb_dvfs cpu_cvb_dvfs_table[] = {
 			{1912500, { 3395401, -181606, 3576}, { 1400000,    0,    0} },
 			{      0, {       0,       0,    0}, {       0,    0,    0} },
 		},
+		.therm_trips_table = { 20, },
+		.therm_floors_table = { 1000, },
+	},
+	{
+		.speedo_id = 3,
+		.process_id = -1,
+		.dfll_tune_data  = {
+			.tune0		= 0x00b0039d,
+			.tune0_high_mv	= 0x00b0009d,
+			.tune1		= 0x0000001f,
+			.droop_rate_min = 1000000,
+			.tune_high_min_millivolts = 1050,
+			.min_millivolts = 1000,
+		},
+		.max_mv = 1320,
+		.freqs_mult = KHZ,
+		.speedo_scale = 100,
+		.voltage_scale = 1000,
+		.cvb_table = {
+			/*f       dfll:  c0,      c1,    c2  pll:   c0,   c1,    c2 */
+			{ 306000, { 2190643, -141851, 3576}, {  900000,    0,    0} },
+			{ 408000, { 2250968, -144331, 3576}, {  950000,    0,    0} },
+			{ 510000, { 2313333, -146811, 3576}, {  970000,    0,    0} },
+			{ 612000, { 2377738, -149291, 3576}, { 1000000,    0,    0} },
+			{ 714000, { 2444183, -151771, 3576}, { 1020000,    0,    0} },
+			{ 816000, { 2512669, -154251, 3576}, { 1020000,    0,    0} },
+			{ 918000, { 2583194, -156731, 3576}, { 1030000,    0,    0} },
+			{1020000, { 2655759, -159211, 3576}, { 1030000,    0,    0} },
+			{1122000, { 2730365, -161691, 3576}, { 1090000,    0,    0} },
+			{1224000, { 2807010, -164171, 3576}, { 1090000,    0,    0} },
+			{1326000, { 2885696, -166651, 3576}, { 1120000,    0,    0} },
+			{1428000, { 2966422, -169131, 3576}, { 1400000,    0,    0} },
+			{1530000, { 3049183, -171601, 3576}, { 1400000,    0,    0} },
+			{1606500, { 3112179, -173451, 3576}, { 1400000,    0,    0} },
+			{1708500, { 3198504, -175931, 3576}, { 1400000,    0,    0} },
+			{1810500, { 3304747, -179126, 3576}, { 1400000,    0,    0} },
+			{      0, {       0,       0,    0}, {       0,    0,    0} },
+		},
+		.therm_trips_table = { 20, },
+		.therm_floors_table = { 1000, },
 	},
 };
 
@@ -275,13 +317,13 @@ static struct dvfs core_dvfs_table[] = {
 #ifndef CONFIG_TEGRA_SIMULATION_PLATFORM
 	CORE_DVFS("emc",    -1, -1, 1, KHZ,        1,      1,      1,      1,  800000,  800000,  933000,  933000, 1066000, 1066000),
 
-	CORE_DVFS("cpu_lp",  0,  0, 1, KHZ,   228000, 306000, 396000, 528000,  648000,  696000,  696000,  696000,  696000, 696000),
-	CORE_DVFS("cpu_lp",  0,  1, 1, KHZ,   324000, 432000, 528000, 612000,  696000,  696000,  696000,  696000,  696000, 696000),
-	CORE_DVFS("cpu_lp",  1,  1, 1, KHZ,   324000, 432000, 528000, 612000,  792000,  816000,  816000,  816000,  816000, 816000),
+	CORE_DVFS("cpu_lp",  0,  0, 1, KHZ,   228000, 306000, 396000, 510000,  648000,  696000,  696000,  696000,  696000,  696000),
+	CORE_DVFS("cpu_lp",  0,  1, 1, KHZ,   324000, 396000, 510000, 612000,  696000,  696000,  696000,  696000,  696000,  696000),
+	CORE_DVFS("cpu_lp",  1,  1, 1, KHZ,   324000, 396000, 510000, 612000,  768000,  816000,  816000,  816000,  816000,  816000),
 
-	CORE_DVFS("sbus",    0,  0, 1, KHZ,   132000, 188000, 240000, 276000,  324000,  336000,  336000,  336000,  336000, 336000),
-	CORE_DVFS("sbus",    0,  1, 1, KHZ,   180000, 228000, 300000, 336000,  336000,  336000,  336000,  336000,  336000, 336000),
-	CORE_DVFS("sbus",    1,  1, 1, KHZ,   180000, 228000, 300000, 336000,  372000,  384000,  384000,  384000,  384000, 384000),
+	CORE_DVFS("sbus",    0,  0, 1, KHZ,   132000, 188000, 240000, 276000,  324000,  336000,  336000,  336000,  336000,  336000),
+	CORE_DVFS("sbus",    0,  1, 1, KHZ,   180000, 228000, 276000, 336000,  336000,  336000,  336000,  336000,  336000,  336000),
+	CORE_DVFS("sbus",    1,  1, 1, KHZ,   180000, 228000, 276000, 336000,  372000,  384000,  384000,  384000,  384000,  384000),
 
 	CORE_DVFS("vi",     -1,  0, 1, KHZ,   144000, 216000, 240000, 312000,  372000,  408000,  408000,  408000,  408000,  408000),
 	CORE_DVFS("vi",     -1,  1, 1, KHZ,   144000, 216000, 240000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
@@ -290,35 +332,35 @@ static struct dvfs core_dvfs_table[] = {
 	CORE_DVFS("3d",     -1,  0, 1, KHZ,   192000, 228000, 300000, 396000,  492000,  516000,  552000,  552000,  600000,  600000),
 	CORE_DVFS("epp",    -1,  0, 1, KHZ,   192000, 228000, 300000, 396000,  492000,  516000,  552000,  552000,  600000,  600000),
 
-	CORE_DVFS("2d",     -1,  1, 1, KHZ,   240000, 324000, 420000, 492000,  528000,  564000,  600000,  636000,  672000, 828000),
-	CORE_DVFS("3d",     -1,  1, 1, KHZ,   240000, 324000, 420000, 492000,  528000,  564000,  600000,  636000,  672000, 828000),
-	CORE_DVFS("epp",    -1,  1, 1, KHZ,   240000, 324000, 420000, 492000,  528000,  564000,  600000,  636000,  672000, 828000),
+	CORE_DVFS("2d",     -1,  1, 1, KHZ,   240000, 300000, 384000, 468000,  528000,  564000,  600000,  636000,  672000,  828000),
+	CORE_DVFS("3d",     -1,  1, 1, KHZ,   240000, 300000, 384000, 468000,  528000,  564000,  600000,  636000,  672000,  828000),
+	CORE_DVFS("epp",    -1,  1, 1, KHZ,   240000, 300000, 384000, 468000,  528000,  564000,  600000,  636000,  672000,  828000),
 
 	CORE_DVFS("msenc",   0,  0, 1, KHZ,   144000, 182000, 240000, 312000,  384000,  408000,  408000,  408000,  408000,  408000),
 	CORE_DVFS("se",      0,  0, 1, KHZ,   144000, 182000, 240000, 312000,  384000,  408000,  408000,  408000,  408000,  408000),
 	CORE_DVFS("tsec",    0,  0, 1, KHZ,   144000, 182000, 240000, 312000,  384000,  408000,  408000,  408000,  408000,  408000),
 	CORE_DVFS("vde",     0,  0, 1, KHZ,   144000, 182000, 240000, 312000,  384000,  408000,  408000,  408000,  408000,  408000),
 
-	CORE_DVFS("msenc",   0,  1, 1, KHZ,   228000, 288000, 360000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
-	CORE_DVFS("se",      0,  1, 1, KHZ,   228000, 288000, 360000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
-	CORE_DVFS("tsec",    0,  1, 1, KHZ,   228000, 288000, 360000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
-	CORE_DVFS("vde",     0,  1, 1, KHZ,   228000, 288000, 360000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
+	CORE_DVFS("msenc",   0,  1, 1, KHZ,   204000, 252000, 324000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
+	CORE_DVFS("se",      0,  1, 1, KHZ,   204000, 252000, 324000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
+	CORE_DVFS("tsec",    0,  1, 1, KHZ,   204000, 252000, 324000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
+	CORE_DVFS("vde",     0,  1, 1, KHZ,   204000, 252000, 324000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
 
-	CORE_DVFS("msenc",   1,  1, 1, KHZ,   228000, 288000, 360000, 420000,  468000,  480000,  480000,  480000,  480000,  480000),
-	CORE_DVFS("se",      1,  1, 1, KHZ,   228000, 288000, 360000, 420000,  468000,  480000,  480000,  480000,  480000,  480000),
-	CORE_DVFS("tsec",    1,  1, 1, KHZ,   228000, 288000, 360000, 420000,  468000,  480000,  480000,  480000,  480000,  480000),
-	CORE_DVFS("vde",     1,  1, 1, KHZ,   228000, 288000, 360000, 420000,  468000,  480000,  480000,  480000,  480000,  480000),
+	CORE_DVFS("msenc",   1,  1, 1, KHZ,   204000, 252000, 324000, 408000,  456000,  480000,  480000,  480000,  480000,  480000),
+	CORE_DVFS("se",      1,  1, 1, KHZ,   204000, 252000, 324000, 408000,  456000,  480000,  480000,  480000,  480000,  480000),
+	CORE_DVFS("tsec",    1,  1, 1, KHZ,   204000, 252000, 324000, 408000,  456000,  480000,  480000,  480000,  480000,  480000),
+	CORE_DVFS("vde",     1,  1, 1, KHZ,   204000, 252000, 324000, 408000,  456000,  480000,  480000,  480000,  480000,  480000),
 
 	CORE_DVFS("host1x",  0,  0, 1, KHZ,   144000, 188000, 240000, 276000,  324000,  336000,  336000,  336000,  336000,  336000),
-	CORE_DVFS("host1x",  0,  1, 1, KHZ,   180000, 228000, 300000, 336000,  336000,  336000,  336000,  336000,  336000,  336000),
-	CORE_DVFS("host1x",  1,  1, 1, KHZ,   180000, 228000, 300000, 336000,  372000,  384000,  384000,  384000,  384000,  384000),
+	CORE_DVFS("host1x",  0,  1, 1, KHZ,   180000, 228000, 276000, 336000,  336000,  336000,  336000,  336000,  336000,  336000),
+	CORE_DVFS("host1x",  1,  1, 1, KHZ,   180000, 228000, 276000, 336000,  372000,  384000,  384000,  384000,  384000,  384000),
 
 #ifdef CONFIG_TEGRA_DUAL_CBUS
 	CORE_DVFS("c2bus",  -1,  0, 1, KHZ,   192000, 228000, 300000, 396000,  492000,  516000,  552000,  552000,  600000,  600000),
-	CORE_DVFS("c2bus",  -1,  1, 1, KHZ,   240000, 324000, 420000, 492000,  528000,  564000,  600000,  636000,  672000,  828000),
+	CORE_DVFS("c2bus",  -1,  1, 1, KHZ,   240000, 300000, 384000, 468000,  528000,  564000,  600000,  636000,  672000,  828000),
 	CORE_DVFS("c3bus",   0,  0, 1, KHZ,   144000, 182000, 240000, 312000,  384000,  408000,  408000,  408000,  408000,  408000),
-	CORE_DVFS("c3bus",   0,  1, 1, KHZ,   228000, 288000, 360000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
-	CORE_DVFS("c3bus",   1,  1, 1, KHZ,   228000, 288000, 360000, 420000,  468000,  480000,  480000,  480000,  480000,  480000),
+	CORE_DVFS("c3bus",   0,  1, 1, KHZ,   204000, 252000, 324000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
+	CORE_DVFS("c3bus",   1,  1, 1, KHZ,   204000, 252000, 324000, 408000,  456000,  480000,  480000,  480000,  480000,  480000),
 #else
 	CORE_DVFS("cbus",    0,  0, 1, KHZ,   144000, 182000, 240000, 312000,  384000,  408000,  408000,  408000,  408000,  408000),
 	CORE_DVFS("cbus",    0,  1, 1, KHZ,   228000, 288000, 360000, 408000,  408000,  408000,  408000,  408000,  408000,  408000),
@@ -339,9 +381,9 @@ static struct dvfs core_dvfs_table[] = {
 	CORE_DVFS("sbc5",   -1, -1, 1, KHZ,    48000,  48000,  48000,  48000,   52000,   52000,   52000,   52000,   52000,   52000),
 	CORE_DVFS("sbc6",   -1, -1, 1, KHZ,    48000,  48000,  48000,  48000,   52000,   52000,   52000,   52000,   52000,   52000),
 
-	CORE_DVFS("sdmmc1", -1, -1, 1, KHZ,        1,  81600,  81600,  81600,  156000,  156000,  156000,  156000,  156000,  156000),
-	CORE_DVFS("sdmmc3", -1, -1, 1, KHZ,        1,  81600,  81600,  81600,  156000,  156000,  156000,  156000,  156000,  156000),
-	CORE_DVFS("sdmmc4", -1, -1, 1, KHZ,   102000, 102000, 102000, 102000,  156000,  156000,  156000,  156000,  156000,  156000),
+	CORE_DVFS("sdmmc1", -1, -1, 1, KHZ,        1,  81600,  81600,  81600,   81600,  156000,  156000,  156000,  156000,  156000),
+	CORE_DVFS("sdmmc3", -1, -1, 1, KHZ,        1,  81600,  81600,  81600,   81600,  156000,  156000,  156000,  156000,  156000),
+	CORE_DVFS("sdmmc4", -1, -1, 1, KHZ,        1, 102000, 102000, 102000,  102000,  156000,  156000,  156000,  156000,  156000),
 
 	CORE_DVFS("hdmi",   -1, -1, 1, KHZ,   148500, 148500, 148500, 297000,  297000,  297000,  297000,  297000,  297000,  297000),
 
@@ -358,9 +400,9 @@ static struct dvfs core_dvfs_table[] = {
 	CORE_DVFS("xusb_falcon_src", -1, -1, 1, KHZ,  1, 336000, 336000, 336000,  336000,  336000,  336000,  336000,  336000,  336000),
 	CORE_DVFS("xusb_host_src",   -1, -1, 1, KHZ,  1, 112000, 112000, 112000,  112000,  112000,  112000,  112000,  112000,  112000),
 	CORE_DVFS("xusb_dev_src",    -1, -1, 1, KHZ,  1,  58300,  58300, 112000,  112000,  112000,  112000,  112000,  112000,  112000),
-	CORE_DVFS("xusb_ss_src",     -1, -1, 1, KHZ,  1, 120000, 120000, 120000,  120000,  120000,  120000,  120000,  120000,  120000),
+	CORE_DVFS("xusb_ss_src",     -1, -1, 1, KHZ,  1, 122400, 122400, 122400,  122400,  122400,  122400,  122400,  122400,  122400),
 	CORE_DVFS("xusb_fs_src",     -1, -1, 1, KHZ,  1,  48000,  48000,  48000,   48000,   48000,   48000,   48000,   48000,   48000),
-	CORE_DVFS("xusb_hs_src",     -1, -1, 1, KHZ,  1,  60000,  60000,  60000,   60000,   60000,   60000,   60000,   60000,   60000),
+	CORE_DVFS("xusb_hs_src",     -1, -1, 1, KHZ,  1,  61200,  61200,  61200,   61200,   61200,   61200,   61200,   61200,   61200),
 #endif
 };
 
@@ -416,6 +458,88 @@ module_param_cb(disable_core, &tegra_dvfs_disable_core_ops,
 module_param_cb(disable_cpu, &tegra_dvfs_disable_cpu_ops,
 	&tegra_dvfs_cpu_disabled, 0644);
 
+/*
+ * Validate rail thermal profile, and get its size. Valid profile:
+ * - voltage floors are descending with temperature increasing
+ * - the lowest limit is above rail minimum voltage in pll and
+ *   in dfll mode (if applicable)
+ * - the highest limit is below rail nominal voltage
+ */
+static int __init get_thermal_profile_size(
+	int *trips_table, int *limits_table,
+	struct dvfs_rail *rail, struct dvfs_dfll_data *d)
+{
+	int i, min_mv;
+
+	for (i = 0; i < MAX_THERMAL_LIMITS - 1; i++) {
+		if (!limits_table[i+1])
+			break;
+
+		if ((trips_table[i] >= trips_table[i+1]) ||
+		    (limits_table[i] < limits_table[i+1])) {
+			pr_warning("%s: not ordered profile\n", rail->reg_id);
+			return -EINVAL;
+		}
+	}
+
+	min_mv = max(rail->min_millivolts, d ? d->min_millivolts : 0);
+	if (limits_table[i] < min_mv) {
+		pr_warning("%s: thermal profile below Vmin\n", rail->reg_id);
+		return -EINVAL;
+	}
+
+	if (limits_table[0] > rail->nominal_millivolts) {
+		pr_warning("%s: thermal profile above Vmax\n", rail->reg_id);
+		return -EINVAL;
+	}
+	return i + 1;
+}
+
+static void __init init_rail_vmax_thermal_profile(
+	int *therm_trips_table, int *therm_caps_table,
+	struct dvfs_rail *rail, struct dvfs_dfll_data *d)
+{
+	int i = get_thermal_profile_size(therm_trips_table,
+					 therm_caps_table, rail, d);
+	if (i <= 0) {
+		rail->vmax_cdev = NULL;
+		WARN(1, "%s: invalid Vmax thermal profile\n", rail->reg_id);
+		return;
+	}
+
+	/* Install validated thermal caps */
+	rail->therm_mv_caps = therm_caps_table;
+	rail->therm_mv_caps_num = i;
+
+	/* Setup trip-points if applicable */
+	if (rail->vmax_cdev) {
+		rail->vmax_cdev->trip_temperatures_num = i;
+		rail->vmax_cdev->trip_temperatures = therm_trips_table;
+	}
+}
+
+static void __init init_rail_vmin_thermal_profile(
+	int *therm_trips_table, int *therm_floors_table,
+	struct dvfs_rail *rail, struct dvfs_dfll_data *d)
+{
+	int i = get_thermal_profile_size(therm_trips_table,
+					 therm_floors_table, rail, d);
+	if (i <= 0) {
+		rail->vmin_cdev = NULL;
+		WARN(1, "%s: invalid Vmin thermal profile\n", rail->reg_id);
+		return;
+	}
+
+	/* Install validated thermal floors */
+	rail->therm_mv_floors = therm_floors_table;
+	rail->therm_mv_floors_num = i;
+
+	/* Setup trip-points if applicable */
+	if (rail->vmin_cdev) {
+		rail->vmin_cdev->trip_temperatures_num = i;
+		rail->vmin_cdev->trip_temperatures = therm_trips_table;
+	}
+}
 
 static bool __init can_update_max_rate(struct clk *c, struct dvfs *d)
 {
@@ -526,6 +650,24 @@ static inline int round_cvb_voltage(int mv, int v_scale)
 		cvb_align_step_uv / 1000;
 }
 
+static inline void override_min_millivolts(struct cpu_cvb_dvfs *d)
+{
+	/*
+	 * override dfll min_millivolts for AP40 sku always, and for other skus
+	 * if dfll Vmin designated fuse 61 is set
+	 */
+	if ((tegra_sku_id == 0x6) || (tegra_sku_id == 0x8) ||
+	    tegra_spare_fuse(61))
+		d->dfll_tune_data.min_millivolts = 900;
+
+	/*
+	 * override pll min_millivolts for T40DC sku (the only parameter
+	 * that seprated it from all skus with speedo_id 1)
+	 */
+	if (tegra_sku_id == 0x20)
+		d->cvb_table[0].cvb_pll_param.c0 = 940 * d->voltage_scale;
+}
+
 static int __init set_cpu_dvfs_data(
 	struct cpu_cvb_dvfs *d, struct dvfs *cpu_dvfs, int *max_freq_index)
 {
@@ -536,6 +678,7 @@ static int __init set_cpu_dvfs_data(
 	struct cpu_cvb_dvfs_table *table = NULL;
 	int speedo = tegra_cpu_speedo_value();
 
+	override_min_millivolts(d);
 	min_dfll_mv = d->dfll_tune_data.min_millivolts;
 	BUG_ON(min_dfll_mv < tegra11_dvfs_rail_vdd_cpu.min_millivolts);
 
@@ -563,11 +706,15 @@ static int __init set_cpu_dvfs_data(
 			speedo, d->speedo_scale, &table->cvb_pll_param);
 		mv = round_cvb_voltage(mv, d->voltage_scale);
 
-		/* Check maximum frequency at minimum voltage for dfll source */
+		/*
+		 * Check maximum frequency at minimum voltage for dfll source;
+		 * round down unless all table entries are above Vmin, then use
+		 * the 1st entry as is.
+		 */
 		dfll_mv = max(dfll_mv, min_dfll_mv);
 		if (dfll_mv > min_dfll_mv) {
 			if (!j)
-				break;	/* 1st entry already above Vmin */
+				fmax_at_vmin = table->freq;
 			if (!fmax_at_vmin)
 				fmax_at_vmin = cpu_dvfs->freqs[j - 1];
 		}
@@ -599,8 +746,7 @@ static int __init set_cpu_dvfs_data(
 		if (dfll_mv > d->max_mv)
 			break;
 	}
-	/* Table must not be empty and must have and at least one entry below,
-	   and one entry above Vmin */
+	/* Table must not be empty, must have at least one entry above Vmin */
 	if (!i || !j || !fmax_at_vmin) {
 		pr_err("tegra11_dvfs: invalid cpu dvfs table\n");
 		return -ENOENT;
@@ -626,6 +772,7 @@ static int __init set_cpu_dvfs_data(
 	cpu_dvfs->dfll_data.out_rate_min = fmax_at_vmin * d->freqs_mult;
 	cpu_dvfs->dfll_data.use_dfll_rate_min = fmin_use_dfll * d->freqs_mult;
 	cpu_dvfs->dfll_data.min_millivolts = min_dfll_mv;
+
 	return 0;
 }
 
@@ -634,22 +781,34 @@ static int __init get_core_nominal_mv_index(int speedo_id)
 	int i;
 	int mv = tegra_core_speedo_mv();
 	int core_edp_voltage = get_core_edp();
+	int core_edp_current = get_maximum_core_current_supported();
 
 	/*
-	 * Start with nominal level for the chips with this speedo_id. Then,
-	 * make sure core nominal voltage is below edp limit for the board
-	 * (if edp limit is set).
+	 * If core regulator current limit is below minimum required to reach
+	 * nominal frequencies, cap core voltage, and through dvfs table all
+	 * core domain frequencies at the respective limits.
+	 *
+	 * If core boot edp limit is not set, cap core voltage as well.
 	 *
 	 * Otherwise, leave nominal core voltage at chip bin level, and set
 	 * all detach mode (boot, suspend, disable) limits same as boot edp
 	 * (for now, still throttle nominal for other than T40T skus).
 	 */
+	if (core_edp_current < TEGRA11_MIN_CORE_CURRENT) {
+		core_edp_voltage = min(core_edp_voltage,
+				       TEGRA11_CORE_VOLTAGE_CAP);
+		pr_warn("tegra11_dvfs: vdd core current limit         %d mA\n"
+			"              below min current requirements %d mA\n"
+			"              !!!! CORE VOLTAGE IS CAPPED AT %d mV\n",
+			core_edp_current, TEGRA11_MIN_CORE_CURRENT,
+			TEGRA11_CORE_VOLTAGE_CAP);
+	}
 
 	if (!core_edp_voltage)
-		core_edp_voltage = TEGRA11_CORE_VOLTAGE_CAP;	/* default 1.1V EDP limit */
+		core_edp_voltage = TEGRA11_CORE_VOLTAGE_CAP;
 
 	if ((core_edp_voltage <= TEGRA11_CORE_VOLTAGE_CAP) ||
-	    (tegra_sku_id != 0x4))
+	    ((tegra_sku_id != 0x4) && (tegra_sku_id != 0x8)))
 		mv = min(mv, core_edp_voltage);
 
 	/* use boot edp limit as disable and suspend levels as well */
@@ -735,6 +894,16 @@ void __init tegra11x_init_dvfs(void)
 	}
 	BUG_ON((i == ARRAY_SIZE(cpu_cvb_dvfs_table)) || ret);
 
+	/* Init thermal limits */
+	init_rail_vmax_thermal_profile(
+		vdd_cpu_vmax_trips_table, vdd_cpu_therm_caps_table,
+		&tegra11_dvfs_rail_vdd_cpu, &cpu_dvfs.dfll_data);
+	init_rail_vmin_thermal_profile(cpu_cvb_dvfs_table[i].therm_trips_table,
+		cpu_cvb_dvfs_table[i].therm_floors_table,
+		&tegra11_dvfs_rail_vdd_cpu, &cpu_dvfs.dfll_data);
+	init_rail_vmin_thermal_profile(vdd_core_vmin_trips_table,
+		vdd_core_therm_floors_table, &tegra11_dvfs_rail_vdd_core, NULL);
+
 	/* Init rail structures and dependencies */
 	tegra_dvfs_init_rails(tegra11_dvfs_rails,
 		ARRAY_SIZE(tegra11_dvfs_rails));
@@ -796,29 +965,40 @@ static struct core_dvfs_cap_table tegra11_core_cap_table[] = {
  * Keep sys file names the same for dual and single cbus configurations to
  * avoid changes in user space GPU capping interface.
  */
-static struct core_bus_cap_table tegra11_bus_cap_table[] = {
+static struct core_bus_limit_table tegra11_bus_cap_table[] = {
 #ifdef CONFIG_TEGRA_DUAL_CBUS
-	{ .cap_name = "cap.profile.c2bus",
+	{ .limit_clk_name = "cap.profile.c2bus",
 	  .refcnt_attr = {.attr = {.name = "cbus_cap_state", .mode = 0644} },
 	  .level_attr  = {.attr = {.name = "cbus_cap_level", .mode = 0644} },
 	},
 #else
-	{ .cap_name = "cap.profile.cbus",
+	{ .limit_clk_name = "cap.profile.cbus",
 	  .refcnt_attr = {.attr = {.name = "cbus_cap_state", .mode = 0644} },
 	  .level_attr  = {.attr = {.name = "cbus_cap_level", .mode = 0644} },
 	},
 #endif
 };
 
-static struct core_bus_floor_table tegra11_bus_floor_table[] = {
-	{ .floor_name = "floor.profile.host1x",
+static struct core_bus_limit_table tegra11_bus_floor_table[] = {
+	{ .limit_clk_name = "floor.profile.host1x",
 	  .refcnt_attr = {.attr = {.name = "h1x_floor_state", .mode = 0644} },
 	  .level_attr  = {.attr = {.name = "h1x_floor_level", .mode = 0644} },
 	},
-	{ .floor_name = "floor.profile.emc",
+	{ .limit_clk_name = "floor.profile.emc",
 	  .refcnt_attr = {.attr = {.name = "emc_floor_state", .mode = 0644} },
 	  .level_attr  = {.attr = {.name = "emc_floor_level", .mode = 0644} },
 	},
+#ifdef CONFIG_TEGRA_DUAL_CBUS
+	{ .limit_clk_name = "floor.profile.c2bus",
+	  .refcnt_attr = {.attr = {.name = "cbus_floor_state", .mode = 0644} },
+	  .level_attr  = {.attr = {.name = "cbus_floor_level", .mode = 0644} },
+	},
+#else
+	{ .limit_clk_name = "floor.profile.cbus",
+	  .refcnt_attr = {.attr = {.name = "cbus_floor_state", .mode = 0644} },
+	  .level_attr  = {.attr = {.name = "cbus_floor_level", .mode = 0644} },
+	},
+#endif
 };
 
 static int __init tegra11_dvfs_init_core_limits(void)

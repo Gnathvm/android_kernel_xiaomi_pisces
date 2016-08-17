@@ -31,7 +31,6 @@
 #include <linux/gpio.h>
 #include <linux/input.h>
 #include <linux/platform_data/tegra_usb.h>
-#include <linux/platform_data/tegra_xusb.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/rm31080a_ts.h>
 #include <linux/tegra_uart.h>
@@ -55,7 +54,7 @@
 #include <mach/iomap.h>
 #include <mach/irqs.h>
 #include <mach/pinmux.h>
-#include <mach/pinmux-tegra30.h>
+#include <mach/pinmux-t11.h>
 #include <mach/iomap.h>
 #include <mach/io.h>
 #include <mach/io_dpd.h>
@@ -66,8 +65,9 @@
 #include <mach/usb_phy.h>
 #include <mach/gpio-tegra.h>
 #include <mach/tegra_fiq_debugger.h>
-#include <mach/tegra_usb_modem_power.h>
+#include <linux/platform_data/tegra_usb_modem_power.h>
 #include <mach/hardware.h>
+#include <mach/xusb.h>
 
 #include "board-touch-raydium.h"
 #include "board.h"
@@ -238,7 +238,7 @@ static struct tegra_i2c_platform_data dalmore_i2c2_platform_data = {
 static struct tegra_i2c_platform_data dalmore_i2c3_platform_data = {
 	.adapter_nr	= 2,
 	.bus_count	= 1,
-	.bus_clk_rate	= { 100000, 0 },
+	.bus_clk_rate	= { 400000, 0 },
 	.scl_gpio		= {TEGRA_GPIO_I2C3_SCL, 0},
 	.sda_gpio		= {TEGRA_GPIO_I2C3_SDA, 0},
 	.arb_recovery = arb_lost_recovery,
@@ -438,6 +438,9 @@ static struct platform_device *dalmore_devices[] __initdata = {
 	&tegra_pcm_device,
 	&dalmore_audio_device,
 	&tegra_hda_device,
+#if defined(CONFIG_TEGRA_CEC_SUPPORT)
+	&tegra_cec_device,
+#endif
 #if defined(CONFIG_CRYPTO_DEV_TEGRA_AES)
 	&tegra_aes_device,
 #endif
@@ -462,8 +465,8 @@ static struct tegra_usb_platform_data tegra_udc_pdata = {
 		.idle_wait_delay = 17,
 		.term_range_adj = 6,
 		.xcvr_setup = 8,
-		.xcvr_lsfslew = 2,
-		.xcvr_lsrslew = 2,
+		.xcvr_lsfslew = 0,
+		.xcvr_lsrslew = 3,
 		.xcvr_setup_offset = 0,
 		.xcvr_use_fuses = 1,
 	},
@@ -487,8 +490,8 @@ static struct tegra_usb_platform_data tegra_ehci1_utmi_pdata = {
 		.idle_wait_delay = 17,
 		.term_range_adj = 6,
 		.xcvr_setup = 15,
-		.xcvr_lsfslew = 2,
-		.xcvr_lsrslew = 2,
+		.xcvr_lsfslew = 0,
+		.xcvr_lsrslew = 3,
 		.xcvr_setup_offset = 0,
 		.xcvr_use_fuses = 1,
 		.vbus_oc_map = 0x4,
@@ -513,8 +516,8 @@ static struct tegra_usb_platform_data tegra_ehci3_utmi_pdata = {
 		.idle_wait_delay = 17,
 		.term_range_adj = 6,
 		.xcvr_setup = 8,
-		.xcvr_lsfslew = 2,
-		.xcvr_lsrslew = 2,
+		.xcvr_lsfslew = 0,
+		.xcvr_lsrslew = 3,
 		.xcvr_setup_offset = 0,
 		.xcvr_use_fuses = 1,
 		.vbus_oc_map = 0x5,
@@ -546,26 +549,24 @@ static void dalmore_usb_init(void)
 	}
 }
 
-static struct tegra_xusb_pad_data xusb_padctl_data = {
-	.pad_mux = 0x4,
-	.port_cap = 0x10,
-	.snps_oc_map = 0x1fc,
-	.usb2_oc_map = 0x2f,
-	.ss_port_map = 0x2,
-	.oc_det = 0xb000,
-	.rx_wander = 0xf0,
-	.rx_eq = 0x307000,
-	.cdr_cntl = 0x26000000,
-	.dfe_cntl = 0x002008EE,
-	.otg_pad0_ctl0 = 0xffffffff,
-	.hs_slew = 0xc0,
-	.otg_pad0_ctl1 = 0x0,
-	.otg_pad1_ctl0 = 0xffc7ffff,
-	.otg_pad1_ctl1 = 0x7,
-	.bias_pad_ctl0 = 0,
-	.hsic_pad0_ctl0 = 0xffff00ff,
-	.hsic_pad0_ctl1 = 0xffff00ff,
-	.pmc_value = 0xfff0ffff,
+/* Dalmore use SPDIF_IN for VBUS_EN1 OC detection and controlling */
+static void dalmore_set_vbus_en1_tristate(bool on)
+{
+	pr_debug("%s: set usb_vbus_en1 tristate %s\n", __func__,
+				(on) ? "on" : "off");
+	if (on)
+		tegra_pinmux_set_tristate(TEGRA_PINGROUP_SPDIF_IN,
+				TEGRA_TRI_TRISTATE);
+	else
+		tegra_pinmux_set_tristate(TEGRA_PINGROUP_SPDIF_IN,
+			TEGRA_TRI_NORMAL);
+}
+
+static struct tegra_xusb_board_data xusb_bdata = {
+	.portmap = TEGRA_XUSB_SS_P0 | TEGRA_XUSB_USB2_P1,
+	/* ss_portmap[0:3] = SS0 map, ss_portmap[4:7] = SS1 map */
+	.ss_portmap = (TEGRA_XUSB_SS_PORT_MAP_USB2_P1 << 0),
+	.set_vbus_en1_tristate = &dalmore_set_vbus_en1_tristate,
 };
 
 static void dalmore_xusb_init(void)
@@ -573,23 +574,8 @@ static void dalmore_xusb_init(void)
 	int usb_port_owner_info = tegra_get_usb_port_owner_info();
 
 	if (usb_port_owner_info & UTMI2_PORT_OWNER_XUSB) {
-		u32 usb_calib0 = tegra_fuse_readl(FUSE_SKU_USB_CALIB_0);
-
-		/*
-		 * read from usb_calib0 and pass to driver
-		 * set HS_CURR_LEVEL = usb_calib0[5:0]
-		 * set TERM_RANGE_ADJ = usb_calib0[10:7]
-		 * set HS_IREF_CAP = usb_calib0[14:13]
-		 * set HS_SQUELCH_LEVEL = usb_calib0[12:11]
-		 */
-
-		xusb_padctl_data.hs_curr_level = (usb_calib0 >> 0) & 0x3f;
-		xusb_padctl_data.hs_iref_cap = (usb_calib0 >> 13) & 0x3;
-		xusb_padctl_data.hs_term_range_adj = (usb_calib0 >> 7) & 0xf;
-		xusb_padctl_data.hs_squelch_level = (usb_calib0 >> 11) & 0x3;
-
-		tegra_xhci_device.dev.platform_data = &xusb_padctl_data;
-		platform_device_register(&tegra_xhci_device);
+		tegra_xusb_init(&xusb_bdata);
+		tegra_xusb_register();
 	}
 }
 
@@ -741,7 +727,7 @@ static __initdata struct tegra_clk_init_table touch_clk_init_table[] = {
 };
 
 struct rm_spi_ts_platform_data rm31080ts_dalmore_data = {
-	.gpio_reset = 0,
+	.gpio_reset = TOUCH_GPIO_RST_RAYDIUM_SPI,
 	.config = 0,
 	.platform_id = RM_PLATFORM_D010,
 	.name_of_clock = "clk_out_2",
@@ -791,7 +777,7 @@ static void __init tegra_dalmore_init(void)
 
 	tegra_get_display_board_info(&board_info);
 	tegra_clk_init_from_table(dalmore_clk_init_table);
-	tegra_clk_vefify_parents();
+	tegra_clk_verify_parents();
 	tegra_soc_device_init("dalmore");
 	tegra_enable_pinmux();
 	dalmore_pinmux_init();
@@ -830,6 +816,7 @@ static void __init tegra_dalmore_init(void)
 	tegra_serial_debug_init(TEGRA_UARTD_BASE, INT_WDT_CPU, NULL, -1, -1);
 	dalmore_sensors_init();
 	dalmore_soctherm_init();
+	tegra_register_fuse();
 }
 
 static void __init dalmore_ramconsole_reserve(unsigned long size)
@@ -839,21 +826,21 @@ static void __init dalmore_ramconsole_reserve(unsigned long size)
 
 static void __init tegra_dalmore_dt_init(void)
 {
-	tegra_dalmore_init();
-
 #ifdef CONFIG_USE_OF
 	of_platform_populate(NULL,
 		of_default_bus_match_table, NULL, NULL);
 #endif
+
+	tegra_dalmore_init();
 }
 
 static void __init tegra_dalmore_reserve(void)
 {
 #if defined(CONFIG_NVMAP_CONVERT_CARVEOUT_TO_IOVMM)
 	/* 1920*1200*4*2 = 18432000 bytes */
-	tegra_reserve(0, SZ_16M + SZ_2M, SZ_16M);
+	tegra_reserve(0, SZ_16M + SZ_2M, SZ_16M + SZ_2M);
 #else
-	tegra_reserve(SZ_128M, SZ_16M + SZ_2M, SZ_4M);
+	tegra_reserve(SZ_128M, SZ_16M + SZ_2M, SZ_16M + SZ_2M);
 #endif
 	dalmore_ramconsole_reserve(SZ_1M);
 }

@@ -406,6 +406,16 @@ int nvmap_page_pool_init(struct nvmap_page_pool *pool, int flags)
 	if (flags == NVMAP_HANDLE_CACHEABLE)
 		return 0;
 
+#if !defined(CONFIG_OUTER_CACHE)
+	/* If outer cache is not enabled or don't exist, cacheable and
+	 * inner cacheable memory are same. For cacheable memory, there
+	 * is no need of page pool as there is no need to flush cache and
+	 * change page attributes.
+	 */
+	if (flags == NVMAP_HANDLE_INNER_CACHEABLE)
+		return 0;
+#endif
+
 	si_meminfo(&info);
 	if (!pool_size[flags] && !CONFIG_NVMAP_PAGE_POOL_SIZE)
 		/* Use 3/8th of total ram for page pools.
@@ -633,7 +643,7 @@ static int handle_page_alloc(struct nvmap_client *client,
 					set_pte_at(&init_mm, kaddr, *pte,
 						   pfn_pte(__phys_to_pfn(paddr),
 							   prot));
-					flush_tlb_kernel_page(kaddr);
+					nvmap_flush_tlb_kernel_page(kaddr);
 					memset((char *)kaddr, 0, PAGE_SIZE);
 				}
 			}

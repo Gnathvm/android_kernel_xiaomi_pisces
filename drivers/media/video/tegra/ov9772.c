@@ -1,7 +1,7 @@
 /*
  * ov9772.c - ov9772 sensor driver
  *
- *  * Copyright (c) 2012 NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2012-2013, NVIDIA Corporation.  All rights reserved.
  *
  * Contributors:
  *	Phil Breczinski <pbreczinski@nvidia.com>
@@ -141,6 +141,7 @@
 #include <linux/module.h>
 
 #include <media/ov9772.h>
+#include <media/nvc.h>
 
 #define OV9772_ID			0x9772
 #define OV9772_SENSOR_TYPE		NVC_IMAGER_TYPE_RAW
@@ -159,6 +160,7 @@
 #define OV9772_LENS_VIEW_ANGLE_H	60000 /* / _INT2FLOAT_DIVISOR */
 #define OV9772_LENS_VIEW_ANGLE_V	60000 /* / _INT2FLOAT_DIVISOR */
 #define OV9772_I2C_TABLE_MAX_ENTRIES	400
+#define OV9772_FUSE_ID_SIZE		5
 
 /* comment out definition to disable mode */
 #define OV9772_ENABLE_1284x724
@@ -198,6 +200,7 @@ struct ov9772_info {
 	struct nvc_imager_static_nvc sdata;
 	u8 i2c_buf[OV9772_SIZEOF_I2C_BUF];
 	u8 bin_en;
+	struct nvc_fuseid fuse_id;
 };
 
 struct ov9772_reg {
@@ -919,7 +922,7 @@ static int ov9772_gpio_rd(struct ov9772_info *info,
 {
 	int val = -EINVAL;
 
-	if (info->gpio[type].gpio) {
+	if (info->gpio[type].gpio && info->gpio[type].own) {
 		val = gpio_get_value_cansleep(info->gpio[type].gpio);
 		dev_dbg(&info->i2c_client->dev, "%s %u %d\n",
 			__func__, info->gpio[type].gpio, val);
@@ -936,7 +939,7 @@ static int ov9772_gpio_wr(struct ov9772_info *info,
 {
 	int err = -EINVAL;
 
-	if (info->gpio[type].gpio) {
+	if (info->gpio[type].gpio && info->gpio[type].own) {
 		if (!info->gpio[type].active_high)
 			val = !val;
 		val &= 1;
@@ -1822,6 +1825,27 @@ static int ov9772_param_wr(struct ov9772_info *info, unsigned long arg)
 	}
 }
 
+static int ov9772_get_fuse_id(struct ov9772_info *info)
+{
+	int err, i;
+
+	if (info->fuse_id.size)
+		return 0;
+
+	err = ov9772_i2c_wr8(info, 0x3d81, 0x01);
+
+	for (i = 0; i < OV9772_FUSE_ID_SIZE; i++) {
+		err |= ov9772_i2c_rd8(info,
+				0x3d00 + i,
+				&info->fuse_id.data[i]);
+	}
+
+	if (!err)
+		info->fuse_id.size = OV9772_FUSE_ID_SIZE;
+
+	return err;
+}
+
 static long ov9772_ioctl(struct file *file,
 			 unsigned int cmd,
 			 unsigned long arg)
@@ -1838,6 +1862,22 @@ static long ov9772_ioctl(struct file *file,
 	int err;
 
 	switch (cmd) {
+	case NVC_IOCTL_FUSE_ID:
+		err = ov9772_get_fuse_id(info);
+		if (err) {
+			pr_err("%s %d %d\n", __func__, __LINE__, err);
+			return err;
+		}
+		if (copy_to_user((void __user *)arg,
+				&info->fuse_id,
+				sizeof(struct nvc_fuseid))) {
+			pr_err("%s: %d: fail copy fuse id to user space\n",
+				__func__, __LINE__);
+			return -EFAULT;
+		}
+
+		return 0;
+
 	case NVC_IOCTL_PARAM_WR:
 		err = ov9772_param_wr(info, arg);
 		return err;

@@ -7,7 +7,7 @@
  *	Colin Cross <ccross@google.com>
  *	Based on arch/arm/plat-omap/cpu-omap.c, (C) 2005 Nokia Corporation
  *
- * Copyright (C) 2010-2014 NVIDIA CORPORATION. All rights reserved.
+ * Copyright (C) 2010-2013 NVIDIA CORPORATION. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -47,7 +47,6 @@
 static struct cpufreq_frequency_table *freq_table;
 
 static struct clk *cpu_clk;
-static struct clk *emc_clk;
 
 static unsigned long policy_max_speed[CONFIG_NR_CPUS];
 static unsigned long target_cpu_speed[CONFIG_NR_CPUS];
@@ -532,12 +531,6 @@ int tegra_update_cpu_speed(unsigned long rate)
 			       " frequency %u kHz\n", freqs.new);
 			return ret;
 		}
-		ret = clk_set_rate(emc_clk, tegra_emc_to_cpu_ratio(freqs.new));
-		if (ret) {
-			pr_err("cpu-tegra: Failed to scale emc for cpu"
-			       " frequency %u kHz\n", freqs.new);
-			return ret;
-		}
 	}
 
 	for_each_online_cpu(freqs.cpu)
@@ -558,10 +551,8 @@ int tegra_update_cpu_speed(unsigned long rate)
 	for_each_online_cpu(freqs.cpu)
 		cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 
-	if (freqs.old > freqs.new) {
-		clk_set_rate(emc_clk, tegra_emc_to_cpu_ratio(freqs.new));
+	if (freqs.old > freqs.new)
 		tegra_update_mselect_rate(freqs.new);
-	}
 
 	return 0;
 }
@@ -751,13 +742,6 @@ static int tegra_cpu_init(struct cpufreq_policy *policy)
 	if (IS_ERR(cpu_clk))
 		return PTR_ERR(cpu_clk);
 
-	emc_clk = clk_get_sys("cpu", "emc");
-	if (IS_ERR(emc_clk)) {
-		clk_put(cpu_clk);
-		return PTR_ERR(emc_clk);
-	}
-
-	clk_prepare_enable(emc_clk);
 	clk_prepare_enable(cpu_clk);
 
 	cpufreq_frequency_table_cpuinfo(policy, freq_table);
@@ -787,8 +771,6 @@ static int tegra_cpu_init(struct cpufreq_policy *policy)
 static int tegra_cpu_exit(struct cpufreq_policy *policy)
 {
 	cpufreq_frequency_table_cpuinfo(policy, freq_table);
-	clk_disable_unprepare(emc_clk);
-	clk_put(emc_clk);
 	clk_put(cpu_clk);
 	return 0;
 }
@@ -810,7 +792,7 @@ static int tegra_cpufreq_policy_notifier(
 
 #ifdef CONFIG_TEGRA_THERMAL_THROTTLE
 		if (once &&
-		    sysfs_merge_group(&policy->kobj, &stats_attr_grp) == 0)
+		    sysfs_merge_group(policy->kobj, &stats_attr_grp) == 0)
 			once = 0;
 #endif
 	}
@@ -876,26 +858,6 @@ static int __init tegra_cpufreq_init(void)
 
 	return cpufreq_register_driver(&tegra_cpufreq_driver);
 }
-
-#if CONFIG_TEGRA_CPU_FREQ_GOVERNOR_EARLY_INIT
-static int __init tegra_cpufreq_governor_init(void)
-{
-	/*
-	 * At this point, the full range of clocks should be available
-	 * Set the CPU governor to performance for a faster boot up
-	 */
-	unsigned int i;
-	static char *start_scaling_governor = "performance";
-	for_each_online_cpu(i) {
-		if (cpufreq_set_gov(start_scaling_governor, i))
-			pr_info("Failed to set the governor to %s " \
-				"for cpu %u\n", start_scaling_governor, i);
-	}
-	return 0;
-}
-
-late_initcall_sync(tegra_cpufreq_governor_init);
-#endif
 
 static void __exit tegra_cpufreq_exit(void)
 {

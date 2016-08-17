@@ -2,7 +2,7 @@
  * arch/arm/mach-tegra/common.c
  *
  * Copyright (C) 2010 Google, Inc.
- * Copyright (C) 2010-2012 NVIDIA Corporation
+ * Copyright (C) 2010-2013 NVIDIA Corporation. All rights reserved.
  *
  * Author:
  *	Colin Cross <ccross@android.com>
@@ -34,7 +34,8 @@
 #include <linux/persistent_ram.h>
 #include <linux/dma-mapping.h>
 #include <linux/sys_soc.h>
-
+#include <linux/export.h>
+#include <linux/bootmem.h>
 #include <trace/events/nvsecurity.h>
 
 #include <asm/soc.h>
@@ -48,6 +49,7 @@
 #include <mach/powergate.h>
 #include <mach/tegra_smmu.h>
 #include <mach/gpio-tegra.h>
+#include <mach/nct.h>
 
 #include "apbio.h"
 #include "board.h"
@@ -59,13 +61,13 @@
 #include "devices.h"
 #include "pmc.h"
 #include "common.h"
+#include "atomics.h"
 
 #define MC_SECURITY_CFG2	0x7c
 
 #define AHB_ARBITRATION_PRIORITY_CTRL		0x4
 #define   AHB_PRIORITY_WEIGHT(x)	(((x) & 0x7) << 29)
 #define   PRIORITY_SELECT_USB	BIT(6)
-#define PRIORITY_SELECT_SDMMC4	BIT(12)
 #define   PRIORITY_SELECT_USB2	BIT(18)
 #define   PRIORITY_SELECT_USB3	BIT(17)
 #define   PRIORITY_SELECT_SE BIT(14)
@@ -73,19 +75,19 @@
 #define AHB_GIZMO_AHB_MEM		0xc
 #define   ENB_FAST_REARBITRATE	BIT(2)
 #define   DONT_SPLIT_AHB_WR     BIT(7)
+#define   WR_WAIT_COMMIT_ON_1K	BIT(8)
 
 #define   RECOVERY_MODE	BIT(31)
 #define   BOOTLOADER_MODE	BIT(30)
 #define   FORCED_RECOVERY_MODE	BIT(1)
 
 #define AHB_GIZMO_USB		0x1c
-#define AHB_GIZMO_SDMMC4	0x44
 #define AHB_GIZMO_USB2		0x78
 #define AHB_GIZMO_USB3		0x7c
 #define AHB_GIZMO_SE		0x4c
 #define   IMMEDIATE	BIT(18)
 
-#define AHB_MEM_PREFETCH_CFG5	0xc4
+#define AHB_MEM_PREFETCH_CFG5	0xc8
 #define AHB_MEM_PREFETCH_CFG3	0xe0
 #define AHB_MEM_PREFETCH_CFG4	0xe4
 #define AHB_MEM_PREFETCH_CFG1	0xec
@@ -129,18 +131,26 @@ static   bool is_tegra_debug_uart_hsport;
 static struct board_info pmu_board_info;
 static struct board_info display_board_info;
 static int panel_id;
-static int touch_panel_id;
 static struct board_info camera_board_info;
 static struct board_info io_board_info;
 static struct board_info button_board_info;
 static struct board_info joystick_board_info;
 static struct board_info rightspeaker_board_info;
 static struct board_info leftspeaker_board_info;
+#ifdef CONFIG_TEGRA_USE_NCT
+unsigned long tegra_nck_start;
+unsigned long tegra_nck_size;
+#endif
 
 static int pmu_core_edp;
 static int board_panel_type;
 static enum power_supply_type pow_supply_type = POWER_SUPPLY_TYPE_MAINS;
 static int pwr_i2c_clk = 400;
+static u8 power_config;
+
+atomic_t __maybe_unused sd_brightness = ATOMIC_INIT(255);
+EXPORT_SYMBOL(sd_brightness);
+
 /*
  * Storage for debug-macro.S's state.
  *
@@ -157,19 +167,6 @@ u32 tegra_uart_config[3] = {
 	/* Debug UART virtual address */
 	(u32)(IO_APB_VIRT + TEGRA_DEBUG_UART_OFFSET),
 };
-
-#ifdef CONFIG_OF
-static const struct of_device_id tegra_dt_irq_match[] __initconst = {
-	{ .compatible = "arm,cortex-a9-gic", .data = gic_of_init },
-	{ }
-};
-
-void __init tegra_dt_init_irq(void)
-{
-	tegra_init_irq();
-	of_irq_init(tegra_dt_irq_match);
-}
-#endif
 
 #define NEVER_RESET 0
 
@@ -215,6 +212,7 @@ static int max_core_current;
 static int emc_max_dvfs;
 static unsigned int memory_type;
 static int usb_port_owner_info;
+static int pmic_rst_reason;
 
 /* WARNING: There is implicit client of pllp_out3 like i2c, uart, dsi
  * and so this clock (pllp_out3) should never be disabled.
@@ -319,9 +317,16 @@ static __initdata struct tegra_clk_init_table tegra30_clk_init_table[] = {
 	{ "sbc4.sclk",	NULL,		40000000,	false},
 	{ "sbc5.sclk",	NULL,		40000000,	false},
 	{ "sbc6.sclk",	NULL,		40000000,	false},
+#ifdef CONFIG_TEGRA_PCI
+	{ "mselect",	"pll_p",	204000000,	true },
+#else
+	{ "mselect",	"pll_p",	102000000,	true },
+#endif
+	{ NULL,		NULL,		0,		0},
+};
+static __initdata struct tegra_clk_init_table tegra30_cbus_init_table[] = {
 	{ "cbus",	"pll_c",	416000000,	false },
 	{ "pll_c_out1",	"pll_c",	208000000,	false },
-	{ "mselect",	"pll_p",	102000000,	true },
 	{ NULL,		NULL,		0,		0},
 };
 #endif
@@ -348,6 +353,8 @@ static __initdata struct tegra_clk_init_table tegra11x_clk_init_table[] = {
 	{ "host1x",	"pll_p",	102000000,	false },
 	{ "cl_dvfs_ref", "pll_p",       51000000,       true },
 	{ "cl_dvfs_soc", "pll_p",       51000000,       true },
+	{ "dsialp", "pll_p",	70000000,	false },
+	{ "dsiblp", "pll_p",	70000000,	false },
 #else
 	{ "pll_m_out1",	"pll_m",	275000000,	true },
 	{ "pll_p_out2",	"pll_p",	108000000,	false },
@@ -366,11 +373,11 @@ static __initdata struct tegra_clk_init_table tegra11x_clk_init_table[] = {
 	{ "csite",      NULL,           0,              true },
 #endif
 	{ "pll_u",	NULL,		480000000,	true },
-	{ "pll_re_vco",	NULL,		672000000,	false },
-	{ "xusb_falcon_src",	"pll_re_vco",	224000000,	false},
-	{ "xusb_host_src",	"pll_re_vco",	112000000,	false},
-	{ "xusb_ss_src",	"pll_u_480M",	120000000,	false},
-	{ "xusb_hs_src",	"pll_u_60M",	60000000,	false},
+	{ "pll_re_vco",	NULL,		612000000,	true },
+	{ "xusb_falcon_src",	"pll_p",	204000000,	false},
+	{ "xusb_host_src",	"pll_p",	102000000,	false},
+	{ "xusb_ss_src",	"pll_re_vco",	122400000,	false},
+	{ "xusb_hs_src",	"xusb_ss_div2",	61200000,	false},
 	{ "xusb_fs_src",	"pll_u_48M",	48000000,	false},
 	{ "sdmmc1",	"pll_p",	48000000,	false},
 	{ "sdmmc3",	"pll_p",	48000000,	false},
@@ -381,6 +388,19 @@ static __initdata struct tegra_clk_init_table tegra11x_clk_init_table[] = {
 	{ "sbc4.sclk",	NULL,		40000000,	false},
 	{ "sbc5.sclk",	NULL,		40000000,	false},
 	{ "sbc6.sclk",	NULL,		40000000,	false},
+#ifdef CONFIG_TEGRA_PLLM_SCALED
+	{ "vi",		"pll_p",	0,		false},
+#endif
+#ifdef CONFIG_TEGRA_SOCTHERM
+	{ "soc_therm",	"pll_p",	51000000,	false },
+	{ "tsensor",	"clk_m",	500000,		false },
+#endif
+#ifdef CONFIG_TEGRA_ATOMICS
+	{ "atomics",	NULL,		0,		true},
+#endif
+	{ NULL,		NULL,		0,		0},
+};
+static __initdata struct tegra_clk_init_table tegra11x_cbus_init_table[] = {
 #ifdef CONFIG_TEGRA_DUAL_CBUS
 	{ "c2bus",	"pll_c2",	250000000,	false },
 	{ "c3bus",	"pll_c3",	250000000,	false },
@@ -389,13 +409,6 @@ static __initdata struct tegra_clk_init_table tegra11x_clk_init_table[] = {
 	{ "cbus",	"pll_c",	250000000,	false },
 #endif
 	{ "pll_c_out1",	"pll_c",	150000000,	false },
-#ifdef CONFIG_TEGRA_PLLM_SCALED
-	{ "vi",		"pll_p",	0,		false},
-#endif
-#ifdef CONFIG_TEGRA_SOCTHERM
-	{ "soc_therm",	"pll_p",	136000000,	false },
-	{ "tsensor",	"clk_m",	500000,		false },
-#endif
 	{ NULL,		NULL,		0,		0},
 };
 #endif
@@ -574,7 +587,7 @@ static void __init tegra_perf_init(void)
 #ifdef CONFIG_ARCH_TEGRA_11x_SOC
 static void __init tegra_ramrepair_init(void)
 {
-	if (tegra_spare_fuse(10) & tegra_spare_fuse(11) & 1) {
+	if (tegra_spare_fuse(10)  | tegra_spare_fuse(11)) {
 		u32 reg;
 		reg = readl(FLOW_CTRL_RAM_REPAIR);
 		reg &= ~FLOW_CTRL_RAM_REPAIR_BYPASS_EN;
@@ -615,6 +628,9 @@ static void __init tegra_init_ahb_gizmo_settings(void)
 
 	val = gizmo_readl(AHB_GIZMO_AHB_MEM);
 	val |= ENB_FAST_REARBITRATE | IMMEDIATE | DONT_SPLIT_AHB_WR;
+
+	if (tegra_get_chipid() == TEGRA_CHIPID_TEGRA11)
+		val |= WR_WAIT_COMMIT_ON_1K;
 	gizmo_writel(val, AHB_GIZMO_AHB_MEM);
 
 	val = gizmo_readl(AHB_GIZMO_USB);
@@ -630,10 +646,6 @@ static void __init tegra_init_ahb_gizmo_settings(void)
 	gizmo_writel(val, AHB_GIZMO_USB3);
 
 #if !defined(CONFIG_ARCH_TEGRA_2x_SOC) && !defined(CONFIG_ARCH_TEGRA_3x_SOC)
-	val = gizmo_readl(AHB_GIZMO_SDMMC4);
-	val |= IMMEDIATE;
-	gizmo_writel(val, AHB_GIZMO_SDMMC4);
-
 	val = gizmo_readl(AHB_GIZMO_SE);
 	val |= IMMEDIATE;
 	gizmo_writel(val, AHB_GIZMO_SE);
@@ -643,7 +655,7 @@ static void __init tegra_init_ahb_gizmo_settings(void)
 	val |= PRIORITY_SELECT_USB | PRIORITY_SELECT_USB2 | PRIORITY_SELECT_USB3
 				| AHB_PRIORITY_WEIGHT(7);
 #if !defined(CONFIG_ARCH_TEGRA_2x_SOC) && !defined(CONFIG_ARCH_TEGRA_3x_SOC)
-	val |= PRIORITY_SELECT_SE | PRIORITY_SELECT_SDMMC4;
+	val |= PRIORITY_SELECT_SE;
 #endif
 	gizmo_writel(val, AHB_ARBITRATION_PRIORITY_CTRL);
 
@@ -674,8 +686,7 @@ static void __init tegra_init_ahb_gizmo_settings(void)
 #if !defined(CONFIG_ARCH_TEGRA_2x_SOC) && !defined(CONFIG_ARCH_TEGRA_3x_SOC)
 	val = gizmo_readl(AHB_MEM_PREFETCH_CFG5);
 	val &= ~MST_ID(~0);
-	val |= PREFETCH_ENB | SDMMC4_MST_ID | ADDR_BNDRY(0xc) |
-		INACTIVITY_TIMEOUT(0x1000);
+	val |= PREFETCH_ENB | SDMMC4_MST_ID;
 	gizmo_writel(val, AHB_MEM_PREFETCH_CFG5);
 
 	val = gizmo_readl(AHB_MEM_PREFETCH_CFG6);
@@ -726,6 +737,7 @@ void __init tegra30_init_early(void)
 	tegra3_init_dvfs();
 	tegra_common_init_clock();
 	tegra_clk_init_from_table(tegra30_clk_init_table);
+	tegra_clk_init_cbus_plls_from_table(tegra30_cbus_init_table);
 	tegra_init_cache(true);
 	tegra_pmc_init();
 	tegra_powergate_init();
@@ -754,6 +766,7 @@ void __init tegra11x_init_early(void)
 	tegra11x_init_dvfs();
 	tegra_common_init_clock();
 	tegra_clk_init_from_table(tegra11x_clk_init_table);
+	tegra_clk_init_cbus_plls_from_table(tegra11x_cbus_init_table);
 	tegra11x_clk_init_la();
 	tegra_pmc_init();
 	tegra_powergate_init();
@@ -761,6 +774,9 @@ void __init tegra11x_init_early(void)
 	tegra_init_ahb_gizmo_settings();
 	tegra_init_debug_uart_rate();
 	tegra_gpio_resume_init();
+#ifdef CONFIG_TEGRA_ATOMICS
+	tegra_atomics_init();
+#endif
 
 	init_dma_coherent_pool_size(SZ_1M);
 }
@@ -863,6 +879,24 @@ static int __init tegra_tsec_arg(char *options)
 }
 early_param("tsec", tegra_tsec_arg);
 
+#ifdef CONFIG_TEGRA_USE_NCT
+static int __init tegra_nck_arg(char *options)
+{
+	char *p = options;
+
+	tegra_nck_size = memparse(p, &p);
+	if (*p == '@')
+		tegra_nck_start = memparse(p+1, &p);
+	if (!tegra_nck_size || !tegra_nck_start) {
+		tegra_nck_size = 0;
+		tegra_nck_start = 0;
+	}
+
+	return 0;
+}
+early_param("nck", tegra_nck_arg);
+#endif	/* CONFIG_TEGRA_USE_NCT */
+
 enum panel_type get_panel_type(void)
 {
 	return board_panel_type;
@@ -891,17 +925,17 @@ static int __init tegra_board_panel_id(char *options)
 }
 __setup("display_panel=", tegra_board_panel_id);
 
-int tegra_get_touch_panel_id(void)
+u8 get_power_config(void)
 {
-	return touch_panel_id;
+	return power_config;
 }
-static int __init tegra_touch_panel_id(char *options)
+static int __init tegra_board_power_config(char *options)
 {
 	char *p = options;
-	touch_panel_id = memparse(p, &p);
-	return touch_panel_id;
+	power_config = memparse(p, &p);
+	return 1;
 }
-__setup("tp_id=", tegra_touch_panel_id);
+__setup("power-config=", tegra_board_power_config);
 
 enum power_supply_type get_power_supply_type(void)
 {
@@ -955,9 +989,9 @@ static int __init tegra_max_core_current(char *options)
 {
 	char *p = options;
 	max_core_current = memparse(p, &p);
-	return 1;
+	return 0;
 }
-__setup("core_edp_ma=", tegra_max_core_current);
+early_param("core_edp_ma", tegra_max_core_current);
 
 int get_emc_max_dvfs(void)
 {
@@ -1308,6 +1342,38 @@ int tegra_get_commchip_id(void)
 
 __setup("commchip_id=", tegra_commchip_id);
 
+int tegra_get_pmic_rst_reason(void)
+{
+	return pmic_rst_reason;
+}
+
+static int __init tegra_pmic_rst_reason(char *id)
+{
+	char *p = id;
+	pmic_rst_reason = memparse(p, &p);
+	return 1;
+}
+
+__setup("pmic_rst_reason=", tegra_pmic_rst_reason);
+
+#ifdef CONFIG_ANDROID
+static bool androidboot_mode_charger;
+
+bool get_androidboot_mode_charger(void)
+{
+	return androidboot_mode_charger;
+}
+static int __init tegra_androidboot_mode(char *options)
+{
+	if (!strcmp(options, "charger"))
+		androidboot_mode_charger = true;
+	else
+		androidboot_mode_charger = false;
+	return 1;
+}
+__setup("androidboot.mode=", tegra_androidboot_mode);
+#endif
+
 /*
  * Tegra has a protected aperture that prevents access by most non-CPU
  * memory masters to addresses above the aperture value.  Enabling it
@@ -1489,6 +1555,18 @@ void __init tegra_reserve(unsigned long carveout_size, unsigned long fb_size,
 	}
 #endif
 
+#ifdef CONFIG_TEGRA_USE_NCT
+	if (tegra_nck_size &&
+	   (tegra_nck_start < memblock_end_of_DRAM())) {
+		if (memblock_reserve(tegra_nck_start, tegra_nck_size)) {
+			pr_err("Failed to reserve nck %08lx@%08lx\n",
+				tegra_nck_size, tegra_nck_start);
+			tegra_nck_start = 0;
+			tegra_nck_size = 0;
+		}
+	}
+#endif
+
 	/*
 	 * We copy the bootloader's framebuffer to the framebuffer allocated
 	 * above, and then free this one.
@@ -1571,6 +1649,14 @@ void __init tegra_reserve(unsigned long carveout_size, unsigned long fb_size,
 			nvdumper_reserved + NVDUMPER_RESERVED_SIZE - 1);
 	}
 #endif
+#ifdef CONFIG_TEGRA_USE_NCT
+	if (tegra_nck_size) {
+		pr_info("Nck:                    %08lx - %08lx\n",
+			tegra_nck_start,
+			tegra_nck_size ?
+				tegra_nck_start + tegra_nck_size - 1 : 0);
+	}
+#endif
 }
 
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
@@ -1627,17 +1713,30 @@ void __init tegra_ram_console_debug_init(void)
 }
 #endif
 
+int __init tegra_register_fuse(void)
+{
+	return platform_device_register(&tegra_fuse_device);
+}
+
 void __init tegra_release_bootloader_fb(void)
 {
 	/* Since bootloader fb is reserved in common.c, it is freed here. */
-	if (tegra_bootloader_fb_size)
+	if (tegra_bootloader_fb_size) {
 		if (memblock_free(tegra_bootloader_fb_start,
 						tegra_bootloader_fb_size))
 			pr_err("Failed to free bootloader fb.\n");
-	if (tegra_bootloader_fb2_size)
+		else
+			free_bootmem_late(tegra_bootloader_fb_start,
+						tegra_bootloader_fb_size);
+	}
+	if (tegra_bootloader_fb2_size) {
 		if (memblock_free(tegra_bootloader_fb2_start,
 						tegra_bootloader_fb2_size))
 			pr_err("Failed to free bootloader fb2.\n");
+		else
+			free_bootmem_late(tegra_bootloader_fb2_start,
+						tegra_bootloader_fb2_size);
+	}
 }
 
 static struct platform_device *pinmux_devices[] = {

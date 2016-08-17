@@ -22,6 +22,7 @@
 #include <linux/clk.h>
 #include <linux/err.h>
 #include <linux/io.h>
+#include <linux/of.h>
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
@@ -38,6 +39,7 @@
 #include "dvfs.h"
 #include "board.h"
 #include "tegra11_emc.h"
+#include "fuse.h"
 
 #ifdef CONFIG_TEGRA_EMC_SCALING_ENABLE
 static bool emc_enable = true;
@@ -46,8 +48,54 @@ static bool emc_enable;
 #endif
 module_param(emc_enable, bool, 0644);
 
-u8 tegra_emc_bw_efficiency = 100;
+static u32 bw_calc_freqs[] = {
+	40, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 260, 280, 300
+};
 
+static u32 tegra11_lpddr3_emc_usage_share_default[] = {
+	35, 38, 40,  41,  42,  43,  43,  45,  45,  45,  46,  47,  48,  48, 50
+};
+
+static u32 tegra11_lpddr3_emc_usage_share_dc[] = {
+	47, 52, 55,  57,  58,  59,  60,  62,  62,  63,  64,  66,  67,  68, 70
+};
+
+static u8 iso_share_calc_t114_lpddr3_default(unsigned long iso_bw);
+static u8 iso_share_calc_t114_lpddr3_dc(unsigned long iso_bw);
+
+u8 tegra_emc_bw_efficiency = 80;
+
+static struct emc_iso_usage tegra11_ddr3_emc_iso_usage[] = {
+	{ BIT(EMC_USER_DC),			80},
+	{ BIT(EMC_USER_DC) | BIT(EMC_USER_VI),	45},
+	{ BIT(EMC_USER_DC) | BIT(EMC_USER_VDE),	45},
+};
+
+static struct emc_iso_usage tegra11_lpddr3_emc_iso_usage[] = {
+	{
+		BIT(EMC_USER_DC),
+		80, iso_share_calc_t114_lpddr3_dc
+	},
+	{
+		BIT(EMC_USER_DC) | BIT(EMC_USER_VI),
+		45, iso_share_calc_t114_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC) | BIT(EMC_USER_MSENC),
+		50, iso_share_calc_t114_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC) | BIT(EMC_USER_3D),
+		50, iso_share_calc_t114_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC) | BIT(EMC_USER_VDE),
+		45, iso_share_calc_t114_lpddr3_default
+	},
+};
+
+#define MHZ 1000000
+#define TEGRA_EMC_ISO_USE_FREQ_MAX_NUM 14
 #define PLL_C_DIRECT_FLOOR		333500000
 #define EMC_STATUS_UPDATE_TIMEOUT	100
 #define TEGRA_EMC_TABLE_MAX_SIZE	16
@@ -166,7 +214,8 @@ enum {
 	DEFINE_REG(TEGRA_MC_BASE, MC_EMEM_ARB_DA_TURNS),	\
 	DEFINE_REG(TEGRA_MC_BASE, MC_EMEM_ARB_DA_COVERS),	\
 	DEFINE_REG(TEGRA_MC_BASE, MC_EMEM_ARB_MISC0),		\
-	DEFINE_REG(TEGRA_MC_BASE, MC_EMEM_ARB_RING1_THROTTLE),
+	DEFINE_REG(TEGRA_MC_BASE, MC_EMEM_ARB_RING1_THROTTLE),	\
+	DEFINE_REG(TEGRA_EMC_BASE, EMC_SEL_DPD_CTRL),
 
 #define BURST_UP_DOWN_REG_LIST \
 	DEFINE_REG(TEGRA_MC_BASE, MC_PTSA_GRANT_DECREMENT),	\
@@ -574,7 +623,7 @@ static noinline void emc_set_clock(const struct tegra11_emc_table *next_timing,
 		overwrite_mrs_wait_cnt(next_timing, zcal_long);
 
 	/* 5.2 disable auto-refresh to save time after clock change */
-	emc_writel(EMC_REFCTRL_DISABLE_ALL(dram_dev_num), EMC_REFCTRL);
+	ccfifo_writel(EMC_REFCTRL_DISABLE_ALL(dram_dev_num), EMC_REFCTRL);
 
 	/* 6. turn Off dll and enter self-refresh on DDR3 */
 	if (dram_type == DRAM_TYPE_DDR3) {
@@ -590,6 +639,9 @@ static noinline void emc_set_clock(const struct tegra11_emc_table *next_timing,
 	/* 8. exit self-refresh on DDR3 */
 	if (dram_type == DRAM_TYPE_DDR3)
 		ccfifo_writel(DRAM_BROADCAST(dram_dev_num), EMC_SELF_REF);
+
+	/* 8.1 re-enable auto-refresh */
+	ccfifo_writel(EMC_REFCTRL_ENABLE_ALL(dram_dev_num), EMC_REFCTRL);
 
 	/* 9. set dram mode registers */
 	set_dram_mode(next_timing, last_timing, dll_change);
@@ -616,8 +668,7 @@ static noinline void emc_set_clock(const struct tegra11_emc_table *next_timing,
 	   change EMC clock source register wait for clk change completion */
 	do_clock_change(clk_setting);
 
-	/* 14.1 re-enable auto-refresh */
-	emc_writel(EMC_REFCTRL_ENABLE_ALL(dram_dev_num), EMC_REFCTRL);
+	/* 14.1 re-enable auto-refresh - moved to ccfifo in 8.1 */
 
 	/* 14.2 program burst_up_down registers if emc rate is going up */
 	if (next_timing->rate > last_timing->rate) {
@@ -627,7 +678,10 @@ static noinline void emc_set_clock(const struct tegra11_emc_table *next_timing,
 		wmb();
 	}
 
-	/* 15. restore auto-cal - removed */
+	/* 15. set auto-cal interval */
+	if (next_timing->rev >= 0x42)
+		emc_writel(next_timing->emc_acal_interval,
+			   EMC_AUTO_CAL_INTERVAL);
 
 	/* 16. restore dynamic self-refresh */
 	if (next_timing->emc_cfg & EMC_CFG_DYN_SREF_ENABLE) {
@@ -636,8 +690,7 @@ static noinline void emc_set_clock(const struct tegra11_emc_table *next_timing,
 	}
 
 	/* 17. set zcal wait count */
-	if (zcal_long)
-		emc_writel(next_timing->emc_zcal_cnt_long, EMC_ZCAL_WAIT_CNT);
+	emc_writel(next_timing->emc_zcal_cnt_long, EMC_ZCAL_WAIT_CNT);
 
 	/* 18. update restored timing */
 	udelay(2);
@@ -815,7 +868,7 @@ bool tegra_emc_is_parent_ready(unsigned long rate, struct clk **parent,
 	struct clk *p = NULL;
 	unsigned long p_rate = 0;
 
-	if (!tegra_emc_table || !emc_enable)
+	if (!tegra_emc_table)
 		return true;
 
 	pr_debug("%s: %lu\n", __func__, rate);
@@ -1031,6 +1084,253 @@ static int purge_emc_table(unsigned long max_rate)
 #define purge_emc_table(max_rate) (0)
 #endif
 
+#ifdef CONFIG_OF
+static struct device_node *tegra_emc_ramcode_devnode(struct device_node *np)
+{
+	struct device_node *iter;
+	u32 reg;
+
+	for_each_child_of_node(np, iter) {
+		if (of_property_read_u32(np, "nvidia,ram-code", &reg))
+			continue;
+		if (reg == tegra_bct_strapping)
+			return of_node_get(iter);
+	}
+
+	return NULL;
+}
+
+static struct tegra11_emc_pdata *tegra_emc_dt_parse_pdata(
+		struct platform_device *pdev)
+{
+	struct device_node *np = pdev->dev.of_node;
+	struct device_node *tnp, *iter;
+	struct tegra11_emc_pdata *pdata;
+	int ret, i, num_tables;
+
+	if (!np)
+		return NULL;
+
+	if (of_find_property(np, "nvidia,use-ram-code", NULL)) {
+		tnp = tegra_emc_ramcode_devnode(np);
+		if (!tnp)
+			dev_warn(&pdev->dev,
+				"can't find emc table for ram-code 0x%02x\n",
+					tegra_bct_strapping);
+	} else
+		tnp = of_node_get(np);
+
+	if (!tnp)
+		return NULL;
+
+	num_tables = 0;
+	for_each_child_of_node(tnp, iter)
+		if (of_device_is_compatible(iter, "nvidia,tegra11-emc-table"))
+			num_tables++;
+
+	if (!num_tables) {
+		pdata = NULL;
+		goto out;
+	}
+
+	pdata = devm_kzalloc(&pdev->dev, sizeof(*pdata), GFP_KERNEL);
+	pdata->tables = devm_kzalloc(&pdev->dev,
+				sizeof(*pdata->tables) * num_tables,
+					GFP_KERNEL);
+
+	i = 0;
+	for_each_child_of_node(tnp, iter) {
+		u32 u;
+		const char *source_name;
+
+		ret = of_property_read_u32(iter, "nvidia,revision", &u);
+		if (ret) {
+			dev_err(&pdev->dev, "no revision in %s\n",
+				iter->full_name);
+			continue;
+		}
+		pdata->tables[i].rev = u;
+
+		ret = of_property_read_u32(iter, "clock-frequency", &u);
+		if (ret) {
+			dev_err(&pdev->dev, "no clock-frequency in %s\n",
+				iter->full_name);
+			continue;
+		}
+		pdata->tables[i].rate = u;
+
+		ret = of_property_read_u32(iter, "nvidia,emc-min-mv", &u);
+		if (ret) {
+			dev_err(&pdev->dev, "no emc-min-mv in %s\n",
+				iter->full_name);
+			continue;
+		}
+		pdata->tables[i].emc_min_mv = u;
+
+		ret = of_property_read_string(iter,
+					"nvidia,source", &source_name);
+		if (ret) {
+			dev_err(&pdev->dev, "no source name in %s\n",
+				iter->full_name);
+			continue;
+		}
+		pdata->tables[i].src_name = source_name;
+
+		ret = of_property_read_u32(iter, "nvidia,src-sel-reg", &u);
+		if (ret) {
+			dev_err(&pdev->dev, "no src-sel-reg in %s\n",
+				iter->full_name);
+			continue;
+		}
+		pdata->tables[i].src_sel_reg = u;
+
+		ret = of_property_read_u32(iter, "nvidia,burst-regs-num", &u);
+		if (ret) {
+			dev_err(&pdev->dev, "no burst-regs-num in %s\n",
+				iter->full_name);
+			continue;
+		}
+		pdata->tables[i].burst_regs_num = u;
+
+		ret = of_property_read_u32(iter, "nvidia,emc-trimmers-num", &u);
+		if (ret) {
+			dev_err(&pdev->dev, "no emc-trimmers-num in %s\n",
+				iter->full_name);
+			continue;
+		}
+		pdata->tables[i].emc_trimmers_num = u;
+
+		ret = of_property_read_u32(iter,
+					"nvidia,burst-up-down-regs-num", &u);
+		if (ret) {
+			dev_err(&pdev->dev, "no burst-up-down-regs-num in %s\n",
+				iter->full_name);
+			continue;
+		}
+		pdata->tables[i].burst_up_down_regs_num = u;
+
+		ret = of_property_read_u32_array(iter, "nvidia,emc-registers",
+					pdata->tables[i].burst_regs,
+					pdata->tables[i].burst_regs_num);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-registers property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32_array(iter, "nvidia,emc-trimmers-0",
+					pdata->tables[i].emc_trimmers_0,
+					pdata->tables[i].emc_trimmers_num);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-trimmers-0 property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32_array(iter, "nvidia,emc-trimmers-1",
+					pdata->tables[i].emc_trimmers_1,
+					pdata->tables[i].emc_trimmers_num);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-trimmers-1 property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32_array(iter,
+				"nvidia,emc-burst-up-down-regs",
+				pdata->tables[i].burst_up_down_regs,
+				pdata->tables[i].burst_up_down_regs_num);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-burst-up-down-regs property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32(iter, "nvidia,emc-zcal-cnt-long",
+					&pdata->tables[i].emc_zcal_cnt_long);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-zcal-cnt-long property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32(iter, "nvidia,emc-acal-interval",
+					&pdata->tables[i].emc_acal_interval);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-acal-interval property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32(iter, "nvidia,emc-cfg",
+					&pdata->tables[i].emc_cfg);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-cfg property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32(iter, "nvidia,emc-mode-reset",
+					&pdata->tables[i].emc_mode_reset);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-mode-reset property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32(iter, "nvidia,emc-mode-1",
+					&pdata->tables[i].emc_mode_1);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-mode-1 property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32(iter, "nvidia,emc-mode-2",
+					&pdata->tables[i].emc_mode_2);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-mode-2 property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		ret = of_property_read_u32(iter, "nvidia,emc-mode-4",
+					&pdata->tables[i].emc_mode_4);
+		if (ret) {
+			dev_err(&pdev->dev,
+				"malformed emc-mode-4 property in %s\n",
+				iter->full_name);
+			continue;
+		}
+
+		of_property_read_u32(iter, "nvidia,emc-clock-latency-change",
+					&pdata->tables[i].clock_change_latency);
+		i++;
+	}
+	pdata->num_tables = i;
+
+out:
+	of_node_put(tnp);
+	return pdata;
+}
+#else
+static struct tegra_emc_pdata *tegra_emc_dt_parse_pdata(
+					struct platform_device *pdev)
+{
+	return NULL;
+}
+#endif
+
 static int init_emc_table(const struct tegra11_emc_table *table, int table_size)
 {
 	int i, mv;
@@ -1068,6 +1368,7 @@ static int init_emc_table(const struct tegra11_emc_table *table, int table_size)
 	switch (table[0].rev) {
 	case 0x40:
 	case 0x41:
+	case 0x42:
 		start_timing.burst_regs_num = table[0].burst_regs_num;
 		start_timing.emc_trimmers_num = table[0].emc_trimmers_num;
 		break;
@@ -1154,6 +1455,9 @@ static int __devinit tegra11_emc_probe(struct platform_device *pdev)
 	struct tegra11_emc_pdata *pdata;
 	struct resource *res;
 
+	if (tegra_emc_table)
+		return -EINVAL;
+
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res) {
 		dev_err(&pdev->dev, "missing register base\n");
@@ -1161,6 +1465,10 @@ static int __devinit tegra11_emc_probe(struct platform_device *pdev)
 	}
 
 	pdata = pdev->dev.platform_data;
+
+	if (!pdata)
+		pdata = (struct tegra11_emc_pdata *)tegra_emc_dt_parse_pdata(pdev);
+
 	if (!pdata) {
 		dev_err(&pdev->dev, "missing platform data\n");
 		return -ENODATA;
@@ -1169,10 +1477,16 @@ static int __devinit tegra11_emc_probe(struct platform_device *pdev)
 	return init_emc_table(pdata->tables, pdata->num_tables);
 }
 
+static struct of_device_id tegra11_emc_of_match[] __devinitdata = {
+	{ .compatible = "nvidia,tegra11-emc", },
+	{ },
+};
+
 static struct platform_driver tegra11_emc_driver = {
 	.driver         = {
 		.name   = "tegra-emc",
 		.owner  = THIS_MODULE,
+		.of_match_table = tegra11_emc_of_match,
 	},
 	.probe          = tegra11_emc_probe,
 };
@@ -1181,6 +1495,15 @@ int __init tegra11_emc_init(void)
 {
 	int ret = platform_driver_register(&tegra11_emc_driver);
 	if (!ret) {
+		if (dram_type == DRAM_TYPE_LPDDR2)
+			tegra_emc_iso_usage_table_init(
+				tegra11_lpddr3_emc_iso_usage,
+				ARRAY_SIZE(tegra11_lpddr3_emc_iso_usage));
+		else if (dram_type == DRAM_TYPE_DDR3)
+			tegra_emc_iso_usage_table_init(
+				tegra11_ddr3_emc_iso_usage,
+				ARRAY_SIZE(tegra11_ddr3_emc_iso_usage));
+
 		if (emc_enable) {
 			unsigned long rate = tegra_emc_round_rate_updown(
 				emc->boot_rate, false);
@@ -1237,7 +1560,7 @@ static u32 soc_to_dram_bit_swap(u32 soc_val, u32 dram_mask, u32 dram_shift)
 static int emc_read_mrr(int dev, int addr)
 {
 	int ret;
-	u32 val;
+	u32 val, emc_cfg;
 
 	if (dram_type != DRAM_TYPE_LPDDR2)
 		return -ENODEV;
@@ -1246,11 +1569,21 @@ static int emc_read_mrr(int dev, int addr)
 	if (ret)
 		return ret;
 
+	emc_cfg = emc_readl(EMC_CFG);
+	if (emc_cfg & EMC_CFG_DRAM_ACPD) {
+		emc_writel(emc_cfg & ~EMC_CFG_DRAM_ACPD, EMC_CFG);
+		emc_timing_update();
+	}
+
 	val = dev ? DRAM_DEV_SEL_1 : DRAM_DEV_SEL_0;
 	val |= (addr << EMC_MRR_MA_SHIFT) & EMC_MRR_MA_MASK;
 	emc_writel(val, EMC_MRR);
 
 	ret = wait_for_update(EMC_STATUS, EMC_STATUS_MRR_DIVLD, true);
+	if (emc_cfg & EMC_CFG_DRAM_ACPD) {
+		emc_writel(emc_cfg, EMC_CFG);
+		emc_timing_update();
+	}
 	if (ret)
 		return ret;
 
@@ -1277,9 +1610,109 @@ int tegra_emc_get_dram_temperature(void)
 	return mr4;
 }
 
+static inline int bw_calc_get_freq_idx(unsigned long bw)
+{
+	int idx = 0;
+
+	if (bw > bw_calc_freqs[TEGRA_EMC_ISO_USE_FREQ_MAX_NUM-1] * MHZ)
+		idx = TEGRA_EMC_ISO_USE_FREQ_MAX_NUM;
+
+	for (; idx < TEGRA_EMC_ISO_USE_FREQ_MAX_NUM; idx++) {
+		u32 freq = bw_calc_freqs[idx] * MHZ;
+		if (bw < freq) {
+			if (idx)
+				idx--;
+			break;
+		} else if (bw == freq)
+			break;
+	}
+
+	return idx;
+}
+
+static u8 iso_share_calc_t114_lpddr3_default(unsigned long iso_bw)
+{
+	int freq_idx = bw_calc_get_freq_idx(iso_bw);
+	return tegra11_lpddr3_emc_usage_share_default[freq_idx];
+}
+
+static u8 iso_share_calc_t114_lpddr3_dc(unsigned long iso_bw)
+{
+	int freq_idx = bw_calc_get_freq_idx(iso_bw);
+	return tegra11_lpddr3_emc_usage_share_dc[freq_idx];
+}
+
 #ifdef CONFIG_DEBUG_FS
 
 static struct dentry *emc_debugfs_root;
+
+#define INFO_CALC_REV_OFFSET 1
+#define INFO_SCRIPT_REV_OFFSET 2
+#define INFO_FREQ_OFFSET 3
+
+static int emc_table_info_show(struct seq_file *s, void *data)
+{
+	int i;
+	const u32 *info;
+	u32 freq, calc_rev, script_rev;
+	const struct tegra11_emc_table *entry;
+	bool found = false;
+
+	if (!tegra_emc_table) {
+		seq_printf(s, "EMC DFS table is not installed\n");
+		return 0;
+	}
+
+	for (i = 0; i < tegra_emc_table_size; i++) {
+		entry = &tegra_emc_table[i];
+		info =
+		&entry->burst_up_down_regs[entry->burst_up_down_regs_num];
+
+		seq_printf(s, "%s: ", tegra_emc_clk_sel[i].input != NULL ?
+			   "accepted" : "rejected");
+
+		/* system validation tag for metadata */
+		if (*info != 0x4E564441) {
+			seq_printf(s, "emc dvfs frequency %6lu\n", entry->rate);
+			continue;
+		}
+
+		found = true;
+
+		calc_rev = *(info + INFO_CALC_REV_OFFSET);
+		script_rev = *(info + INFO_SCRIPT_REV_OFFSET);
+		freq = *(info + INFO_FREQ_OFFSET);
+
+		seq_printf(s, "emc dvfs frequency %6u: ", freq);
+		seq_printf(s, "calc_rev: %02u.%02u.%02u.%02u ",
+			   (calc_rev >> 24) & 0xff,
+			   (calc_rev >> 16) & 0xff,
+			   (calc_rev >>  8) & 0xff,
+			   (calc_rev >>  0) & 0xff);
+		seq_printf(s, "script_rev: %02u.%02u.%02u.%02u\n",
+			   (script_rev >> 24) & 0xff,
+			   (script_rev >> 16) & 0xff,
+			   (script_rev >>  8) & 0xff,
+			   (script_rev >>  0) & 0xff);
+	}
+
+	if (!found)
+		seq_printf(s, "no metdata in EMC DFS table\n");
+
+	return 0;
+}
+
+static int emc_table_info_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, emc_table_info_show, inode->i_private);
+}
+
+static const struct file_operations emc_table_info_fops = {
+	.open		= emc_table_info_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
 
 static int emc_stats_show(struct seq_file *s, void *data)
 {
@@ -1341,12 +1774,17 @@ DEFINE_SIMPLE_ATTRIBUTE(efficiency_fops, efficiency_get,
 
 static int __init tegra_emc_debug_init(void)
 {
-	if (!tegra_emc_table)
-		return 0;
-
 	emc_debugfs_root = debugfs_create_dir("tegra_emc", NULL);
 	if (!emc_debugfs_root)
 		return -ENOMEM;
+
+	if (!debugfs_create_file(
+		"table_info", S_IRUGO, emc_debugfs_root, NULL,
+		&emc_table_info_fops))
+		goto err_out;
+
+	if (!tegra_emc_table)
+		return 0;
 
 	if (!debugfs_create_file(
 		"stats", S_IRUGO, emc_debugfs_root, NULL, &emc_stats_fops))
@@ -1362,6 +1800,9 @@ static int __init tegra_emc_debug_init(void)
 
 	if (!debugfs_create_file("efficiency", S_IRUGO | S_IWUSR,
 				 emc_debugfs_root, NULL, &efficiency_fops))
+		goto err_out;
+
+	if (tegra_emc_iso_usage_debugfs_init(emc_debugfs_root))
 		goto err_out;
 
 	return 0;

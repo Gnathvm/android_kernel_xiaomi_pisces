@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/board-pluto-powermon.c
  *
- * Copyright (c) 2012, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2012-2013, NVIDIA CORPORATION. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -18,7 +18,6 @@
  */
 
 #include <linux/i2c.h>
-#include <linux/ina219.h>
 #include <linux/platform_data/ina230.h>
 #include <linux/i2c/pca954x.h>
 
@@ -27,7 +26,14 @@
 
 #define PRECISION_MULTIPLIER_PLUTO	1000
 
+/*
+ * following power_config will be passed from Bootloader
+ * if board is reworked for power measurement
+ */
+#define PLUTO_POWER_REWORKED_CONFIG	0x10
+
 enum {
+	PM_VDD_CELL,
 	UNUSED_RAIL,
 };
 
@@ -53,8 +59,49 @@ enum {
 	VDDIO_1V8_BB,
 };
 
-static struct ina219_platform_data power_mon_info_0[] = {
-	/* All unused INA219 devices use below data*/
+static struct ina230_platform_data power_mon_info_0[] = {
+	[PM_VDD_CELL] = {
+		/*
+		 * Calibration data is calculated by:
+		 * Imax = 6A (max peak current from battery)
+		 * Current_LSB = Imax / 2^15
+		 *	       = 0.000183
+		 *	      ~= 0.0002(A per bit)
+		 *
+		 * Rshunt (on Pluto) = 0.01(Ohm)
+		 * cal = 0.00512 / (Current_LSB * Rshunt)
+		 *     = 0.00512 / (0.0002 * 0.01)
+		 *     = 2560
+		 */
+		.calibration_data = 2560,
+		.rail_name = "PM_VDD_CELL",
+		/*
+		 * Current_LSB is 0.0002A per bit (0.2mA per bit), and we use mA
+		 * as display as unit:
+		 *	current_lsb = 0.2
+		 *	power_lsb = current_lsb * POWER_LSB_TO_CURRENT_LSB_RATIO
+		 *		  = 0.2 * 25 = 5
+		 *
+		 */
+		.divisor = POWER_LSB_TO_CURRENT_LSB_RATIO,
+		.power_lsb = 5,
+		.precision_multiplier = 1,
+		/*
+		 * this value specify the battery in-serial resistor value in
+		 * the unit of mOhm.
+		 */
+		.resistor = 10,
+		.shunt_polarity_inverted = 1,
+		/*
+		 * INA230's alert pin can be used to generate the OC throttling
+		 * signal to AP. To do so set the 'current_threshold' to a
+		 * non-zero value in the unit of mA; set it to 0 will disable
+		 * the alert pin generating OC
+		 * signal.
+		 */
+		.current_threshold = 0,
+	},
+	/* All unused HPA01112 devices use below data*/
 	[UNUSED_RAIL] = {
 		.calibration_data = 0x369c,
 		.power_lsb = 3.051979018 * PRECISION_MULTIPLIER_PLUTO,
@@ -226,27 +273,27 @@ enum {
 	INA_I2C_2_2_ADDR_4C,
 };
 
-static struct i2c_board_info pluto_i2c2_0_ina219_board_info[] = {
+static struct i2c_board_info pluto_i2c2_0_ina230_board_info[] = {
 	[INA_I2C_2_0_ADDR_40] = {
-		I2C_BOARD_INFO("ina219", 0x40),
-		.platform_data = &power_mon_info_0[UNUSED_RAIL],
+		I2C_BOARD_INFO("ina230", 0x40),
+		.platform_data = &power_mon_info_0[PM_VDD_CELL],
 		.irq = -1,
 	},
 
 	[INA_I2C_2_0_ADDR_41] = {
-		I2C_BOARD_INFO("ina219", 0x41),
+		I2C_BOARD_INFO("ina230", 0x41),
 		.platform_data = &power_mon_info_0[UNUSED_RAIL],
 		.irq = -1,
 	},
 
 	[INA_I2C_2_0_ADDR_42] = {
-		I2C_BOARD_INFO("ina219", 0x42),
+		I2C_BOARD_INFO("ina230", 0x42),
 		.platform_data = &power_mon_info_0[UNUSED_RAIL],
 		.irq = -1,
 	},
 
 	[INA_I2C_2_0_ADDR_43] = {
-		I2C_BOARD_INFO("ina219", 0x43),
+		I2C_BOARD_INFO("ina230", 0x43),
 		.platform_data = &power_mon_info_0[UNUSED_RAIL],
 		.irq = -1,
 	},
@@ -371,14 +418,65 @@ static const struct i2c_board_info pluto_i2c2_board_info[] = {
 	},
 };
 
+static void modify_reworked_rail_data(void)
+{
+	power_mon_info_1[VDD_SYS_SUM].calibration_data = 0x426;
+	power_mon_info_1[VDD_SYS_SUM].power_lsb =
+				1.20527307 * PRECISION_MULTIPLIER_PLUTO;
+
+	power_mon_info_1[VDD_SYS_SMPS123].calibration_data = 0x2134;
+	power_mon_info_1[VDD_SYS_SMPS123].power_lsb =
+				0.301176471 * PRECISION_MULTIPLIER_PLUTO;
+
+	power_mon_info_1[VDD_SYS_SMPS45].calibration_data = 0x2134;
+	power_mon_info_1[VDD_SYS_SMPS45].power_lsb =
+				0.301176471 * PRECISION_MULTIPLIER_PLUTO;
+
+	power_mon_info_1[VDD_SYS_SMPS6].calibration_data = 0x3756;
+	power_mon_info_1[VDD_SYS_SMPS6].power_lsb =
+				0.180714387 * PRECISION_MULTIPLIER_PLUTO;
+
+	power_mon_info_1[VDD_SYS_SMPS7].calibration_data = 0x84D;
+	power_mon_info_1[VDD_SYS_SMPS7].power_lsb =
+				0.120470588 * PRECISION_MULTIPLIER_PLUTO;
+
+	power_mon_info_1[VDD_SYS_SMPS8].calibration_data = 0x14C0;
+	power_mon_info_1[VDD_SYS_SMPS8].power_lsb =
+				0.240963855 * PRECISION_MULTIPLIER_PLUTO;
+
+	power_mon_info_1[VDD_SYS_LDO8].calibration_data = 0x18E7;
+	power_mon_info_1[VDD_SYS_LDO8].power_lsb =
+				0.040156863 * PRECISION_MULTIPLIER_PLUTO;
+
+	power_mon_info_1[VDD_MMC_LDO9].calibration_data = 0xEAD;
+	power_mon_info_1[VDD_MMC_LDO9].power_lsb =
+				0.068139473 * PRECISION_MULTIPLIER_PLUTO;
+
+	power_mon_info_1[VDD_MMC_LCD].calibration_data = 0x1E95;
+	power_mon_info_1[VDD_MMC_LCD].power_lsb =
+				0.08174735 * PRECISION_MULTIPLIER_PLUTO;
+}
+
 int __init pluto_pmon_init(void)
 {
+	u8 power_config;
+
+	/*
+	 * Get power_config of board and check whether
+	 * board is power reworked or not.
+	 * In case board is reworked, modify rail data
+	 * for which rework was done.
+	 */
+	power_config = get_power_config();
+	if (power_config & PLUTO_POWER_REWORKED_CONFIG)
+		modify_reworked_rail_data();
+
 	i2c_register_board_info(1, pluto_i2c2_board_info,
 		ARRAY_SIZE(pluto_i2c2_board_info));
 
 	i2c_register_board_info(PCA954x_I2C_BUS0,
-			pluto_i2c2_0_ina219_board_info,
-			ARRAY_SIZE(pluto_i2c2_0_ina219_board_info));
+			pluto_i2c2_0_ina230_board_info,
+			ARRAY_SIZE(pluto_i2c2_0_ina230_board_info));
 
 	i2c_register_board_info(PCA954x_I2C_BUS1,
 			pluto_i2c2_1_ina230_board_info,

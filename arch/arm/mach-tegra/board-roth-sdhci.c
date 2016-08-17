@@ -2,7 +2,7 @@
  * arch/arm/mach-tegra/board-roth-sdhci.c
  *
  * Copyright (C) 2010 Google, Inc.
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2013 NVIDIA Corporation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -37,12 +37,13 @@
 #include "board.h"
 #include "board-roth.h"
 #include "dvfs.h"
-#include "tegra-board-id.h"
 
 #define ROTH_WLAN_PWR	TEGRA_GPIO_PCC5
 #define ROTH_WLAN_RST	TEGRA_GPIO_INVALID
 #define ROTH_WLAN_WOW	TEGRA_GPIO_PU5
 #define ROTH_SD_CD		TEGRA_GPIO_PV2
+#define WLAN_PWR_STR	"wlan_power"
+#define WLAN_WOW_STR	"bcmsdh_sdmmc"
 
 static void (*wifi_status_cb)(int card_present, void *dev_id);
 static void *wifi_status_cb_devid;
@@ -141,6 +142,9 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 		.built_in = 0,
 		.ocr_mask = MMC_OCR_1V8_MASK,
 	},
+#ifndef CONFIG_MMC_EMBEDDED_SDIO
+	.pm_flags = MMC_PM_KEEP_POWER,
+#endif
 	.cd_gpio = -1,
 	.wp_gpio = -1,
 	.power_gpio = -1,
@@ -158,9 +162,8 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data2 = {
 	.tap_delay = 0x3,
 	.trim_delay = 0x3,
 	.ddr_clk_limit = 41000000,
-	.max_clk_limit = 82000000,
+	.max_clk_limit = 156000000,
 	.uhs_mask = MMC_UHS_MASK_DDR50,
-	.power_off_rail = true,
 };
 
 static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
@@ -170,13 +173,12 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.is_8bit = 1,
 	.tap_delay = 0x5,
 	.trim_delay = 0xA,
-	.ddr_clk_limit = 51000000,
+	.ddr_clk_limit = 41000000,
 	.max_clk_limit = 156000000,
 	.mmc_data = {
 		.built_in = 1,
 		.ocr_mask = MMC_OCR_1V8_MASK,
-	},
-	.uhs_mask = MMC_MASK_HS200,
+	}
 };
 
 static struct platform_device tegra_sdhci_device0 = {
@@ -337,10 +339,6 @@ static int roth_wifi_power(int on)
 	}
 	gpio_set_value(ROTH_WLAN_PWR, on);
 	mdelay(100);
-	if (gpio_is_valid(ROTH_WLAN_RST)) {
-		gpio_set_value(ROTH_WLAN_RST, on);
-		mdelay(200);
-	}
 
 	if (sd_dpd) {
 		mutex_lock(&sd_dpd->delay_lock);
@@ -365,45 +363,52 @@ static int roth_wifi_reset(int on)
 
 static int __init roth_wifi_init(void)
 {
-	int rc;
+	int rc = 0;
 
-	rc = gpio_request(ROTH_WLAN_PWR, "wlan_power");
-	if (rc)
-		pr_err("WLAN_PWR gpio request failed:%d\n", rc);
-	if (gpio_is_valid(ROTH_WLAN_RST)) {
-		rc = gpio_request(ROTH_WLAN_RST, "wlan_rst");
-		if (rc)
-			pr_err("WLAN_RST gpio request failed:%d\n", rc);
+	/* init wlan_pwr gpio */
+	rc = gpio_request(ROTH_WLAN_PWR, WLAN_PWR_STR);
+	/* Due to pre-init, during first time boot,
+	 * gpio request returns -EBUSY
+	 */
+	if ((rc < 0) && (rc != -EBUSY)) {
+		pr_err("gpio req failed:%d\n", rc);
+		return rc;
 	}
 
-	rc = gpio_request(ROTH_WLAN_WOW, "bcmsdh_sdmmc");
-	if (rc)
-		pr_err("WLAN_WOW gpio request failed:%d\n", rc);
-
 	rc = gpio_direction_output(ROTH_WLAN_PWR, 0);
-	if (rc)
-		pr_err("WLAN_PWR gpio direction configuration failed:%d\n", rc);
+	if ((rc < 0) && (rc != -EBUSY)) {
+		gpio_free(ROTH_WLAN_PWR);
+		return rc;
+	}
 
-	if (gpio_is_valid(ROTH_WLAN_RST)) {
-		gpio_direction_output(ROTH_WLAN_RST, 0);
-		if (rc)
-			pr_err("WLAN_RST direction_output failed:%d\n", rc);
+	/* init wlan_wow gpio */
+	rc = gpio_request(ROTH_WLAN_WOW, WLAN_WOW_STR);
+	if (rc) {
+		pr_err("gpio req failed:%d\n", rc);
+		gpio_free(ROTH_WLAN_PWR);
+		return rc;
 	}
 
 	rc = gpio_direction_input(ROTH_WLAN_WOW);
-	if (rc)
-		pr_err("WLAN_WOW gpio direction configuration failed:%d\n", rc);
+	if (rc) {
+		gpio_free(ROTH_WLAN_WOW);
+		gpio_free(ROTH_WLAN_PWR);
+		return rc;
+	}
 
 	wifi_resource[0].start = wifi_resource[0].end =
 		gpio_to_irq(ROTH_WLAN_WOW);
 
 	platform_device_register(&roth_wifi_device);
-	return 0;
+	return rc;
 }
 
 #ifdef CONFIG_TEGRA_PREPOWER_WIFI
 static int __init roth_wifi_prepower(void)
 {
+	if (!machine_is_roth())
+		return 0;
+
 	roth_wifi_power(1);
 
 	return 0;
@@ -435,10 +440,13 @@ int __init roth_sdhci_init(void)
 			min_vcore_override_mv;
 	}
 
+	if ((tegra_sdhci_platform_data3.uhs_mask & MMC_MASK_HS200)
+		&& (!(tegra_sdhci_platform_data3.uhs_mask &
+		MMC_UHS_MASK_DDR50)))
+		tegra_sdhci_platform_data3.trim_delay = 0;
+
 	platform_device_register(&tegra_sdhci_device3);
-	/* sdcard slot is muxed to UART-A */
-	if (get_tegra_uart_debug_port_id() != UART_FROM_SDCARD)
-		platform_device_register(&tegra_sdhci_device2);
+	platform_device_register(&tegra_sdhci_device2);
 	platform_device_register(&tegra_sdhci_device0);
 	roth_wifi_init();
 	return 0;

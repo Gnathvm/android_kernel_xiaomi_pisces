@@ -6,7 +6,7 @@
  * Author:
  *	Erik Gilling <konkers@google.com>
  *
- * Copyright (c) 2010-2014, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION, All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -82,6 +82,7 @@ enum {
 	TEGRA_DSI_PACKET_CMD,
 	TEGRA_DSI_DELAY_MS,
 	TEGRA_DSI_GPIO_SET,
+	TEGRA_DSI_SEND_FRAME,
 };
 
 struct tegra_dsi_cmd {
@@ -91,6 +92,7 @@ struct tegra_dsi_cmd {
 		u16 data_len;
 		u16 delay_ms;
 		unsigned gpio;
+		u16 frame_cnt;
 		struct {
 			u8 data0;
 			u8 data1;
@@ -137,6 +139,11 @@ struct tegra_dsi_cmd {
 				.sp_len_dly.data_len = ARRAY_SIZE(ptr), \
 				.pdata = ptr, \
 				}
+
+#define DSI_SEND_FRAME(cnt)	{ \
+			.cmd_type = TEGRA_DSI_SEND_FRAME, \
+			.sp_len_dly.frame_cnt = cnt, \
+			}
 
 struct dsi_phy_timing_ns {
 	u16		t_hsdexit_ns;
@@ -501,6 +508,7 @@ struct tegra_dc_out {
 
 	int	(*hotplug_init)(struct device *);
 	int	(*postsuspend)(void);
+	void	(*hotplug_report)(bool);
 };
 
 /* bits for tegra_dc_out.flags */
@@ -515,8 +523,6 @@ struct tegra_dc_out {
 #define TEGRA_DC_OUT_N_SHOT_MODE		(1 << 4)
 #define TEGRA_DC_OUT_ONE_SHOT_LP_MODE		(1 << 5)
 #define TEGRA_DC_OUT_INITIALIZED_MODE		(1 << 6)
-/* Makes hotplug GPIO a LP0 wakeup source */
-#define TEGRA_DC_OUT_HOTPLUG_WAKE_LP0		(1 << 7)
 
 #define TEGRA_DC_ALIGN_MSB		0
 #define TEGRA_DC_ALIGN_LSB		1
@@ -572,8 +578,9 @@ struct tegra_dc_cmu {
 
 struct tegra_dc_win {
 	u8			idx;
-	u8			fmt;
 	u8			ppflags; /* see TEGRA_WIN_PPFLAG* */
+	u8			global_alpha;
+	u32			fmt;
 	u32			flags;
 
 	void			*virt_addr;
@@ -591,7 +598,6 @@ struct tegra_dc_win {
 	unsigned		out_w;
 	unsigned		out_h;
 	unsigned		z;
-	u8			global_alpha;
 
 	struct tegra_dc_csc	csc;
 
@@ -685,7 +691,7 @@ bool tegra_dc_hpd(struct tegra_dc *dc);
 
 void tegra_dc_get_fbvblank(struct tegra_dc *dc, struct fb_vblank *vblank);
 int tegra_dc_wait_for_vsync(struct tegra_dc *dc);
-void tegra_dc_blank(struct tegra_dc *dc, unsigned windows);
+void tegra_dc_blank(struct tegra_dc *dc);
 
 void tegra_dc_enable(struct tegra_dc *dc);
 void tegra_dc_disable(struct tegra_dc *dc);
@@ -757,8 +763,16 @@ int tegra_dc_get_panel_sync_rate(void);
 
 int tegra_dc_get_out(const struct tegra_dc *dc);
 
+#ifdef CONFIG_PM_SLEEP
+void tegra_log_resume_time(void);
+void tegra_log_suspend_time(void);
+#else
+#define tegra_log_resume_time()
+#define tegra_log_suspend_time()
+#endif
+
 /* table of electrical settings, must be in acending order. */
-struct tdms_config {
+struct tmds_config {
 	int pclk;
 	u32 pll0;
 	u32 pll1;
@@ -768,16 +782,7 @@ struct tdms_config {
 };
 
 struct tegra_hdmi_out {
-	struct tdms_config *tdms_config;
-	int n_tdms_config;
+	struct tmds_config *tmds_config;
+	int n_tmds_config;
 };
-
-#ifdef CONFIG_PM_SLEEP
-void tegra_log_resume_time(void);
-void tegra_log_suspend_time(void);
-#else
-#define tegra_log_resume_time()
-#define tegra_log_suspend_time()
-#endif
-
 #endif

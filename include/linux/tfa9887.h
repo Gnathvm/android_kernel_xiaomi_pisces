@@ -74,6 +74,8 @@ int SetEq(struct tfa9887_priv *tfa9887,struct tfa9887_priv *tfa9887_byte);
 
 int Tfa9887_SetVolume(unsigned int index);
 
+int Tfa9887_SetPreset(unsigned int preset);
+
 int SetPreset(struct tfa9887_priv *tfa9887,struct tfa9887_priv *tfa9887_byte);
 
 int SetMute(struct tfa9887_priv *tfa9887, Tfa9887_Mute_t mute);

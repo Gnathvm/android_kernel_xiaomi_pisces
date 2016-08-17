@@ -254,14 +254,14 @@ static int __maybe_unused dsi_s_1080p_5_bl_notify(struct device *unused,
 {
 	int cur_sd_brightness = atomic_read(&sd_brightness);
 
+	/* SD brightness is a percentage */
+	brightness = (brightness * cur_sd_brightness) / 255;
+
 	/* Apply any backlight response curve */
 	if (brightness > 255)
 		pr_info("Error: Brightness > 255!\n");
 	else
 		brightness = dsi_s_1080p_5_bl_response_curve[brightness];
-
-	/* SD brightness is a percentage */
-	brightness = (brightness * cur_sd_brightness) / 255;
 
 	return brightness;
 }
@@ -353,20 +353,6 @@ struct tegra_dc_mode dsi_s_1080p_5_modes[] = {
 		.v_active = 1920,
 		.h_front_porch = 100,
 		.v_front_porch = 4,
-	},
-	/* 1080x1920@53Hz */
-	{
-		.pclk = 143700000,
-		.h_ref_to_sync = 4,
-		.v_ref_to_sync = 1,
-		.h_sync_width = 10,
-		.v_sync_width = 2,
-		.h_back_porch = 50,
-		.v_back_porch = 4,
-		.h_active = 1080,
-		.v_active = 1920,
-		.h_front_porch = 100,
-		.v_front_porch = 259,
 	},
 };
 static int dsi_s_1080p_5_reg_get(void)
