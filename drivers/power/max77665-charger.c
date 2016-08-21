@@ -202,8 +202,10 @@ int max77665_set_max_input_current(struct max77665_charger *charger, int mA)
 
 	ret = max77665_write_reg(charger, MAX77665_CHG_CNFG_09,
 			mA / CURRENT_STEP_mA);
-	if (ret < 0)
+	if (ret < 0) {
 		dev_err(charger->dev, "failed to set %dmA charging\n", mA);
+		return ret;
+	}
 	return 0;
 }
 
@@ -213,11 +215,13 @@ int max77665_get_max_input_current(struct max77665_charger *charger, int *mA)
 	uint32_t val;
 
 	ret = max77665_read_reg(charger, MAX77665_CHG_CNFG_09, &val);
-	if (0 > ret)
+	if (ret < 0) {
 		dev_err(charger->dev, "failed to get charging current\n");
+		return ret;
+	}
 	val &= 0x7F;
 	*mA = max_t(int, MIN_CURRENT_LIMIT_mA, val * CURRENT_STEP_mA);
-	return ret;
+	return 0;
 }
 
 static int is_usb_chg_plugged_in(struct max77665_charger *charger)
@@ -296,6 +300,9 @@ static int max77665_charger_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		ret = max77665_get_max_input_current(charger, &val->intval);
+		if (ret >= 0) {
+		      val->intval *= 1000;
+		}
 		break;
 	default:
 		return -EINVAL;
