@@ -62,7 +62,7 @@
 /* 35 mV */
 #define MAX77665_CHG_SOFT_RSTRT 35
 
-#define USB_WALL_THRESHOLD_MA 500
+#define USB_WALL_THRESHOLD_MA (force_fast_charge ? 1000 : 500)
 
 /* fast charge current in mA */
 static const uint32_t chg_cc[]  = {
@@ -592,12 +592,10 @@ static int max77665_enable_charger(struct max77665_charger *charger,
 	if (true == extcon_get_cable_state(edev, "USB-Host")) {
 		mode = OTG;
 		charger->max_current_mA = 0;
-#ifdef CONFIG_FORCE_FAST_CHARGE
 	} else if (force_fast_charge == FAST_CHARGE_FORCE_AC) {
 		mode = CHARGER;
 		charger->ac_online = 1;
 		charger->max_current_mA = 2200;
-#endif
 	} else if (true == extcon_get_cable_state(edev, "USB")) {
 		mode = CHARGER;
 		charger->usb_online = 1;
@@ -636,10 +634,10 @@ static int max77665_enable_charger(struct max77665_charger *charger,
 
 	usb_cable_is_online = 1;
 
-	if (charger->max_current_mA > usb_max_current) {
+	if (charger->max_current_mA > (force_fast_charge ? 2200 : usb_max_current)) {
 		dev_info(charger->dev, "%d exceed maximum, revert to %d\n",
-			 charger->max_current_mA, usb_max_current);
-		charger->max_current_mA = usb_max_current;
+			 charger->max_current_mA, (force_fast_charge ? 2200 : usb_max_current));
+		charger->max_current_mA = (force_fast_charge ? 2200 : usb_max_current);
 	}
 
 	if (charger->ac_online)
@@ -925,11 +923,7 @@ static void charger_monitor_worker(struct work_struct *work)
 	}
 
 	/* Is the battery normal */
-#ifdef CONFIG_FORCE_FAST_CHARGE
 	mA = force_fast_charge ? 2000 : charger->plat_data->fast_chg_cc;
-#else
-	mA = charger->plat_data->fast_chg_cc;
-#endif
 	voltage = charger->plat_data->term_volt;
 	if (batt_temp_is_normal(batt_temp) &&
 				(mA != charger->fast_chg_cc || voltage != charger->term_volt)) {
