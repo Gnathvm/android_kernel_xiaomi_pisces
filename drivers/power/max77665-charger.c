@@ -980,6 +980,7 @@ static void unplug_check_worker(struct work_struct *work)
 							unplug_check_work);
 	uint32_t charging_ok, mA;
 	static bool modified;
+	bool changed = 0;
 
 	mutex_lock(&charger->current_limit_mutex);
 	if (charging_disabled) {
@@ -1004,12 +1005,14 @@ static void unplug_check_worker(struct work_struct *work)
 	mA = charger->max_current_mA;
 	if (charging_ok && mA < usb_target_ma) {
 		modified = 0;
+		changed = 1;
 		charger->max_current_mA = mA = mA + 100;
 		max77665_set_max_input_current(charger, mA);
 		dev_info(charger->dev, "increase current %d target %d\n",
 			 charger->max_current_mA, usb_target_ma);
 	} else if (!charging_ok && mA > 200) {
 		modified = 0;
+		changed = 1;
 		charger->max_current_mA = mA = mA - 20;
 		max77665_set_max_input_current(charger, mA);
 		usb_target_ma = charger->max_current_mA;
@@ -1018,6 +1021,7 @@ static void unplug_check_worker(struct work_struct *work)
 	} else if (modified == 0 &&
 				charging_ok && mA >= 1000 && (mA == usb_target_ma)) {
 		modified = 1;
+		changed = 1;
 		/* Set 95% of target to avoid overload */
 		if (mA >= 1400)
 			/* 95% of target */
@@ -1037,6 +1041,12 @@ static void unplug_check_worker(struct work_struct *work)
 
 	mutex_unlock(&charger->current_limit_mutex);
 
+	if (changed) {
+	      if (charger->usb_online)
+		      power_supply_changed(&charger->usb);
+	      if (charger->ac_online)
+		      power_supply_changed(&charger->ac);
+	}
 	/* schedule to check again later */
 	schedule_delayed_work(&charger->unplug_check_work,
 				round_jiffies_relative(msecs_to_jiffies
