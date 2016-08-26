@@ -883,7 +883,8 @@ static int max17042_init_chip(struct max17042_chip *chip)
 			__func__);
 		return -EIO;
 	}
-	max17042_verify_model_lock(chip);
+
+	ret = max17042_verify_model_lock(chip);
 	if (ret) {
 		dev_err(&chip->client->dev, "%s lock verify failed\n",
 			__func__);
@@ -929,8 +930,9 @@ static void max17042_set_soc_threshold(struct max17042_chip *chip, u16 off)
 	 */
 	soc = max17042_read_reg(chip->client, MAX17042_RepSOC) >> 8;
 	/* Alert if soc is below 10% */
+	soc_tr = 0xff00;
 	if (soc <= 10)
-		soc_tr = soc | 0xff00;
+		soc_tr |= 0xff00;
 	max17042_write_reg(chip->client, MAX17042_SALRT_Th, soc_tr);
 }
 
