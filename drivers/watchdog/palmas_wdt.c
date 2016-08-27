@@ -50,7 +50,7 @@ static irqreturn_t palmas_wdt_irq(int irq, void *data)
 {
 	struct palmas_wdt *wdt = data;
 
-	dev_info(wdt->dev, "WDT interrupt occur\n");
+	dev_dbg(wdt->dev, "WDT interrupt occur\n");
 	return IRQ_HANDLED;
 }
 
