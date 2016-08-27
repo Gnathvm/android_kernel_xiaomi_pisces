@@ -478,8 +478,6 @@ static int max17042_get_property(struct power_supply *psy,
 				val->intval *= -1;
 			}
 			val->intval *= 1562500 / chip->pdata->r_sns;
-			/* Reverse, P for discharging, N for charging */
-			val->intval *= -1;
 		} else {
 			return -EINVAL;
 		}
@@ -500,7 +498,7 @@ static int max17042_get_property(struct power_supply *psy,
 			}
 			val->intval *= 1562500 / chip->pdata->r_sns;
 			if (max17042_curr_avg)
-				val->intval = max17042_curr_avg;
+				val->intval = -max17042_curr_avg;
 		} else {
 			return -EINVAL;
 		}
