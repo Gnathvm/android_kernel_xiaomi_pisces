@@ -422,11 +422,7 @@ static int max17042_get_property(struct power_supply *psy,
 			val->intval = 1;
 			return 0;
 		}
-		/* round up with 103% */
-		ret = (ret & 0xFF00) >> 8;
-		ret = (ret * 103 + 99) / 100;
-		if (ret > 100)
-			ret = 100;
+		ret >>= 8;
 		val->intval = ret;
 		chip->cap = val->intval;
 		break;
