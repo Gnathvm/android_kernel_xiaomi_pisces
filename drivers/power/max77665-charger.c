@@ -269,9 +269,17 @@ static int max77665_charger_set_property(struct power_supply *psy,
 	else
 		chip = container_of(psy, struct max77665_charger, usb);
 
-	if (psp == POWER_SUPPLY_PROP_CURRENT_MAX)
+	if (psp == POWER_SUPPLY_PROP_CURRENT_MAX) {
 		/* passed value is uA */
-		return max77665_set_max_input_current(chip, val->intval / 1000);
+		int ret = max77665_set_max_input_current(chip, val->intval / 1000);
+		if (ret >= 0) {
+		      if (chip->usb_online)
+			    power_supply_changed(&chip->usb);
+		      if (chip->ac_online)
+			    power_supply_changed(&chip->ac);
+		}
+		return ret;
+	}
 
 	return -EINVAL;
 }
