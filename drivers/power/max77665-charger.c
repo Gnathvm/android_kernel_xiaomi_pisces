@@ -123,6 +123,7 @@ static enum power_supply_property max77665_charger_props[] = {
 
 struct max77665_charger *the_charger;
 static struct notifier_block charger_nb;
+static struct notifier_block force_fast_charge_nb;
 /* The maximum usb input allowed by usb connector is 1800mA */
 static unsigned int usb_max_current = 1800;
 static unsigned int usb_target_ma;
@@ -775,6 +776,26 @@ static void invalid_charger_check_worker(struct work_struct *work)
 	mutex_unlock(&charger->current_limit_mutex);
 }
 
+static int charger_force_charge_notifier(struct notifier_block *self,
+					unsigned long event, void *ptr)
+{
+	int ret;
+	if (!the_charger)
+		return NOTIFY_BAD;
+
+	if (!usb_cable_is_online) {
+	      return NOTIFY_DONE;
+	}
+
+	dev_info(the_charger->dev, "force fast charge changed during charging, reset charger\n");
+	ret = max77665_reset_charger(the_charger, the_charger->edev);
+	if (ret < 0) {
+		return NOTIFY_BAD;
+	}
+
+	return NOTIFY_DONE;
+}
+
 static int charger_pmu_extcon_notifier(struct notifier_block *self,
 					unsigned long event, void *ptr)
 {
@@ -1412,6 +1433,9 @@ static __devinit int max77665_battery_probe(struct platform_device *pdev)
 	 */
 	charger_pmu_extcon_notifier(NULL, 0, NULL);
 
+	force_fast_charge_nb.notifier_call = charger_force_charge_notifier;
+	force_fast_charge_register_notifier(&force_fast_charge_nb);
+
 	dev_info(&pdev->dev, "%s() get success\n", __func__);
 	return 0;
 
@@ -1436,6 +1460,7 @@ static int __devexit max77665_battery_remove(struct platform_device *pdev)
 {
 	struct max77665_charger *charger = platform_get_drvdata(pdev);
 
+	force_fast_charge_unregister_notifier(&force_fast_charge_nb);
 	max77665_remove_sysfs_entry(&pdev->dev);
 	free_irq(charger->irq, charger);
 	if (charger->plat_data->is_battery_present)

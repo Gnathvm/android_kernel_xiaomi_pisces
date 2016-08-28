@@ -21,11 +21,34 @@
  *   1 - substitute AC to USB unconditional
 */
 
+#include <linux/module.h>
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 #include <linux/fastchg.h>
 
+static struct raw_notifier_head notifier_header;
 int force_fast_charge = FAST_CHARGE_DISABLED;
+
+/**
+ * force_fast_charge_register_notifier() - Register a notifee to get notified
+ *			      when force_fast_charge is changed
+ * @nb:		a notifier block to be registered.
+ */
+int force_fast_charge_register_notifier(struct notifier_block *nb)
+{
+	return raw_notifier_chain_register(&notifier_header, nb);
+}
+EXPORT_SYMBOL_GPL(force_fast_charge_register_notifier);
+
+/**
+ * force_fast_charge_unregister_notifier() - Unregister a notifee
+ * @nb:		a registered notifier block to be unregistered.
+ */
+int force_fast_charge_unregister_notifier(struct notifier_block *nb)
+{
+	return raw_notifier_chain_unregister(&notifier_header, nb);
+}
+EXPORT_SYMBOL_GPL(force_fast_charge_unregister_notifier);
 
 /* sysfs interface for "force_fast_charge" */
 static ssize_t force_fast_charge_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
@@ -42,7 +65,10 @@ static ssize_t force_fast_charge_store(struct kobject *kobj, struct kobj_attribu
 
 	if (new_force_fast_charge >= FAST_CHARGE_DISABLED && new_force_fast_charge <= FAST_CHARGE_FORCE_AC) {
 		/* update only if valid value provided */
-		force_fast_charge = new_force_fast_charge;
+		if (force_fast_charge != new_force_fast_charge) {
+			force_fast_charge = new_force_fast_charge;
+			raw_notifier_call_chain(&notifier_header, force_fast_charge, NULL);
+		}
 	}
 
 	return count;
@@ -82,6 +108,7 @@ int force_fast_charge_init(void)
 	if (force_fast_charge_retval)
 		kobject_put(force_fast_charge_kobj);
 
+	RAW_INIT_NOTIFIER_HEAD(&notifier_header);
 	return (force_fast_charge_retval);
 }
 

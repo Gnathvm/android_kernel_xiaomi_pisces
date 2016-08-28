@@ -15,13 +15,19 @@
 #ifndef _LINUX_FASTCHG_H
 #define _LINUX_FASTCHG_H
 
+#include <linux/notifier.h>
+
 #define FAST_CHARGE_DISABLED 0	/* default */
 #define FAST_CHARGE_FORCE_AC 1
 
 #ifdef CONFIG_FORCE_FAST_CHARGE
 extern int force_fast_charge;
+extern int force_fast_charge_register_notifier(struct notifier_block *nb);
+extern int force_fast_charge_unregister_notifier(struct notifier_block *nb);
 #else
-static int force_fast_charge = FAST_CHARGE_DISABLED;
+enum { force_fast_charge = FAST_CHARGE_DISABLED };
+static inline int force_fast_charge_register_notifier(struct notifier_block *nb) { return 0; }
+static inline int force_fast_charge_unregister_notifier(struct notifier_block *nb) { return 0; }
 #endif
 
 #endif
