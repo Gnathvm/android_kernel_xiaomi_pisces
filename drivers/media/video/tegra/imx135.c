@@ -3127,7 +3127,7 @@ static ssize_t imx135_debugfs_write(
 	char buffer[24];
 	u32 address;
 	u32 data;
-	u8 readback;
+	u8 readback = 0;
 
 	dev_dbg(&i2c_client->dev, "%s: ++\n", __func__);
 
