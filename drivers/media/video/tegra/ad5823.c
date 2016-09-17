@@ -301,7 +301,7 @@ static void ad5823_gpio_able(struct ad5823_info *info, int val)
 static void ad5823_gpio_exit(struct ad5823_info *info)
 {
 	unsigned i;
-	for (i = 0; i <= ARRAY_SIZE(ad5823_gpios); i++) {
+	for (i = 0; i < ARRAY_SIZE(ad5823_gpios); i++) {
 		if (info->gpio[i].flag && info->gpio[i].own) {
 			gpio_free(info->gpio[i].gpio);
 			info->gpio[i].own = false;
