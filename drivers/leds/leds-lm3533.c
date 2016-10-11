@@ -62,7 +62,8 @@ struct lm3533_led {
 	bool patten_enabled;
 };
 
-struct lm3533_led *color_leds[3];
+#define COLORLEDS_COUNT 3
+struct lm3533_led *color_leds[COLORLEDS_COUNT];
 struct work_struct color_work;
 
 static inline struct lm3533_led *to_lm3533_led(struct led_classdev *cdev)
@@ -143,7 +144,13 @@ static void lm3533_led_update(struct lm3533_led *led)
 static void lm3533_update_work(struct work_struct *work)
 {
 	int i;
-	for (i = 0; i < 3; i++)
+
+	for (i = 0; i < COLORLEDS_COUNT; i++) {
+		lm3533_led_pattern_enable(color_leds[i], 0);
+		lm3533_ctrlbank_set_brightness(&color_leds[i]->cb, 0);
+	}
+
+	for (i = 0; i < COLORLEDS_COUNT; i++)
 		lm3533_led_update(color_leds[i]);
 
 }
