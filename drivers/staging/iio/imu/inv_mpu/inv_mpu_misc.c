@@ -475,6 +475,7 @@ int inv_get_silicon_rev_mpu6050(struct inv_mpu_iio_s *st)
 		prod_ver = GENERAL_PRODUCT_ID;
 		prod_rev = GENERAL_PRODUCT_REV;
 		sw_rev = GENERAL_SW_REV;
+		result = 0;
 		goto fill_chip_info;
 	}
 #endif
