@@ -2,6 +2,7 @@
  * Linux OS Independent Layer
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +22,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: linux_osl.h 411126 2013-07-05 01:22:09Z $
+ * $Id: linux_osl.h 386902 2013-02-22 09:10:37Z $
  */
 
 #ifndef _linux_osl_h_
@@ -66,9 +67,6 @@ extern void osl_assert(const char *exp, const char *file, int line);
 /* microsecond delay */
 #define	OSL_DELAY(usec)		osl_delay(usec)
 extern void osl_delay(uint usec);
-
-#define OSL_SLEEP(ms)			osl_sleep(ms)
-extern void osl_sleep(uint ms);
 
 #define	OSL_PCMCIA_READ_ATTR(osh, offset, buf, size) \
 	osl_pcmcia_read_attr((osh), (offset), (buf), (size))
@@ -141,8 +139,8 @@ extern void osl_dma_free_consistent(osl_t *osh, void *va, uint size, ulong pa);
 /* map/unmap shared (dma-able) memory */
 #define	DMA_UNMAP(osh, pa, size, direction, p, dmah) \
 	osl_dma_unmap((osh), (pa), (size), (direction))
-extern uint osl_dma_map(osl_t *osh, void *va, uint size, int direction, void *p,
-	hnddma_seg_map_t *txp_dmah);
+extern uint osl_dma_map(osl_t *osh, void *va, uint size, int direction,
+			void *p, hnddma_seg_map_t * txp_dmah);
 extern void osl_dma_unmap(osl_t *osh, uint pa, uint size, int direction);
 
 /* API for DMA addressing capability */
@@ -283,7 +281,7 @@ extern int osl_error(int bcmerror);
 #define	PKTLEN(osh, skb)		(((struct sk_buff*)(skb))->len)
 #define PKTHEADROOM(osh, skb)		(PKTDATA(osh, skb)-(((struct sk_buff*)(skb))->head))
 #define PKTTAILROOM(osh, skb)		skb_tailroom((struct sk_buff*)(skb))
-#define PKTPADTAILROOM(osh, skb, padlen)		osh_pktpadtailroom((osh), (skb), (padlen))
+#define PKTPADTAILROOM(osh, skb, padlen)		skb_pad((struct sk_buff*)(skb), (padlen))
 #define	PKTNEXT(osh, skb)		(((struct sk_buff*)(skb))->next)
 #define	PKTSETNEXT(osh, skb, x)		(((struct sk_buff*)(skb))->next = (struct sk_buff*)(x))
 #define	PKTSETLEN(osh, skb, len)	__skb_trim((struct sk_buff*)(skb), (len))
@@ -421,8 +419,8 @@ extern void osl_ctfpool_stats(osl_t *osh, void *b);
 #define	PKTISCHAINED(skb)	(((struct sk_buff*)(skb))->__unused & CHAINED)
 #endif /* 2.6.22 */
 typedef struct ctf_mark {
-	uint32	value;
-}	ctf_mark_t;
+	uint32 value;
+} ctf_mark_t;
 #define CTF_MARK(m)				(m.value)
 #else /* HNDCTF */
 #define	PKTSETSKIPCT(osh, skb)
@@ -434,22 +432,21 @@ typedef struct ctf_mark {
 extern void osl_pktfree(osl_t *osh, void *skb, bool send);
 extern void *osl_pktget_static(osl_t *osh, uint len);
 extern void osl_pktfree_static(osl_t *osh, void *skb, bool send);
-extern int osh_pktpadtailroom(osl_t *osh, void* skb, int pad);
 
 #ifdef BCMDBG_CTRACE
 #define PKT_CTRACE_DUMP(osh, b)	osl_ctrace_dump((osh), (b))
-extern void *osl_pktget(osl_t *osh, uint len, int line, char *file);
-extern void *osl_pkt_frmnative(osl_t *osh, void *skb, int line, char *file);
-extern int osl_pkt_is_frmnative(osl_t *osh, struct sk_buff *pkt);
-extern void *osl_pktdup(osl_t *osh, void *skb, int line, char *file);
+extern void *osl_pktget(osl_t * osh, uint len, int line, char *file);
+extern void *osl_pkt_frmnative(osl_t * osh, void *skb, int line, char *file);
+extern int osl_pkt_is_frmnative(osl_t * osh, struct sk_buff *pkt);
+extern void *osl_pktdup(osl_t * osh, void *skb, int line, char *file);
 struct bcmstrbuf;
-extern void osl_ctrace_dump(osl_t *osh, struct bcmstrbuf *b);
+extern void osl_ctrace_dump(osl_t * osh, struct bcmstrbuf *b);
 #else
-extern void *osl_pkt_frmnative(osl_t *osh, void *skb);
-extern void *osl_pktget(osl_t *osh, uint len);
-extern void *osl_pktdup(osl_t *osh, void *skb);
+extern void *osl_pkt_frmnative(osl_t * osh, void *skb);
+extern void *osl_pktget(osl_t * osh, uint len);
+extern void *osl_pktdup(osl_t * osh, void *skb);
 #endif /* BCMDBG_CTRACE */
-extern struct sk_buff *osl_pkt_tonative(osl_t *osh, void *pkt);
+extern struct sk_buff *osl_pkt_tonative(osl_t * osh, void *pkt);
 #ifdef BCMDBG_CTRACE
 #define PKTFRMNATIVE(osh, skb)  osl_pkt_frmnative(((osl_t *)osh), \
 				(struct sk_buff*)(skb), __LINE__, __FILE__)
@@ -483,7 +480,7 @@ extern struct sk_buff *osl_pkt_tonative(osl_t *osh, void *pkt);
 #endif /* CONFIG_NF_CONNTRACK_MARK */
 
 #define PKTALLOCED(osh)		osl_pktalloced(osh)
-extern uint osl_pktalloced(osl_t *osh);
+extern uint osl_pktalloced(osl_t * osh);
 
 #define	DMA_MAP(osh, va, size, direction, p, dmah) \
 	osl_dma_map((osh), (va), (size), (direction), (p), (dmah))
@@ -498,11 +495,11 @@ struct chain_node {
 #define CHAIN_NODE(skb)		((struct chain_node*)(((struct sk_buff*)skb)->pktc_cb))
 
 #define	PKTCSETATTR(s, f, p, b)	({CHAIN_NODE(s)->flags = (f); CHAIN_NODE(s)->pkts = (p); \
-	                         CHAIN_NODE(s)->bytes = (b);})
+							CHAIN_NODE(s)->bytes = (b); })
 #define	PKTCCLRATTR(s)		({CHAIN_NODE(s)->flags = CHAIN_NODE(s)->pkts = \
-	                         CHAIN_NODE(s)->bytes = 0;})
+							CHAIN_NODE(s)->bytes = 0; })
 #define	PKTCGETATTR(s)		(CHAIN_NODE(s)->flags << 29 | CHAIN_NODE(s)->pkts << 20 | \
-	                         CHAIN_NODE(s)->bytes)
+							CHAIN_NODE(s)->bytes)
 #define	PKTCCNT(skb)		(CHAIN_NODE(skb)->pkts)
 #define	PKTCLEN(skb)		(CHAIN_NODE(skb)->bytes)
 #define	PKTCGETFLAGS(skb)	(CHAIN_NODE(skb)->flags)

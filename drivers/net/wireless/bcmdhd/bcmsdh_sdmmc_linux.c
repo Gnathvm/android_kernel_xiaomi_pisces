@@ -2,6 +2,7 @@
  * BCMSDH Function Driver for the native SDIO/MMC driver in the Linux Kernel
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +22,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdh_sdmmc_linux.c 425711 2013-09-25 06:40:41Z $
+ * $Id: bcmsdh_sdmmc_linux.c 383841 2013-02-08 00:10:58Z $
  */
 
 #include <typedefs.h>
@@ -69,7 +70,6 @@
 #define SDIO_DEVICE_ID_BROADCOM_43239    43239
 #endif /* !defined(SDIO_DEVICE_ID_BROADCOM_43239) */
 
-
 #include <bcmsdh_sdmmc.h>
 
 #include <dhd_dbg.h>
@@ -103,9 +103,6 @@ PBCMSDH_SDMMC_INSTANCE gInstance;
 
 extern int bcmsdh_probe(struct device *dev);
 extern int bcmsdh_remove(struct device *dev);
-#if defined(CONFIG_WIFI_CONTROL_FUNC)
-extern int wifi_set_carddetect(int on);
-#endif
 extern volatile bool dhd_mmc_suspend;
 
 static int bcmsdh_sdmmc_probe(struct sdio_func *func,
@@ -113,14 +110,6 @@ static int bcmsdh_sdmmc_probe(struct sdio_func *func,
 {
 	int ret = 0;
 	static struct sdio_func sdio_func_0;
-
-#if defined(CONFIG_WIFI_CONTROL_FUNC)
-	/* sdio card detection is completed so stop card detection here */
-	wifi_set_carddetect(0);
-#endif
-
-	if (!gInstance)
-		return -EINVAL;
 
 	if (func) {
 		sd_trace(("bcmsdh_sdmmc: %s Enter\n", __FUNCTION__));
@@ -145,14 +134,13 @@ static int bcmsdh_sdmmc_probe(struct sdio_func *func,
 		if (func->num == 2) {
 	#ifdef WL_CFG80211
 			wl_cfg80211_set_parent_dev(&func->dev);
-	#endif
+#endif
 			sd_trace(("F2 found, calling bcmsdh_probe...\n"));
 			ret = bcmsdh_probe(&func->dev);
-			if (ret < 0)
+			if (ret < 0 && gInstance)
 				gInstance->func[2] = NULL;
-
 			if (mmc_power_save_host(func->card->host))
-				sd_err(("%s: card power save fail", __func__));
+				sd_err(("%s: card power save fail", __FUNCTION__));
 		}
 	} else {
 		ret = -ENODEV;
@@ -195,8 +183,8 @@ static const struct sdio_device_id bcmsdh_sdmmc_ids[] = {
 	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4334) },
 	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_4324) },
 	{ SDIO_DEVICE(SDIO_VENDOR_ID_BROADCOM, SDIO_DEVICE_ID_BROADCOM_43239) },
-	{ SDIO_DEVICE_CLASS(SDIO_CLASS_NONE)		},
-	{ /* end: all zeroes */				},
+	{ SDIO_DEVICE_CLASS(SDIO_CLASS_NONE)},
+	{ /* end: all zeroes */},
 };
 
 MODULE_DEVICE_TABLE(sdio, bcmsdh_sdmmc_ids);
@@ -214,6 +202,7 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 	sd_trace(("%s Enter\n", __FUNCTION__));
 	if (dhd_os_check_wakelock(bcmsdh_get_drvdata()))
 		return -EBUSY;
+
 	sdio_flags = sdio_get_host_pm_caps(func);
 
 	if (!(sdio_flags & MMC_PM_KEEP_POWER)) {
@@ -227,9 +216,10 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 		sd_err(("%s: error while trying to keep power\n", __FUNCTION__));
 		return ret;
 	}
+
 #if defined(OOB_INTR_ONLY)
 	bcmsdh_oob_intr_set(0);
-#endif 
+#endif
 	dhd_mmc_suspend = TRUE;
 	smp_mb();
 
@@ -240,13 +230,13 @@ static int bcmsdh_sdmmc_resume(struct device *pdev)
 {
 #if defined(OOB_INTR_ONLY)
 	struct sdio_func *func = dev_to_sdio_func(pdev);
-#endif 
+#endif
 	sd_trace(("%s Enter\n", __FUNCTION__));
 	dhd_mmc_suspend = FALSE;
 #if defined(OOB_INTR_ONLY)
 	if ((func->num == 2) && dhd_os_check_if_up(bcmsdh_get_drvdata()))
 		bcmsdh_oob_intr_set(1);
-#endif 
+#endif
 
 	smp_mb();
 	return 0;
@@ -264,10 +254,6 @@ static struct semaphore *notify_semaphore = NULL;
 static int dummy_probe(struct sdio_func *func,
                               const struct sdio_device_id *id)
 {
-	if (func && (func->num != 2)) {
-		return 0;
-	}
-
 	if (notify_semaphore)
 		up(notify_semaphore);
 	return 0;
@@ -282,7 +268,7 @@ static struct sdio_driver dummy_sdmmc_driver = {
 	.remove		= dummy_remove,
 	.name		= "dummy_sdmmc",
 	.id_table	= bcmsdh_sdmmc_ids,
-	};
+};
 
 int sdio_func_reg_notify(void* semaphore)
 {
@@ -292,7 +278,6 @@ int sdio_func_reg_notify(void* semaphore)
 
 void sdio_func_unreg_notify(void)
 {
-	OSL_SLEEP(15);
 	sdio_unregister_driver(&dummy_sdmmc_driver);
 }
 

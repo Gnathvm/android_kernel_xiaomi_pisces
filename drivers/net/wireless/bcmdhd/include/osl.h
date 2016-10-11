@@ -2,6 +2,7 @@
  * OS Abstraction Layer
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -99,5 +100,6 @@ typedef void  (*osl_wreg_fn_t)(void *ctx, volatile void *reg, unsigned int val, 
 #define PKTCLRCHAINED(osh, skb)
 #define PKTISCHAINED(skb)	(FALSE)
 #endif
+
 
 #endif	/* _osl_h_ */

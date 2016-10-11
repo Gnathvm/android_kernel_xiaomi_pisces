@@ -408,7 +408,6 @@ typedef struct wifi_p2p_noa_se wifi_p2p_noa_se_t;
 #define P2P_NOA_SE_FIXED_LEN	5
 
 #define P2P_NOA_SE_MAX_DESC	2	/* max NoA descriptors in presence request */
-
 /* cnt_type field values */
 #define P2P_NOA_DESC_CNT_RESERVED	0	/* reserved and should not be used */
 #define P2P_NOA_DESC_CNT_REPEAT		255	/* continuous schedule */

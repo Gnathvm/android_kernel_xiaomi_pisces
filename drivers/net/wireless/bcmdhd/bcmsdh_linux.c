@@ -2,6 +2,7 @@
  * SDIO access interface for drivers - linux specific (pci only)
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +22,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmsdh_linux.c 414953 2013-07-26 17:36:27Z $
+ * $Id: bcmsdh_linux.c 384887 2013-02-13 13:23:52Z $
  */
 
 /**
@@ -48,6 +49,7 @@ extern void dhdsdio_isr(void * args);
 #include <dngl_stats.h>
 #include <dhd.h>
 #endif 
+
 
 /**
  * SDIO Host Controller info
@@ -239,8 +241,8 @@ int bcmsdh_probe(struct device *dev)
 	vendevid = bcmsdh_query_device(sdh);
 	/* try to attach to the target device */
 	if (!(sdhc->ch = drvinfo.attach((vendevid >> 16),
-	                                 (vendevid & 0xFFFF), 0, 0, 0, 0,
-	                                (void *)regs, NULL, sdh, dev))) {
+					(vendevid & 0xFFFF), 0, 0, 0, 0,
+					(void *)regs, NULL, sdh))) {
 		SDLX_MSG(("%s: device attach failed\n", __FUNCTION__));
 		goto err;
 	}
@@ -268,6 +270,7 @@ int bcmsdh_remove(struct device *dev)
 	bcmsdh_hc_t *sdhc, *prev;
 	osl_t *osh;
 	int sdhcinfo_null = false;
+
 
 	/* find the SDIO Host Controller state for this pdev and take it out from the list */
 	for (sdhc = sdhcinfo, prev = NULL; sdhc; sdhc = sdhc->next) {
@@ -429,8 +432,7 @@ bcmsdh_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	/* we can't solely rely on this to believe it is our SDIO Host Controller! */
 	if (!bcmsdh_chipmatch(pdev->vendor, pdev->device)) {
 		if (pdev->vendor == VENDOR_BROADCOM) {
-			SDLX_MSG(("%s: Unknown Broadcom device (vendor: %#x, device: %#x).\n",
-				__FUNCTION__, pdev->vendor, pdev->device));
+			SDLX_MSG(("%s: Unknown Broadcom device (vendor: %#x, device: %#x).\n", __FUNCTION__, pdev->vendor, pdev->device));
 		}
 		return -ENODEV;
 	}
@@ -479,7 +481,7 @@ bcmsdh_pci_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	/* try to attach to the target device */
 	if (!(sdhc->ch = drvinfo.attach(VENDOR_BROADCOM, /* pdev->vendor, */
 	                                bcmsdh_query_device(sdh) & 0xFFFF, 0, 0, 0, 0,
-	                                (void *)regs, NULL, sdh, pdev->dev))) {
+									(void *)regs, NULL, sdh))) {
 		SDLX_MSG(("%s: device attach failed\n", __FUNCTION__));
 		goto err;
 	}
@@ -689,14 +691,6 @@ void bcmsdh_unregister_oob_intr(void)
 		free_irq(sdhcinfo->oob_irq, NULL);
 		sdhcinfo->oob_irq_registered = FALSE;
 	}
-}
-
-bool bcmsdh_is_oob_intr_registered(void)
-{
-	if (sdhcinfo)
-		return sdhcinfo->oob_irq_registered;
-	else
-		return FALSE;
 }
 #endif 
 

@@ -1,5 +1,6 @@
 /*
 * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
 * 
 *      Unless you and Broadcom execute a separate written software license
 * agreement governing use of this software, this software is licensed to you
@@ -81,7 +82,7 @@
 
 #define WLFC_CTL_TYPE_MACDESC_ADD		6
 #define WLFC_CTL_TYPE_MACDESC_DEL		7
-#define WLFC_CTL_TYPE_RSSI			8
+#define WLFC_CTL_TYPE_RSSI					8
 
 #define WLFC_CTL_TYPE_INTERFACE_OPEN		9
 #define WLFC_CTL_TYPE_INTERFACE_CLOSE		10
@@ -95,9 +96,8 @@
 #define WLFC_CTL_TYPE_TX_ENTRY_STAMP		15
 #define WLFC_CTL_TYPE_RX_STAMP			16
 
-#define WLFC_CTL_TYPE_TRANS_ID			18
-#define WLFC_CTL_TYPE_COMP_TXSTATUS		19
-
+#define WLFC_CTL_TYPE_TRANS_ID                  18
+#define WLFC_CTL_TYPE_COMP_TXSTATUS             19
 
 #define WLFC_CTL_TYPE_FILLER			255
 
@@ -117,7 +117,6 @@
 
 #define WLFC_CTL_VALUE_LEN_REQUEST_CREDIT	3	/* credit, MAC-handle, prec_bitmap */
 #define WLFC_CTL_VALUE_LEN_REQUEST_PACKET	3	/* credit, MAC-handle, prec_bitmap */
-
 
 #define WLFC_PKTID_GEN_MASK		0x80000000
 #define WLFC_PKTID_GEN_SHIFT	31
@@ -223,8 +222,7 @@
 #define WLHOST_REORDERDATA_CURIDX_VALID		0x04
 #define WLHOST_REORDERDATA_EXPIDX_VALID		0x08
 #define WLHOST_REORDERDATA_NEW_HOLE		0x10
-
 /* transaction id data len byte 0: rsvd, byte 1: seqnumber, byte 2-5 will be used for timestampe */
-#define WLFC_CTL_TRANS_ID_LEN			6
+#define WLFC_CTL_TRANS_ID_LEN                   6
 
 #endif /* __wlfc_proto_definitions_h__ */

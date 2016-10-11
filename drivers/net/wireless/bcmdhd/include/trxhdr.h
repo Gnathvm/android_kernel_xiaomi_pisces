@@ -2,6 +2,7 @@
  * TRX image file header format.
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -39,10 +40,10 @@
 #define TRX_BOOTLOADER		0x40	/* the image is a bootloader */
 
 #define TRX_V1		1
-#define TRX_V1_MAX_OFFSETS	3		/* V1: Max number of individual files */
+#define TRX_V1_MAX_OFFSETS	3	/* V1: Max number of individual files */
 
 #ifndef BCMTRXV2
-#define TRX_VERSION	TRX_V1		/* Version 1 */
+#define TRX_VERSION	TRX_V1	/* Version 1 */
 #define TRX_MAX_OFFSET TRX_V1_MAX_OFFSETS
 #endif
 
@@ -67,7 +68,7 @@ struct trx_header {
 };
 
 #ifdef BCMTRXV2
-#define TRX_VERSION		TRX_V2		/* Version 2 */
+#define TRX_VERSION		TRX_V2	/* Version 2 */
 #define TRX_MAX_OFFSET  TRX_V2_MAX_OFFSETS
 
 #define TRX_V2		2
@@ -81,7 +82,7 @@ struct trx_header {
 #define ISTRX_V1(trx)		(TRX_VER(trx) == TRX_V1)
 #define ISTRX_V2(trx)		(TRX_VER(trx) == TRX_V2)
 /* For V2, return size of V2 size: others, return V1 size */
-#define SIZEOF_TRX(trx)	    (ISTRX_V2(trx) ? SIZEOF_TRXHDR_V2: SIZEOF_TRXHDR_V1)
+#define SIZEOF_TRX(trx)	    (ISTRX_V2(trx) ? SIZEOF_TRXHDR_V2 : SIZEOF_TRXHDR_V1)
 #else
 #define SIZEOF_TRX(trx)	    (sizeof(struct trx_header))
 #endif /* BCMTRXV2 */

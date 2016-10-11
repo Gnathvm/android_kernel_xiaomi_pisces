@@ -1,7 +1,8 @@
 /*
  * BT-AMP support routines
  *
- * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 1999-2013, Broadcom Corporationa
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -23,7 +24,9 @@
  *
  * $Id: dhd_bta.c 379512 2013-01-17 22:49:08Z $
  */
+#ifndef WLBTAMP
 #error "WLBTAMP is not defined"
+#endif	/* WLBTAMP */
 
 #include <typedefs.h>
 #include <osl.h>
@@ -320,10 +323,10 @@ dhd_bta_doevt(dhd_pub_t *dhdp, void *data_buf, uint data_len)
 		switch (ltoh16_ua((uint8 *)&parms->opcode)) {
 		case HCI_Read_Data_Block_Size: {
 			read_data_block_size_evt_parms_t *parms2 =
-			        (read_data_block_size_evt_parms_t *)parms->parms;
+				(read_data_block_size_evt_parms_t *)parms->parms;
 			dhdp->maxdatablks = ltoh16_ua((uint8 *)&parms2->data_block_num);
 			break;
-		}
+			}
 		}
 		break;
 	}

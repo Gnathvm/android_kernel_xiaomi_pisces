@@ -1,7 +1,7 @@
 /*
  * Broadcom AMBA Interconnect definitions.
  *
- * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 1999-2012, Broadcom Corporation
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: aidmp.h 385510 2013-02-15 21:02:07Z $
+ * $Id: aidmp.h 241182 2011-02-17 21:50:03Z $
  */
 
 #ifndef	_AIDMP_H
@@ -383,4 +383,4 @@ typedef volatile struct _aidmp {
 #define AI_OOBSEL_6_SHIFT	16
 #define AI_OOBSEL_7_SHIFT	24
 
-#endif	/* _AIDMP_H */
+#endif /* _AIDMP_H */

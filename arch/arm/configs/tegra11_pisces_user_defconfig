@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 3.4.35 Kernel Configuration
+# Linux/arm 3.4.67 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_ARM_HAS_SG_CHAIN=y
@@ -1606,12 +1606,9 @@ CONFIG_WLAN=y
 CONFIG_BCMDHD=y
 CONFIG_BCMDHD_FW_PATH="/system/vendor/firmware/bcm43341/fw_bcmdhd.bin"
 CONFIG_BCMDHD_NVRAM_PATH="/system/etc/nvram_43341.txt"
-# CONFIG_BCMDHD_HW_OOB is not set
-# CONFIG_BCMDHD_INSMOD_NO_FW_LOAD is not set
-# CONFIG_BCMDHD_EDP_SUPPORT is not set
 # CONFIG_DHD_USE_STATIC_BUF is not set
 # CONFIG_DHD_USE_SCHED_SCAN is not set
-# CONFIG_BCMDHD_DISABLE_P2P_SYSFS_DEVICE_NODE is not set
+# CONFIG_BCMDHD_EDP_SUPPORT is not set
 # CONFIG_BCM4335 is not set
 # CONFIG_BRCMFMAC is not set
 # CONFIG_SD8797 is not set

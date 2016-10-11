@@ -2,13 +2,14 @@
  * DHD Protocol Module for CDC and BDC.
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
- * 
+ * Copyright (C) 2016 XiaoMi, Inc.
+ *
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
  * under the terms of the GNU General Public License version 2 (the "GPL"),
  * available at http://www.broadcom.com/licenses/GPLv2.php, with the
  * following added to such license:
- * 
+ *
  *      As a special exception, the copyright holders of this software give you
  * permission to link this software with independent modules, and to copy and
  * distribute the resulting executable under terms of your choice, provided that
@@ -16,12 +17,12 @@
  * the license of that module.  An independent module is a module which is not
  * derived from this software.  The special exception does not apply to any
  * modifications of the software.
- * 
+ *
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_cdc.c 424024 2013-09-15 14:00:46Z $
+ * $Id: dhd_cdc.c 386671 2013-02-21 14:40:13Z $
  *
  * BDC is like CDC, except it includes a header for data packets to convey
  * packet priority over the bus, and flags (e.g. to indicate checksum status
@@ -56,6 +57,7 @@
 #define ROUND_UP_MARGIN	2048	/* Biggest SDIO block size possible for
 				 * round off at the end of buffer
 				 */
+
 
 typedef struct dhd_prot {
 	uint16 reqid;
@@ -117,6 +119,7 @@ dhdcdc_query_ioctl(dhd_pub_t *dhd, int ifidx, uint cmd, void *buf, uint len, uin
 {
 	dhd_prot_t *prot = dhd->prot;
 	cdc_ioctl_t *msg = &prot->msg;
+	void *info;
 	int ret = 0, retries = 0;
 	uint32 id, flags = 0;
 
@@ -176,12 +179,15 @@ retry:
 		goto done;
 	}
 
+	/* Check info buffer */
+	info = (void*)&msg[1];
+
 	/* Copy info buffer */
 	if (buf)
 	{
 		if (ret < (int)len)
 			len = ret;
-		memcpy(buf, (void*) prot->buf, len);
+		memcpy(buf, info, len);
 	}
 
 	/* Check the ERROR flag */
@@ -219,6 +225,7 @@ dhdcdc_set_ioctl(dhd_pub_t *dhd, int ifidx, uint cmd, void *buf, uint len, uint8
 			__FUNCTION__));
 		return -EIO;
 	}
+
 
 	memset(msg, 0, sizeof(cdc_ioctl_t));
 
@@ -398,7 +405,7 @@ dhd_prot_hdrpull(dhd_pub_t *dhd, int *ifidx, void *pktbuf, uchar *reorder_buf_in
 
 	if (PKTLEN(dhd->osh, pktbuf) < BDC_HEADER_LEN) {
 		DHD_ERROR(("%s: rx data too short (%d < %d)\n", __FUNCTION__,
-		           PKTLEN(dhd->osh, pktbuf), BDC_HEADER_LEN));
+				PKTLEN(dhd->osh, pktbuf), BDC_HEADER_LEN));
 		return BCME_ERROR;
 	}
 
@@ -413,13 +420,13 @@ dhd_prot_hdrpull(dhd_pub_t *dhd, int *ifidx, void *pktbuf, uchar *reorder_buf_in
 
 	if ((*ifidx = BDC_GET_IF_IDX(h)) >= DHD_MAX_IFS) {
 		DHD_ERROR(("%s: rx data ifnum out of range (%d)\n",
-		           __FUNCTION__, *ifidx));
+				__FUNCTION__, *ifidx));
 		return BCME_ERROR;
 	}
 
 	if (((h->flags & BDC_FLAG_VER_MASK) >> BDC_FLAG_VER_SHIFT) != BDC_PROTO_VER) {
 		DHD_ERROR(("%s: non-BDC packet received, flags = 0x%x\n",
-		           dhd_ifname(dhd, *ifidx), h->flags));
+				dhd_ifname(dhd, *ifidx), h->flags));
 		if (((h->flags & BDC_FLAG_VER_MASK) >> BDC_FLAG_VER_SHIFT) == BDC_PROTO_VER_1)
 			h->dataOffset = 0;
 		else
@@ -428,7 +435,7 @@ dhd_prot_hdrpull(dhd_pub_t *dhd, int *ifidx, void *pktbuf, uchar *reorder_buf_in
 
 	if (h->flags & BDC_FLAG_SUM_GOOD) {
 		DHD_INFO(("%s: BDC packet received with good rx-csum, flags 0x%x\n",
-		          dhd_ifname(dhd, *ifidx), h->flags));
+				dhd_ifname(dhd, *ifidx), h->flags));
 		PKTSETSUMGOOD(pktbuf, TRUE);
 	}
 
@@ -446,6 +453,7 @@ dhd_prot_hdrpull(dhd_pub_t *dhd, int *ifidx, void *pktbuf, uchar *reorder_buf_in
 		/*
 		- parse txstatus only for packets that came from the firmware
 		*/
+
 		dhd_wlfc_parse_header_info(dhd, pktbuf, (data_offset << 2),
 			reorder_buf_info, reorder_info_len);
 		((athost_wl_status_info_t*)dhd->wlfc_state)->stats.dhd_hdrpulls++;
@@ -467,6 +475,7 @@ dhd_wlfc_trigger_pktcommit(dhd_pub_t *dhd)
 	if (dhd->wlfc_state &&
 		(((athost_wl_status_info_t*)dhd->wlfc_state)->proptxstatus_mode
 		!= WLFC_FCMODE_NONE)) {
+
 		dhd_wlfc_commit_packets(dhd->wlfc_state, (f_commitpkt_t)dhd_bus_txdata,
 			(void *)dhd->bus, NULL);
 	}
@@ -514,8 +523,6 @@ dhd_prot_detach(dhd_pub_t *dhd)
 {
 #ifdef PROP_TXSTATUS
 	dhd_wlfc_deinit(dhd);
-	if (dhd->plat_deinit)
-		dhd->plat_deinit((void *)dhd);
 #endif
 #ifndef CONFIG_DHD_USE_STATIC_BUF
 	MFREE(dhd->osh, dhd->prot, sizeof(dhd_prot_t));
@@ -555,6 +562,11 @@ dhd_prot_init(dhd_pub_t *dhd)
 	if (dhd_download_fw_on_driverload)
 #endif /* defined(WL_CFG80211) */
 		ret = dhd_preinit_ioctls(dhd);
+
+#ifdef PROP_TXSTATUS
+	ret = dhd_wlfc_init(dhd);
+#endif
+
 	/* Always assumes wl for now */
 	dhd->iswl = TRUE;
 

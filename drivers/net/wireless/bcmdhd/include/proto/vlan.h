@@ -2,6 +2,7 @@
  * 802.1Q VLAN protocol definitions
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -34,7 +35,7 @@
 /* This marks the start of a packed structure section. */
 #include <packed_section_start.h>
 
-#ifndef	 VLAN_VID_MASK
+#ifndef VLAN_VID_MASK
 #define VLAN_VID_MASK		0xfff	/* low 12 bits are vlan id */
 #endif
 
@@ -52,8 +53,8 @@
 #define VLAN_TPID		0x8100	/* VLAN ethertype/Tag Protocol ID */
 
 struct vlan_header {
-	uint16	vlan_type;		/* 0x8100 */
-	uint16	vlan_tag;		/* priority, cfi and vid */
+	uint16 vlan_type;	/* 0x8100 */
+	uint16 vlan_tag;	/* priority, cfi and vid */
 };
 
 struct ethervlan_header {
@@ -65,22 +66,21 @@ struct ethervlan_header {
 };
 
 struct dot3_mac_llc_snapvlan_header {
-	uint8	ether_dhost[ETHER_ADDR_LEN];	/* dest mac */
-	uint8	ether_shost[ETHER_ADDR_LEN];	/* src mac */
-	uint16	length;				/* frame length incl header */
-	uint8	dsap;				/* always 0xAA */
-	uint8	ssap;				/* always 0xAA */
-	uint8	ctl;				/* always 0x03 */
-	uint8	oui[3];				/* RFC1042: 0x00 0x00 0x00
-						 * Bridge-Tunnel: 0x00 0x00 0xF8
-						 */
-	uint16	vlan_type;			/* 0x8100 */
-	uint16	vlan_tag;			/* priority, cfi and vid */
-	uint16	ether_type;			/* ethertype */
+	uint8 ether_dhost[ETHER_ADDR_LEN];	/* dest mac */
+	uint8 ether_shost[ETHER_ADDR_LEN];	/* src mac */
+	uint16 length;		/* frame length incl header */
+	uint8 dsap;		/* always 0xAA */
+	uint8 ssap;		/* always 0xAA */
+	uint8 ctl;		/* always 0x03 */
+	uint8 oui[3];		/* RFC1042: 0x00 0x00 0x00
+				 * Bridge-Tunnel: 0x00 0x00 0xF8
+				 */
+	uint16 vlan_type;	/* 0x8100 */
+	uint16 vlan_tag;	/* priority, cfi and vid */
+	uint16 ether_type;	/* ethertype */
 };
 
 #define	ETHERVLAN_HDR_LEN	(ETHER_HDR_LEN + VLAN_TAG_LEN)
-
 
 /* This marks the end of a packed structure section. */
 #include <packed_section_end.h>
