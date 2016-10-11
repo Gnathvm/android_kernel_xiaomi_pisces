@@ -59,7 +59,7 @@ struct lm3533_led {
 	struct work_struct work;
 	u8 new_brightness;
 
-	bool patten_enabled;
+	bool pattern_enabled;
 };
 
 #define COLORLEDS_COUNT 3
@@ -133,10 +133,7 @@ static void lm3533_led_update(struct lm3533_led *led)
 {
 	dev_dbg(led->cdev.dev, "%s - %u\n", __func__, led->new_brightness);
 
-	if (led->new_brightness == 0)
-		lm3533_led_pattern_enable(led, 0);	/* disable blink */
-	else if (led->patten_enabled)
-		lm3533_led_pattern_enable(led, 1);
+	lm3533_led_pattern_enable(led, led->new_brightness != 0 && led->pattern_enabled);
 
 	lm3533_ctrlbank_set_brightness(&led->cb, led->new_brightness);
 }
@@ -169,7 +166,7 @@ static void lm3533_led_set(struct led_classdev *cdev, enum led_brightness value)
 	dev_dbg(led->cdev.dev, "%s - %d\n", __func__, value);
 
 	led->new_brightness = value;
-	if (!led->patten_enabled)
+	if (led->id >= COLORLEDS_COUNT)
 		schedule_work(&led->work);
 }
 
@@ -384,12 +381,16 @@ static ssize_t show_risefalltime(struct device *dev,
 	u8 reg;
 	u8 val;
 
-	reg = lm3533_led_get_pattern_reg(led, base);
-	ret = lm3533_read(led->lm3533, reg, &val);
-	if (ret)
-		return ret;
+	if (led->pattern_enabled) {
+		reg = lm3533_led_get_pattern_reg(led, base);
+		ret = lm3533_read(led->lm3533, reg, &val);
+		if (ret)
+			return ret;
+	} else {
+		val = 255;
+	}
 
-	return scnprintf(buf, PAGE_SIZE, "%x\n", val);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", val);
 }
 
 static ssize_t show_risetime(struct device *dev,
@@ -416,13 +417,16 @@ static ssize_t store_risefalltime(struct device *dev,
 	u8 reg;
 	int ret;
 
-	if (kstrtou8(buf, 0, &val) || val > LM3533_RISEFALLTIME_MAX)
+	if (kstrtou8(buf, 0, &val) || val > LM3533_RISEFALLTIME_MAX) {
+		led->pattern_enabled = false;
 		return -EINVAL;
+	}
 
 	reg = lm3533_led_get_pattern_reg(led, base);
 	ret = lm3533_write(led->lm3533, reg, val);
 	if (ret)
 		return ret;
+	led->pattern_enabled = true;
 
 	return len;
 }
@@ -730,7 +734,7 @@ static int __devinit lm3533_led_setup(struct lm3533_led *led,
 		if (ret)
 			return ret;
 
-		led->patten_enabled = true;
+		led->pattern_enabled = true;
 	}
 
 	return lm3533_ctrlbank_set_pwm(&led->cb, pdata->pwm);
@@ -772,7 +776,7 @@ static int __devinit lm3533_led_probe(struct platform_device *pdev)
 	led->cdev.blink_set = lm3533_led_blink_set;
 	led->cdev.brightness = LED_OFF;
 	led->id = pdev->id;
-	if (led->id < 3)
+	if (led->id < COLORLEDS_COUNT)
 		color_leds[led->id] = led;
 
 	if (led->id == 0)
