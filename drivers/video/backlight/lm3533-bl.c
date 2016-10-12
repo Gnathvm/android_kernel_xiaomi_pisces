@@ -34,6 +34,11 @@ struct lm3533_bl {
 	int id;
 	struct edp_client *lm3533_edp_client;
 	int *edp_brightness_states;
+	int			(*notify)(struct device *,
+					  int brightness);
+	void			(*notify_after)(struct device *,
+					int brightness);
+	int			(*check_fb)(struct device *, struct fb_info *);
 };
 
 static inline int lm3533_bl_get_ctrlbank_id(struct lm3533_bl *bl)
@@ -50,6 +55,10 @@ static int lm3533_backlight_set_with_edp(struct backlight_device *bd,
 	int ret;
 	unsigned int edp_state;
 	unsigned int i;
+
+	if (bl->notify)
+		brightness = bl->notify(dev, brightness);
+
 	if (bl->lm3533_edp_client) {
 		for (i = LM3533_EDP_NUM_STATES - 1; i >= 0; i--) {
 			if (brightness <= bl->edp_brightness_states[i])
@@ -72,6 +81,10 @@ static int lm3533_backlight_set_with_edp(struct backlight_device *bd,
 	}
 
 	lm3533_ctrlbank_set_brightness(&bl->cb, (u8) brightness);
+
+	if (bl->notify_after)
+		bl->notify_after(dev, brightness);
+
 	return 0;
 }
 
@@ -109,9 +122,19 @@ static int lm3533_bl_get_brightness(struct backlight_device *bd)
 	return val;
 }
 
+static int lm3533_bl_check_fb(struct backlight_device *bd,
+				  struct fb_info *info)
+{
+	struct lm3533_bl *bl = bl_get_data(bd);
+	struct device *dev = (struct device *)bl->bd;
+
+	return !bl->check_fb || bl->check_fb(dev, info);
+}
+
 static const struct backlight_ops lm3533_bl_ops = {
-	.get_brightness = lm3533_bl_get_brightness,
-	.update_status = lm3533_bl_update_status,
+	.get_brightness	= lm3533_bl_get_brightness,
+	.update_status	= lm3533_bl_update_status,
+	.check_fb	= lm3533_bl_check_fb,
 };
 
 static ssize_t show_id(struct device *dev,
@@ -364,6 +387,9 @@ static int __devinit lm3533_bl_probe(struct platform_device *pdev)
 	bl->cb.lm3533 = lm3533;
 	bl->cb.id = lm3533_bl_get_ctrlbank_id(bl);
 	bl->cb.dev = NULL;	/* until registered */
+	bl->notify = pdata->notify;
+	bl->notify_after = pdata->notify_after;
+	bl->check_fb = pdata->check_fb;
 
 	memset(&props, 0, sizeof(props));
 	props.type = BACKLIGHT_RAW;

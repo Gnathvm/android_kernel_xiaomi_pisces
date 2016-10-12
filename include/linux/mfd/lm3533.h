@@ -72,6 +72,9 @@ struct lm3533_bl_platform_data {
 	u8 linear;		/* 0 or 1 */
 	unsigned int edp_states[LM3533_EDP_NUM_STATES];
 	unsigned int edp_brightness[LM3533_EDP_NUM_STATES];
+	int (*notify)(struct device *dev, int brightness);
+	void (*notify_after)(struct device *dev, int brightness);
+	int (*check_fb)(struct device *dev, struct fb_info *info);
 };
 
 struct lm3533_led_platform_data {
