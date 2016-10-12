@@ -40,7 +40,6 @@
  */
 static struct cpufreq_driver *cpufreq_driver;
 static DEFINE_PER_CPU(struct cpufreq_policy *, cpufreq_cpu_data);
-
 #ifdef CONFIG_HOTPLUG_CPU
 /* This one keeps track of the previously set governor of a removed CPU */
 static DEFINE_PER_CPU(char[CPUFREQ_NAME_LEN], cpufreq_cpu_governor);
@@ -277,10 +276,10 @@ void cpufreq_notify_transition(struct cpufreq_freqs *freqs, unsigned int state)
 			(unsigned long)freqs->cpu);
 		trace_power_frequency(POWER_PSTATE, freqs->new, freqs->cpu);
 		trace_cpu_frequency(freqs->new, freqs->cpu);
+		srcu_notifier_call_chain(&cpufreq_transition_notifier_list,
+				CPUFREQ_POSTCHANGE, freqs);
 		if (likely(policy) && likely(policy->cpu == freqs->cpu))
 			policy->cur = freqs->new;
-		srcu_notifier_call_chain(&cpufreq_transition_notifier_list,
-					 CPUFREQ_POSTCHANGE, freqs);
 		break;
 	}
 }
@@ -809,7 +808,7 @@ static int cpufreq_add_dev_interface(unsigned int cpu,
 
 	/* prepare interface data */
 	ret = kobject_init_and_add(&policy->kobj, &ktype_cpufreq,
-				&dev->kobj, "cpufreq");
+				   &dev->kobj, "cpufreq");
 	if (ret)
 		return ret;
 
@@ -977,19 +976,23 @@ static int cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 		goto err_out_unregister;
 
 	unlock_policy_rwsem_write(cpu);
+
 	kobject_uevent(&policy->kobj, KOBJ_ADD);
 	module_put(cpufreq_driver->owner);
 	pr_debug("initialization complete\n");
 
 	return 0;
 
+
 err_out_unregister:
 	spin_lock_irqsave(&cpufreq_driver_lock, flags);
 	for_each_cpu(j, policy->cpus)
 		per_cpu(cpufreq_cpu_data, j) = NULL;
 	spin_unlock_irqrestore(&cpufreq_driver_lock, flags);
+
 	kobject_put(&policy->kobj);
 	wait_for_completion(&policy->kobj_unregister);
+
 err_unlock_policy:
 	unlock_policy_rwsem_write(cpu);
 	free_cpumask_var(policy->related_cpus);
@@ -1034,6 +1037,7 @@ static int __cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif
 		return -EINVAL;
 	}
 	per_cpu(cpufreq_cpu_data, cpu) = NULL;
+
 
 #ifdef CONFIG_SMP
 	/* if this isn't the CPU which is the parent of the kobj, we
@@ -1138,6 +1142,7 @@ static int __cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif
 	return 0;
 }
 
+
 static int cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif)
 {
 	unsigned int cpu = dev->id;
@@ -1152,6 +1157,7 @@ static int cpufreq_remove_dev(struct device *dev, struct subsys_interface *sif)
 	retval = __cpufreq_remove_dev(dev, sif);
 	return retval;
 }
+
 
 static void handle_update(struct work_struct *work)
 {
