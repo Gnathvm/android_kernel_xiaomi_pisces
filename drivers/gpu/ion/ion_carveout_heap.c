@@ -112,13 +112,18 @@ void ion_carveout_heap_unmap_dma(struct ion_heap *heap,
 void *ion_carveout_heap_map_kernel(struct ion_heap *heap,
 				   struct ion_buffer *buffer)
 {
+	void *ret;
 	int mtype = MT_MEMORY_NONCACHED;
 
 	if (buffer->flags & ION_FLAG_CACHED)
 		mtype = MT_MEMORY;
 
-	return __arm_ioremap(buffer->priv_phys, buffer->size,
+	ret = __arm_ioremap(buffer->priv_phys, buffer->size,
 			      mtype);
+	if (ret == NULL)
+		return ERR_PTR(-ENOMEM);
+
+	return ret;
 }
 
 void ion_carveout_heap_unmap_kernel(struct ion_heap *heap,
@@ -142,6 +147,8 @@ static struct ion_heap_ops carveout_heap_ops = {
 	.allocate = ion_carveout_heap_allocate,
 	.free = ion_carveout_heap_free,
 	.phys = ion_carveout_heap_phys,
+	.map_dma = ion_carveout_heap_map_dma,
+	.unmap_dma = ion_carveout_heap_unmap_dma,
 	.map_user = ion_carveout_heap_map_user,
 	.map_kernel = ion_carveout_heap_map_kernel,
 	.unmap_kernel = ion_carveout_heap_unmap_kernel,

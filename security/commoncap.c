@@ -86,6 +86,7 @@ int cap_capable(const struct cred *cred, struct user_namespace *targ_ns,
 	if (cap == CAP_NET_ADMIN && in_egroup_p(AID_NET_ADMIN))
 		return 0;
 #endif
+
 	for (;;) {
 		/* The creator of the user namespace has all caps. */
 		if (targ_ns != &init_user_ns && targ_ns->creator == cred->user)

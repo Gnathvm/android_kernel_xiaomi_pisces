@@ -39,7 +39,6 @@
 
 #include <asm/cacheflush.h>
 #include <asm/idmap.h>
-#include <asm/leds.h>
 #include <asm/processor.h>
 #include <asm/thread_notify.h>
 #include <asm/stacktrace.h>
@@ -347,6 +346,10 @@ void machine_restart(char *cmd)
 	local_fiq_disable();
 
 	machine_shutdown();
+
+	/* Flush the console to make sure all the relevant messages make it
+	 * out to the console drivers */
+	arm_machine_flush_console();
 
 	arm_pm_restart(reboot_mode, cmd);
 

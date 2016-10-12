@@ -192,7 +192,7 @@ static inline int performance_multiplier(void)
 
 static DEFINE_PER_CPU(struct menu_device, menu_devices);
 
-static void menu_update(struct cpuidle_device *dev);
+static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev);
 
 /* This implements DIV_ROUND_CLOSEST but avoids 64 bit division */
 static u64 div_round64(u64 dividend, u32 divisor)
@@ -240,7 +240,7 @@ static void detect_repeating_patterns(struct menu_device *data)
  * menu_select - selects the next idle state to enter
  * @dev: the CPU
  */
-static int menu_select(struct cpuidle_device *dev)
+static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
 	struct menu_device *data = &__get_cpu_var(menu_devices);
 	int latency_req = pm_qos_request(PM_QOS_CPU_DMA_LATENCY);
@@ -250,7 +250,7 @@ static int menu_select(struct cpuidle_device *dev)
 	struct timespec t;
 
 	if (data->needs_update) {
-		menu_update(dev);
+		menu_update(drv, dev);
 		data->needs_update = 0;
 	}
 
@@ -289,7 +289,7 @@ static int menu_select(struct cpuidle_device *dev)
 	 * unless the timer is happening really really soon.
 	 */
 	if (data->expected_us > 5 &&
-	    !dev->states[CPUIDLE_DRIVER_STATE_START].disabled)
+	    !drv->states[CPUIDLE_DRIVER_STATE_START].disabled)
 		data->last_state_idx = CPUIDLE_DRIVER_STATE_START;
 
 	/*
@@ -297,7 +297,7 @@ static int menu_select(struct cpuidle_device *dev)
 	 * our constraints.
 	 */
 	for (i = CPUIDLE_DRIVER_STATE_START; i < dev->state_count; i++) {
-		struct cpuidle_state *s = &dev->states[i];
+		struct cpuidle_state *s = &drv->states[i];
 
 		if (s->disabled)
 			continue;
@@ -326,7 +326,7 @@ static int menu_select(struct cpuidle_device *dev)
  * NOTE: it's important to be fast here because this operation will add to
  *       the overall exit latency.
  */
-static void menu_reflect(struct cpuidle_device *dev, int index)
+static void menu_reflect(struct cpuidle_driver *drv, struct cpuidle_device *dev, int index)
 {
 	struct menu_device *data = &__get_cpu_var(menu_devices);
 	data->last_state_idx = index;
@@ -338,12 +338,12 @@ static void menu_reflect(struct cpuidle_device *dev, int index)
  * menu_update - attempts to guess what happened after entry
  * @dev: the CPU
  */
-static void menu_update(struct cpuidle_device *dev)
+static void menu_update(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
 	struct menu_device *data = &__get_cpu_var(menu_devices);
 	int last_idx = data->last_state_idx;
 	unsigned int last_idle_us = cpuidle_get_last_residency(dev);
-	struct cpuidle_state *target = &dev->states[last_idx];
+	struct cpuidle_state *target = &drv->states[last_idx];
 	unsigned int measured_us;
 	u64 new_factor;
 
@@ -399,7 +399,7 @@ static void menu_update(struct cpuidle_device *dev)
  * menu_enable_device - scans a CPU's states and does setup
  * @dev: the CPU
  */
-static int menu_enable_device(struct cpuidle_device *dev)
+static int menu_enable_device(struct cpuidle_driver *drv, struct cpuidle_device *dev)
 {
 	struct menu_device *data = &per_cpu(menu_devices, dev->cpu);
 

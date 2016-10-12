@@ -57,15 +57,48 @@ static unsigned int tegra_pd_min_residency;
 extern void tegra_cpu_wfi(void);
 
 static int tegra_idle_enter_clock_gating(struct cpuidle_device *dev,
-				int index);
+			       struct cpuidle_driver *drv,
+			       int index);
+static int tegra_idle_enter_pd(struct cpuidle_device *dev,
+			       struct cpuidle_driver *drv,
+			       int index);
 
 struct cpuidle_driver tegra_idle_driver = {
 	.name = "tegra_idle",
 	.owner = THIS_MODULE,
+	.power_specified = 1,
+	.states = {
+		{
+			.name = "clock-gated",
+			.desc = "CPU clock gated",
+			.exit_latency = 10,
+			.target_residency = 10,
+			.power_usage = 600,
+			.flags = CPUIDLE_FLAG_TIME_VALID,
+			.enter = tegra_idle_enter_clock_gating,
+		},
+#ifdef CONFIG_PM_SLEEP
+		{
+			.name = "powered-down",
+			.desc = "CPU power gated",
+			.exit_latency = 10,
+			.target_residency = 10,
+			.power_usage = 0,
+			.flags = CPUIDLE_FLAG_TIME_VALID,
+			.enter = tegra_idle_enter_pd,
+		},
+#endif
+	},
+#ifdef CONFIG_PM_SLEEP
+	.state_count = 1,
+#else
+	.state_count = 2,
+#endif
 };
 
 static int tegra_idle_enter_clock_gating(struct cpuidle_device *dev,
-	int index)
+					 struct cpuidle_driver *drv,
+					 int index)
 {
 	ktime_t enter, exit;
 	s64 us;
@@ -124,17 +157,18 @@ void tegra_pd_update_target_residency(struct cpuidle_state *state)
 }
 
 static int tegra_idle_enter_pd(struct cpuidle_device *dev,
-	int index)
+			       struct cpuidle_driver *drv,
+			       int index)
 {
 	ktime_t enter, exit;
 	s64 us;
-	struct cpuidle_state *state = &dev->states[index];
+	struct cpuidle_state *state = &drv->states[index];
 	bool powered_down;
 
 	if (!power_down_in_idle || pd_disabled_by_suspend ||
 	    !tegra_idle_ops.pd_is_allowed(dev, state)) {
-		return dev->states[dev->safe_state_index].enter(dev,
-					dev->safe_state_index);
+		return drv->states[drv->safe_state_index].enter(dev, drv,
+					drv->safe_state_index);
 	}
 
 	/* cpu_idle calls us with IRQs disabled */
@@ -167,44 +201,16 @@ static int tegra_idle_enter_pd(struct cpuidle_device *dev,
 }
 #endif
 
-static int tegra_cpuidle_register_device(unsigned int cpu)
+static int tegra_cpuidle_register_device(struct cpuidle_driver *drv, unsigned int cpu)
 {
 	struct cpuidle_device *dev;
-	struct cpuidle_state *state;
 
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (!dev)
 		return -ENOMEM;
 
-	dev->state_count = 0;
+	dev->state_count = drv->state_count;
 	dev->cpu = cpu;
-	dev->power_specified = 1;
-
-	state = &dev->states[0];
-	snprintf(state->name, CPUIDLE_NAME_LEN, "clock-gated");
-	snprintf(state->desc, CPUIDLE_DESC_LEN, "CPU clock gated");
-	state->exit_latency = 10;
-	state->target_residency = 10;
-	state->power_usage = 600;
-	state->flags = CPUIDLE_FLAG_TIME_VALID;
-	state->enter = tegra_idle_enter_clock_gating;
-	dev->safe_state_index = 0;
-	dev->state_count++;
-
-#ifdef CONFIG_PM_SLEEP
-	state = &dev->states[1];
-	snprintf(state->name, CPUIDLE_NAME_LEN, "powered-down");
-	snprintf(state->desc, CPUIDLE_DESC_LEN, "CPU power gated");
-	state->exit_latency = tegra_cpu_power_good_time();
-	state->target_residency = tegra_cpu_power_off_time() +
-		tegra_cpu_power_good_time();
-	if (state->target_residency < tegra_pd_min_residency)
-		state->target_residency = tegra_pd_min_residency;
-	state->power_usage = 0;
-	state->flags = CPUIDLE_FLAG_TIME_VALID;
-	state->enter = tegra_idle_enter_pd;
-	dev->state_count++;
-#endif
 
 	if (cpuidle_register_device(dev)) {
 		pr_err("CPU%u: failed to register idle device\n", cpu);
@@ -234,6 +240,7 @@ static struct notifier_block tegra_cpuidle_pm_notifier = {
 static int __init tegra_cpuidle_init(void)
 {
 	unsigned int cpu;
+	struct cpuidle_state *state;
 	int ret;
 
 	ret = cpuidle_register_driver(&tegra_idle_driver);
@@ -248,9 +255,15 @@ static int __init tegra_cpuidle_init(void)
 	tegra_pd_power_off_time = tegra_cpu_power_off_time();
 
 	tegra_cpuidle_init_soc(&tegra_idle_ops);
+
+	state = &tegra_idle_driver.states[1];
+	state->exit_latency = tegra_cpu_power_good_time();
+	state->target_residency = tegra_cpu_power_off_time() + tegra_cpu_power_good_time();
+	if (state->target_residency < tegra_pd_min_residency)
+		state->target_residency = tegra_pd_min_residency;
 #endif
 	for_each_possible_cpu(cpu) {
-		ret = tegra_cpuidle_register_device(cpu);
+		ret = tegra_cpuidle_register_device(&tegra_idle_driver, cpu);
 		if (ret) {
 			pr_err("CPU%u: CPUidle device registration failed\n",
 				cpu);

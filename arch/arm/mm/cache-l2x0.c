@@ -36,14 +36,14 @@ static u32 l2x0_cache_id;
 static unsigned int l2x0_sets;
 static unsigned int l2x0_ways;
 
+static unsigned long sync_reg_offset = L2X0_CACHE_SYNC;
+
 static inline bool is_pl310_rev(int rev)
 {
 	return (l2x0_cache_id &
 		(L2X0_CACHE_ID_PART_MASK | L2X0_CACHE_ID_REV_MASK)) ==
 			(L2X0_CACHE_ID_PART_L310 | rev);
 }
-
-static unsigned long sync_reg_offset = L2X0_CACHE_SYNC;
 
 struct l2x0_regs l2x0_saved_regs;
 
