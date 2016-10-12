@@ -77,6 +77,9 @@ fail:
 	return err;
 }
 
+static int pisces_disp1_bl_notify(struct device *unused, int brightness);
+static int pisces_disp1_check_fb(struct device *dev, struct fb_info *info);
+
 static struct lm3533_bl_platform_data pisces_lm3533_bl_data[] = {
 	{
 		.name = "lm3533-backlight0",
@@ -86,6 +89,9 @@ static struct lm3533_bl_platform_data pisces_lm3533_bl_data[] = {
 		.linear = 1,
 		.edp_states = { 425, 383, 340, 299, 255, 213, 170, 128, 85, 43, 0 },
 		.edp_brightness = {255, 230, 204, 179, 153, 128, 102, 77, 51, 26, 0},
+		.notify		= pisces_disp1_bl_notify,
+		/* Only toggle backlight on fb blank notifications for disp1 */
+		.check_fb	= pisces_disp1_check_fb,
 	},
 	{
 		.name = "lm3533-backlight1",
@@ -95,6 +101,9 @@ static struct lm3533_bl_platform_data pisces_lm3533_bl_data[] = {
 		.linear = 1,
 		.edp_states = { 425, 383, 340, 299, 255, 213, 170, 128, 85, 43, 0 },
 		.edp_brightness = {255, 230, 204, 179, 153, 128, 102, 77, 51, 26, 0},
+		.notify		= pisces_disp1_bl_notify,
+		/* Only toggle backlight on fb blank notifications for disp1 */
+		.check_fb	= pisces_disp1_check_fb,
 	}
 };
 
@@ -378,7 +387,7 @@ static struct tegra_dc_sd_settings sd_settings;
 
 static struct tegra_dc_out pluto_disp1_out = {
 	.type		= TEGRA_DC_OUT_DSI,
-	.sd_settings	= NULL,
+	.sd_settings	= &sd_settings,
 };
 
 static int pluto_hdmi_enable(struct device *dev)
@@ -568,8 +577,31 @@ static struct platform_device pluto_nvmap_device = {
 	},
 };
 
+static int pisces_disp1_bl_notify(struct device *unused, int brightness)
+{
+	if (brightness != 0) {
+		int cur_sd_brightness = atomic_read(&sd_brightness);
+
+		/* SD brightness is a percentage */
+		brightness = (brightness * cur_sd_brightness) / 255;
+
+		/* Apply any backlight response curve */
+		if (brightness > 255)
+			pr_info("Error: Brightness > 255!\n");
+		if (brightness < 1)
+			brightness = 1;
+	}
+
+	return brightness;
+}
+
+static int pisces_disp1_check_fb(struct device *dev, struct fb_info *info)
+{
+	return info->device == &pluto_disp1_device.dev;
+}
+
 static struct tegra_dc_sd_settings pluto_sd_settings = {
-	.enable = 1, /* enabled by default */
+	.enable = 0, /* disabled by default. */
 	.use_auto_pwm = false,
 	.hw_update_delay = 0,
 	.bin_width = -1,
