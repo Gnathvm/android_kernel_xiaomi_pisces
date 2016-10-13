@@ -2238,6 +2238,7 @@ static struct ahash_alg hash_algs[] = {
 		.digest = tegra_se_aes_cmac_digest,
 		.setkey = tegra_se_aes_cmac_setkey,
 		.halg.digestsize = TEGRA_SE_AES_CMAC_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "cmac(aes)",
 			.cra_driver_name = "tegra-se-cmac(aes)",
@@ -2257,6 +2258,7 @@ static struct ahash_alg hash_algs[] = {
 		.finup = tegra_se_sha_finup,
 		.digest = tegra_se_sha_digest,
 		.halg.digestsize = SHA1_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "sha1",
 			.cra_driver_name = "tegra-se-sha1",
@@ -2276,6 +2278,7 @@ static struct ahash_alg hash_algs[] = {
 		.finup = tegra_se_sha_finup,
 		.digest = tegra_se_sha_digest,
 		.halg.digestsize = SHA224_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "sha224",
 			.cra_driver_name = "tegra-se-sha224",
@@ -2295,6 +2298,7 @@ static struct ahash_alg hash_algs[] = {
 		.finup = tegra_se_sha_finup,
 		.digest = tegra_se_sha_digest,
 		.halg.digestsize = SHA256_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "sha256",
 			.cra_driver_name = "tegra-se-sha256",
@@ -2314,6 +2318,7 @@ static struct ahash_alg hash_algs[] = {
 		.finup = tegra_se_sha_finup,
 		.digest = tegra_se_sha_digest,
 		.halg.digestsize = SHA384_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "sha384",
 			.cra_driver_name = "tegra-se-sha384",
@@ -2333,6 +2338,7 @@ static struct ahash_alg hash_algs[] = {
 		.finup = tegra_se_sha_finup,
 		.digest = tegra_se_sha_digest,
 		.halg.digestsize = SHA512_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "sha512",
 			.cra_driver_name = "tegra-se-sha512",
@@ -2353,6 +2359,7 @@ static struct ahash_alg hash_algs[] = {
 		.digest = tegra_se_rsa_digest,
 		.setkey = tegra_se_rsa_setkey,
 		.halg.digestsize = TEGRA_SE_RSA512_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "rsa512",
 			.cra_driver_name = "tegra-se-rsa512",
@@ -2373,6 +2380,7 @@ static struct ahash_alg hash_algs[] = {
 		.digest = tegra_se_rsa_digest,
 		.setkey = tegra_se_rsa_setkey,
 		.halg.digestsize = TEGRA_SE_RSA1024_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "rsa1024",
 			.cra_driver_name = "tegra-se-rsa1024",
@@ -2393,6 +2401,7 @@ static struct ahash_alg hash_algs[] = {
 		.digest = tegra_se_rsa_digest,
 		.setkey = tegra_se_rsa_setkey,
 		.halg.digestsize = TEGRA_SE_RSA1536_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "rsa1536",
 			.cra_driver_name = "tegra-se-rsa1536",
@@ -2413,6 +2422,7 @@ static struct ahash_alg hash_algs[] = {
 		.digest = tegra_se_rsa_digest,
 		.setkey = tegra_se_rsa_setkey,
 		.halg.digestsize = TEGRA_SE_RSA2048_DIGEST_SIZE,
+		.halg.statesize = 1,
 		.halg.base = {
 			.cra_name = "rsa2048",
 			.cra_driver_name = "tegra-se-rsa2048",
@@ -2559,7 +2569,7 @@ static int tegra_se_probe(struct platform_device *pdev)
 	err = tegra_se_alloc_ll_buf(se_dev, SE_MAX_SRC_SG_COUNT,
 		SE_MAX_DST_SG_COUNT);
 	if (err) {
-		dev_err(se_dev->dev, "can not allocate ll dma buffer\n");
+		dev_err(se_dev->dev, "can not allocate ll dma buffer err[%d]\n", err);
 		goto clean;
 	}
 
@@ -2569,7 +2579,7 @@ static int tegra_se_probe(struct platform_device *pdev)
 			err = crypto_register_alg(&aes_algs[i]);
 			if (err) {
 				dev_err(se_dev->dev,
-				"crypto_register_alg failed index[%d]\n", i);
+				"crypto_register_alg failed index[%d] err[%d]\n", i, err);
 				goto clean;
 			}
 		}
@@ -2580,8 +2590,8 @@ static int tegra_se_probe(struct platform_device *pdev)
 			err = crypto_register_ahash(&hash_algs[j]);
 			if (err) {
 				dev_err(se_dev->dev,
-				"crypto_register_sha alg failed index[%d]\n",
-				i);
+				"crypto_register_sha alg failed index[%d] err[%d]\n",
+				i, err);
 				goto clean;
 			}
 		}
