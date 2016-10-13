@@ -810,7 +810,7 @@ static struct i2c_board_info info = {
 };
 
 #ifdef CONFIG_TEGRA_I2C_RECOVERY
-static void drv2604_reset()
+static void drv2604_reset(struct i2c_client *client)
 {
 	pr_info("drv2604 i2c reset +++");
 	pwm_duty_enable(vibdata.pwm_dev, 0);

@@ -158,7 +158,7 @@ static int ladder_enable_device(struct cpuidle_driver *drv, struct cpuidle_devic
  * @dev: the CPU
  * @index: the index of actual state entered
  */
-static void ladder_reflect(struct cpuidle_driver *drv, struct cpuidle_device *dev, int index)
+static void ladder_reflect(struct cpuidle_device *dev, int index)
 {
 	struct ladder_device *ldev = &__get_cpu_var(ladder_devices);
 	if (index > 0)
