@@ -22,6 +22,7 @@
 
 struct device;
 struct regmap;
+struct fb_info;
 
 struct lm3533 {
 	struct device *dev;

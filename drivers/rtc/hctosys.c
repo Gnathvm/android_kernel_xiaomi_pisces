@@ -10,6 +10,7 @@
 */
 
 #include <linux/rtc.h>
+#include <linux/export.h>
 
 /* IMPORTANT: the RTC only stores whole seconds. It is arbitrary
  * whether it stores the most close value or the value with partial
