@@ -475,6 +475,13 @@ struct parsed_ies {
 #define IW_IES_MAX_BUF_LEN 		9
 #endif
 
+#ifdef WL11U
+/* Max length of Interworking element */
+#define IW_IES_MAX_BUF_LEN 		9
+#endif
+#ifdef WLFBT
+#define FBT_KEYLEN		32
+#endif
 #define MAX_EVENT_BUF_NUM 16
 typedef struct wl_eventmsg_buf {
     u16 num;

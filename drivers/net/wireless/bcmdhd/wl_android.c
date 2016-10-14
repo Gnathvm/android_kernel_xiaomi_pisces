@@ -325,7 +325,7 @@ static int wl_android_get_band(struct net_device *dev, char *command, int total_
 #if defined(PNO_SUPPORT) && !defined(WL_SCHED_SCAN)
 static int wl_android_set_pno_setup(struct net_device *dev, char *command, int total_len)
 {
-	wlc_ssid_t ssids_local[MAX_PFN_LIST_COUNT];
+	wlc_ssid_ext_t ssids_local[MAX_PFN_LIST_COUNT];
 	int res = -1;
 	int nssid = 0;
 	cmd_tlv_t *cmd_tlv_temp;
