@@ -126,6 +126,7 @@ static void evdev_event(struct input_handle *handle,
 		time_mono = ktime_get();
 
 	time_real = ktime_sub(time_mono, ktime_get_monotonic_offset());
+
 	event.type = type;
 	event.code = code;
 	event.value = value;
@@ -133,6 +134,7 @@ static void evdev_event(struct input_handle *handle,
 	rcu_read_lock();
 
 	client = rcu_dereference(evdev->grab);
+
 	if (client)
 		evdev_pass_event(client, &event, time_mono, time_real);
 	else
@@ -663,6 +665,28 @@ static int evdev_handle_set_keycode_v2(struct input_dev *dev, void __user *p)
 	return input_set_keycode(dev, &ke);
 }
 
+static int evdev_handle_mt_request(struct input_dev *dev,
+				   unsigned int size,
+				   int __user *ip)
+{
+	const struct input_mt_slot *mt = dev->mt;
+	unsigned int code;
+	int max_slots;
+	int i;
+
+	if (get_user(code, &ip[0]))
+		return -EFAULT;
+	if (!input_is_mt_value(code))
+		return -EINVAL;
+
+	max_slots = (size - sizeof(__u32)) / sizeof(__s32);
+	for (i = 0; i < dev->mtsize && i < max_slots; i++)
+		if (put_user(input_mt_get_value(&mt[i], code), &ip[1 + i]))
+			return -EFAULT;
+
+	return 0;
+}
+
 static int evdev_enable_suspend_block(struct evdev *evdev,
 				      struct evdev_client *client)
 {
@@ -688,27 +712,6 @@ static int evdev_disable_suspend_block(struct evdev *evdev,
 	client->use_wake_lock = false;
 	wake_lock_destroy(&client->wake_lock);
 	spin_unlock_irq(&client->buffer_lock);
-	return 0;
-}
-
-static int evdev_handle_mt_request(struct input_dev *dev,
-				   unsigned int size,
-				   int __user *ip)
-{
-	const struct input_mt_slot *mt = dev->mt;
-	unsigned int code;
-	int max_slots;
-	int i;
-
-	if (get_user(code, &ip[0]))
-		return -EFAULT;
-	if (!input_is_mt_value(code))
-		return -EINVAL;
-
-	max_slots = (size - sizeof(__u32)) / sizeof(__s32);
-	for (i = 0; i < dev->mtsize && i < max_slots; i++)
-		if (put_user(input_mt_get_value(&mt[i], code), &ip[1 + i]))
-			return -EFAULT;
 
 	return 0;
 }
@@ -774,6 +777,14 @@ static long evdev_do_ioctl(struct file *file, unsigned int cmd,
 			return evdev_grab(evdev, client);
 		else
 			return evdev_ungrab(evdev, client);
+
+	case EVIOCSCLOCKID:
+		if (copy_from_user(&i, p, sizeof(unsigned int)))
+			return -EFAULT;
+		if (i != CLOCK_MONOTONIC && i != CLOCK_REALTIME)
+			return -EINVAL;
+		client->clkid = i;
+		return 0;
 
 	case EVIOCGKEYCODE:
 		return evdev_handle_get_keycode(dev, p);
