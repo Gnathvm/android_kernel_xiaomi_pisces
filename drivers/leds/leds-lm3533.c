@@ -129,34 +129,40 @@ static int lm3533_led_pattern_enable(struct lm3533_led *led, int enable)
 	return ret;
 }
 
-static void lm3533_led_update(struct lm3533_led *led)
-{
-	dev_dbg(led->cdev.dev, "%s - %u\n", __func__, led->new_brightness);
-
-	lm3533_led_pattern_enable(led, led->new_brightness != 0 && led->pattern_enabled);
-
-	lm3533_ctrlbank_set_brightness(&led->cb, led->new_brightness);
-}
-
 static void lm3533_update_work(struct work_struct *work)
 {
 	int i;
+	int mask, val;
+	struct lm3533_led *led;
+
+	mask = 0;
+	for (i = 0; i < COLORLEDS_COUNT; i++) {
+		mask |= 1 << (2 * i);
+	}
+	lm3533_update(color_leds[0]->lm3533, LM3533_REG_PATTERN_ENABLE, 0, mask);
 
 	for (i = 0; i < COLORLEDS_COUNT; i++) {
-		lm3533_led_pattern_enable(color_leds[i], 0);
-		lm3533_ctrlbank_set_brightness(&color_leds[i]->cb, 0);
+		led = color_leds[i];
+		dev_dbg(led->cdev.dev, "%s - %u\n", __func__, led->new_brightness);
+		lm3533_ctrlbank_set_brightness(&led->cb, led->new_brightness);
 	}
 
-	for (i = 0; i < COLORLEDS_COUNT; i++)
-		lm3533_led_update(color_leds[i]);
-
+	val = 0;
+	for (i = 0; i < COLORLEDS_COUNT; i++) {
+		led = color_leds[i];
+		if (led->new_brightness != 0 && led->pattern_enabled) {
+			val |= 1 << (2 * i);
+		}
+	}
+	lm3533_update(color_leds[0]->lm3533, LM3533_REG_PATTERN_ENABLE, val, mask);
 }
 
 static void lm3533_led_work(struct work_struct *work)
 {
 	struct lm3533_led *led = container_of(work, struct lm3533_led, work);
 
-	lm3533_led_update(led);
+	lm3533_ctrlbank_set_brightness(&led->cb, led->new_brightness);
+	lm3533_led_pattern_enable(led, led->new_brightness != 0 && led->pattern_enabled);
 }
 
 static void lm3533_led_set(struct led_classdev *cdev, enum led_brightness value)
