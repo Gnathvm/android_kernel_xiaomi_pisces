@@ -429,7 +429,7 @@ EXPORT_SYMBOL_GPL(dma_buf_kunmap);
 
 /**
  * dma_buf_mmap - Setup up a userspace mmap with the given vma
- * @dmabuf:	[in]	buffer that should back the vma
+ * @dma_buf:	[in]	buffer that should back the vma
  * @vma:	[in]	vma for the mmap
  * @pgoff:	[in]	offset in pages where this mmap should start within the
  * 			dma-buf buffer.
