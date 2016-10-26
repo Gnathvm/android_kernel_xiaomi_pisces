@@ -4,6 +4,7 @@
  * software that might want wifi things as it grows.
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -27,10 +28,10 @@
 
 #include <bcm_cfg.h>
 #include <typedefs.h>
-#include <bcmutils.h>
 
 #ifdef BCMDRIVER
 #include <osl.h>
+#include <bcmutils.h>
 #define strtoul(nptr, endptr, base) bcm_strtoul((nptr), (endptr), (base))
 #define tolower(c) (bcm_isupper((c)) ? ((c) + 'a' - 'A') : (c))
 #else
@@ -355,6 +356,15 @@ static const uint8 wf_chspec_bw_mhz[] =
 #define WF_NUM_BW \
 	(sizeof(wf_chspec_bw_mhz)/sizeof(uint8))
 
+/* 20MHz channels in 5GHz band */
+static const uint8 wf_5g_20m_chans[] = {
+	36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112,
+	116, 120, 124, 128, 132, 136, 140, 144, 149, 153, 157, 161, 165
+};
+
+#define WF_NUM_5G_20M_CHANS \
+	(sizeof(wf_5g_20m_chans)/sizeof(uint8))
+
 /* 40MHz channels in 5GHz band */
 static const uint8 wf_5g_40m_chans[] =
 {38, 46, 54, 62, 102, 110, 118, 126, 134, 142, 151, 159};
@@ -576,7 +586,7 @@ wf_chspec_aton(const char *a)
 		if (!read_uint(&a, &ctl_ch))
 			return 0;
 
-		c = tolower((int)a[0]);
+		c = tolower(a[0]);
 	}
 	else {
 		/* first number is channel, use default for band */
@@ -884,7 +894,10 @@ wf_chspec_valid(chanspec_t chanspec)
 			const uint8 *center_ch;
 			uint num_ch, i;
 
-			if (chspec_bw == WL_CHANSPEC_BW_20 || chspec_bw == WL_CHANSPEC_BW_40) {
+			if (chspec_bw == WL_CHANSPEC_BW_20) {
+				center_ch = wf_5g_20m_chans;
+				num_ch = WF_NUM_5G_20M_CHANS;
+			} else if (chspec_bw == WL_CHANSPEC_BW_40) {
 				center_ch = wf_5g_40m_chans;
 				num_ch = WF_NUM_5G_40M_CHANS;
 			} else if (chspec_bw == WL_CHANSPEC_BW_80) {
@@ -899,32 +912,17 @@ wf_chspec_valid(chanspec_t chanspec)
 			}
 
 			/* check for a valid center channel */
-			if (chspec_bw == WL_CHANSPEC_BW_20) {
-				/* We don't have an array of legal 20MHz 5G channels, but they are
-				 * each side of the legal 40MHz channels.  Check the chanspec
-				 * channel against either side of the 40MHz channels.
-				 */
-				for (i = 0; i < num_ch; i ++) {
-					if (chspec_ch == (uint)LOWER_20_SB(center_ch[i]) ||
-					    chspec_ch == (uint)UPPER_20_SB(center_ch[i]))
-						break; /* match found */
-				}
+			/* check the chanspec channel to each legal channel */
+			for (i = 0; i < num_ch; i++) {
+				if (chspec_ch == center_ch[i])
+					break; /* match found */
+			}
 
-				if (i == num_ch) {
-					/* check for channel 165 which is not the side band of 40MHz 5G channel */
-					if (chspec_ch == 165)
-						i = 0;
-					/* check for legacy JP channels on failure */
-					if (chspec_ch == 34 || chspec_ch == 38 ||
-					    chspec_ch == 42 || chspec_ch == 46)
-						i = 0;
-				}
-			} else {
-				/* check the chanspec channel to each legal channel */
-				for (i = 0; i < num_ch; i ++) {
-					if (chspec_ch == center_ch[i])
-						break; /* match found */
-				}
+			if (chspec_bw == WL_CHANSPEC_BW_20 && i == num_ch) {
+				/* check for legacy JP channels on failure */
+				if (chspec_ch == 34 || chspec_ch == 38 ||
+				    chspec_ch == 42 || chspec_ch == 46)
+					i = 0;
 			}
 
 			if (i < num_ch) {
@@ -1051,7 +1049,6 @@ wf_channel2chspec(uint ctl_ch, uint bw)
 
 	return chspec;
 }
-
 #endif /* D11AC_IOTYPES */
 
 /*
@@ -1257,8 +1254,7 @@ static const struct chan_info {
  * Converts channel frequency to channel number.
  * Returns 0 if the frequency does not match any channel definition.
  */
-uint
-wf_freq2channel(uint freq)
+uint wf_freq2channel(uint freq)
 {
 	uint i;
 
@@ -1274,8 +1270,7 @@ wf_freq2channel(uint freq)
  * Returns 0 if the channel is out of range.
  * Also used by some code in wlc_iw.c
  */
-uint
-wf_channel2freq(uint channel)
+uint wf_channel2freq(uint channel)
 {
 	uint i;
 

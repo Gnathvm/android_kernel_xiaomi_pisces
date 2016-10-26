@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -52,16 +53,16 @@
 #define IP_PROT_ICMP6		0x3a	/* ICMPv6 protocol type */
 
 /* IPV4 field offsets */
-#define IPV4_VER_HL_OFFSET      0       /* version and ihl byte offset */
-#define IPV4_TOS_OFFSET         1       /* type of service offset */
-#define IPV4_PKTLEN_OFFSET      2       /* packet length offset */
-#define IPV4_PKTFLAG_OFFSET     6       /* more-frag,dont-frag flag offset */
-#define IPV4_PROT_OFFSET        9       /* protocol type offset */
-#define IPV4_CHKSUM_OFFSET      10      /* IP header checksum offset */
-#define IPV4_SRC_IP_OFFSET      12      /* src IP addr offset */
-#define IPV4_DEST_IP_OFFSET     16      /* dest IP addr offset */
-#define IPV4_OPTIONS_OFFSET     20      /* IP options offset */
-#define IPV4_MIN_HEADER_LEN     20      /* Minimum size for an IP header (no options) */
+#define IPV4_VER_HL_OFFSET	0	/* version and ihl byte offset */
+#define IPV4_TOS_OFFSET		1	/* type of service offset */
+#define IPV4_PKTLEN_OFFSET	2	/* packet length offset */
+#define IPV4_PKTFLAG_OFFSET	6	/* more-frag,dont-frag flag offset */
+#define IPV4_PROT_OFFSET	9	/* protocol type offset */
+#define IPV4_CHKSUM_OFFSET	10	/* IP header checksum offset */
+#define IPV4_SRC_IP_OFFSET	12	/* src IP addr offset */
+#define IPV4_DEST_IP_OFFSET	16	/* dest IP addr offset */
+#define IPV4_OPTIONS_OFFSET	20	/* IP options offset */
+#define IPV4_MIN_HEADER_LEN     20	/* Minimum size for an IP header (no options) */
 
 /* IPV4 field decodes */
 #define IPV4_VER_MASK		0xf0	/* IPV4 version mask */
@@ -204,7 +205,6 @@ ipv6_exthdr_len(uint8 *h, uint8 *proto)
 	*proto = eh->nexthdr;
 	return len;
 }
-
 #define IPV4_ISMULTI(a) (((a) & 0xf0000000) == 0xe0000000)
 
 /* This marks the end of a packed structure section. */

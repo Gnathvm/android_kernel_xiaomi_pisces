@@ -2,6 +2,7 @@
  * Linux cfg80211 driver - Dongle Host Driver (DHD) related
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -292,7 +293,7 @@ static bool btcoex_is_sco_active(struct net_device *dev)
 			break;
 		}
 
-		OSL_SLEEP(5);
+		msleep(5);
 	}
 
 	return res;
@@ -456,7 +457,6 @@ static void wl_cfg80211_bt_handler(struct work_struct *work)
 			 * provide OPPORTUNITY window to get DHCP address
 			 */
 			WL_TRACE(("bt_dhcp stm: started \n"));
-
 			btcx_inf->bt_state = BT_DHCP_OPPR_WIN;
 			mod_timer(&btcx_inf->timer,
 				jiffies + msecs_to_jiffies(BT_DHCP_OPPR_WIN_TIME));
@@ -499,7 +499,7 @@ btc_coex_idle:
 			break;
 
 		default:
-			WL_ERR(("error g_status=%d !!!\n",	btcx_inf->bt_state));
+			WL_ERR(("error g_status=%d !!!\n", btcx_inf->bt_state));
 			if (btcx_inf->dev)
 				wl_cfg80211_bt_setflag(btcx_inf->dev, FALSE);
 			btcx_inf->bt_state = BT_DHCP_IDLE;
@@ -581,6 +581,10 @@ int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, char *command)
 	if (strnicmp((char *)&powermode_val, "1", strlen("1")) == 0) {
 		WL_TRACE_HW4(("DHCP session starts\n"));
 
+#if defined(DHCP_SCAN_SUPPRESS)
+		/* Suppress scan during the DHCP */
+		wl_cfg80211_scan_suppress(dev, 1);
+#endif /* OEM_ANDROID */
 
 #ifdef PKT_FILTER_SUPPORT
 		dhd->dhcp_in_progress = 1;
@@ -634,6 +638,10 @@ int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, char *command)
 	else if (strnicmp((char *)&powermode_val, "2", strlen("2")) == 0) {
 
 
+#if defined(DHCP_SCAN_SUPPRESS)
+		/* Since DHCP is complete, enable the scan back */
+		wl_cfg80211_scan_suppress(dev, 0);
+#endif /* OEM_ANDROID */
 
 #ifdef PKT_FILTER_SUPPORT
 		dhd->dhcp_in_progress = 0;
@@ -695,4 +703,4 @@ int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, char *command)
 
 	return (strlen("OK"));
 }
-#endif 
+#endif

@@ -2,6 +2,7 @@
  * Misc system wide definitions
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -21,7 +22,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: bcmdefs.h 424298 2013-09-17 06:38:13Z $
+ * $Id: bcmdefs.h 316830 2012-02-23 20:29:22Z $
  */
 
 #ifndef	_bcmdefs_h_
@@ -65,9 +66,11 @@
 #define	BCMNMIATTACHFN(_fn)	_fn
 #define	BCMNMIATTACHDATA(_data)	_data
 #define CONST	const
-
+#if defined(__ARM_ARCH_7A__)
+#define BCM47XX_CA9
+#else
 #undef BCM47XX_CA9
-
+#endif
 #ifndef BCMFASTPATH
 #if defined(BCM47XX_CA9)
 #define BCMFASTPATH		__attribute__ ((__section__ (".text.fastpath")))

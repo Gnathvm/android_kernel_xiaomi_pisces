@@ -3,6 +3,7 @@
  * of the SiliconBackplane-based Broadcom chips.
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -208,7 +209,8 @@ ai_scan(si_t *sih, void *regs, uint devid)
 					sii->oob_router = addrl;
 				}
 			}
-			if (cid != GMAC_COMMON_4706_CORE_ID && cid != NS_CCB_CORE_ID)
+			if (cid != GMAC_COMMON_4706_CORE_ID
+			    && cid != NS_CCB_CORE_ID)
 				continue;
 		}
 
@@ -250,10 +252,10 @@ ai_scan(si_t *sih, void *regs, uint devid)
 							"0x%x\n", addrh, sizeh, sizel));
 						SI_ERROR(("First Slave ASD for"
 							"core 0x%04x malformed "
-							"(0x%08x)\n", cid, asd));
-						goto error;
-					}
+					          "(0x%08x)\n", cid, asd));
+					goto error;
 				}
+		}
 			} while (1);
 		}
 		sii->coresba[idx] = addrl;
@@ -543,8 +545,7 @@ ai_flag(si_t *sih)
 		return sii->curidx;
 	}
 	if (BCM4707_DMP()) {
-		SI_ERROR(("%s: Attempting to read CHIPCOMMONB DMP registers on 4707\n",
-			__FUNCTION__));
+		SI_ERROR(("%s: Attempting to read CHIPCOMMONB DMP registers on 4707\n", __FUNCTION__));
 		return sii->curidx;
 	}
 	ai = sii->curwrap;
@@ -552,8 +553,7 @@ ai_flag(si_t *sih)
 	return (R_REG(sii->osh, &ai->oobselouta30) & 0x1f);
 }
 
-uint
-ai_flag_alt(si_t *sih)
+uint ai_flag_alt(si_t * sih)
 {
 	si_info_t *sii;
 	aidmp_t *ai;
@@ -568,22 +568,20 @@ ai_flag_alt(si_t *sih)
 		return sii->curidx;
 	}
 	if (BCM4707_DMP()) {
-		SI_ERROR(("%s: Attempting to read CHIPCOMMONB DMP registers on 4707\n",
-			__FUNCTION__));
+		SI_ERROR(("%s: Attempting to read CHIPCOMMONB DMP registers on 4707\n", __FUNCTION__));
 		return sii->curidx;
 	}
 	ai = sii->curwrap;
 
-	return ((R_REG(sii->osh, &ai->oobselouta30) >> AI_OOBSEL_1_SHIFT) & AI_OOBSEL_MASK);
+	return ((R_REG(sii->osh, &ai->oobselouta30) >> AI_OOBSEL_1_SHIFT) &
+		AI_OOBSEL_MASK);
 }
 
-void
-ai_setint(si_t *sih, int siflag)
+void ai_setint(si_t * sih, int siflag)
 {
 }
 
-uint
-ai_wrap_reg(si_t *sih, uint32 offset, uint32 mask, uint32 val)
+uint ai_wrap_reg(si_t * sih, uint32 offset, uint32 mask, uint32 val)
 {
 	si_info_t *sii = SI_INFO(sih);
 	uint32 *map = (uint32 *) sii->curwrap;
@@ -820,13 +818,11 @@ ai_core_cflags_wo(si_t *sih, uint32 mask, uint32 val)
 		return;
 	}
 	if (BCM5357_DMP()) {
-		SI_ERROR(("%s: Accessing USB20H DMP register (ioctrl) on 5357\n",
-		          __FUNCTION__));
+		SI_ERROR(("%s: Accessing USB20H DMP register (ioctrl) on 5357\n", __FUNCTION__));
 		return;
 	}
 	if (BCM4707_DMP()) {
-		SI_ERROR(("%s: Accessing CHIPCOMMONB DMP register (ioctrl) on 4707\n",
-			__FUNCTION__));
+		SI_ERROR(("%s: Accessing CHIPCOMMONB DMP register (ioctrl) on 4707\n", __FUNCTION__));
 		return;
 	}
 
@@ -855,13 +851,11 @@ ai_core_cflags(si_t *sih, uint32 mask, uint32 val)
 		return 0;
 	}
 	if (BCM5357_DMP()) {
-		SI_ERROR(("%s: Accessing USB20H DMP register (ioctrl) on 5357\n",
-		          __FUNCTION__));
+		SI_ERROR(("%s: Accessing USB20H DMP register (ioctrl) on 5357\n", __FUNCTION__));
 		return 0;
 	}
 	if (BCM4707_DMP()) {
-		SI_ERROR(("%s: Accessing CHIPCOMMONB DMP register (ioctrl) on 4707\n",
-			__FUNCTION__));
+		SI_ERROR(("%s: Accessing CHIPCOMMONB DMP register (ioctrl) on 4707\n", __FUNCTION__));
 		return 0;
 	}
 
@@ -892,13 +886,11 @@ ai_core_sflags(si_t *sih, uint32 mask, uint32 val)
 		return 0;
 	}
 	if (BCM5357_DMP()) {
-		SI_ERROR(("%s: Accessing USB20H DMP register (iostatus) on 5357\n",
-		          __FUNCTION__));
+		SI_ERROR(("%s: Accessing USB20H DMP register (iostatus) on 5357\n", __FUNCTION__));
 		return 0;
 	}
 	if (BCM4707_DMP()) {
-		SI_ERROR(("%s: Accessing CHIPCOMMONB DMP register (ioctrl) on 4707\n",
-			__FUNCTION__));
+		SI_ERROR(("%s: Accessing CHIPCOMMONB DMP register (ioctrl) on 4707\n", __FUNCTION__));
 		return 0;
 	}
 

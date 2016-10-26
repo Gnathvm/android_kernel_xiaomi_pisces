@@ -2,6 +2,7 @@
  * Driver O/S-independent utility routines
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -20,7 +21,7 @@
  *      Notwithstanding the above, under no circumstances may you combine this
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
- * $Id: bcmutils.c 427979 2013-10-07 08:35:57Z $
+ * $Id: bcmutils.c 380908 2013-01-24 12:26:18Z $
  */
 
 #include <bcm_cfg.h>
@@ -191,8 +192,7 @@ pktsegcnt_war(osl_t *osh, void *p)
 	return cnt;
 }
 
-uint8 * BCMFASTPATH
-pktdataoffset(osl_t *osh, void *p,  uint offset)
+uint8 *BCMFASTPATH pktdataoffset(osl_t * osh, void *p, uint offset)
 {
 	uint total = pkttotlen(osh, p);
 	uint pkt_off = 0, len = 0;
@@ -208,13 +208,11 @@ pktdataoffset(osl_t *osh, void *p,  uint offset)
 		if (len > offset)
 			break;
 	}
-	return (uint8*) (pdata+pkt_off);
+	return (uint8 *) (pdata + pkt_off);
 }
 
-
 /* given a offset in pdata, find the pkt seg hdr */
-void *
-pktoffset(osl_t *osh, void *p,  uint offset)
+void *pktoffset(osl_t * osh, void *p, uint offset)
 {
 	uint total = pkttotlen(osh, p);
 	uint len = 0;
@@ -354,9 +352,9 @@ pktq_pdeq_with_fn(struct pktq *pq, int prec, ifpkt_cb_t fn, int arg)
 	p = q->head;
 
 	while (p) {
-		if (fn == NULL || (*fn)(p, arg)) {
+		if (fn == NULL || (*fn) (p, arg))
 			break;
-		} else {
+		else {
 			prev = p;
 			p = PKTLINK(p);
 		}
@@ -367,21 +365,17 @@ pktq_pdeq_with_fn(struct pktq *pq, int prec, ifpkt_cb_t fn, int arg)
 	if (prev == NULL) {
 		if ((q->head = PKTLINK(p)) == NULL)
 			q->tail = NULL;
-	} else {
+	} else
 		PKTSETLINK(prev, PKTLINK(p));
-	}
 
 	q->len--;
-
 	pq->len--;
-
 	PKTSETLINK(p, NULL);
 
 	return p;
 }
 
-void * BCMFASTPATH
-pktq_pdeq_tail(struct pktq *pq, int prec)
+void *BCMFASTPATH pktq_pdeq_tail(struct pktq *pq, int prec)
 {
 	struct pktq_prec *q;
 	void *p, *prev;
@@ -1025,23 +1019,7 @@ bcm_ether_atoe(const char *p, struct ether_addr *ea)
 
 	return (i == 6);
 }
-
-int
-bcm_atoipv4(const char *p, struct ipv4_addr *ip)
-{
-
-	int i = 0;
-	char *c;
-	for (;;) {
-		ip->addr[i++] = (uint8)bcm_strtoul(p, &c, 0);
-		if (*c++ != '.' || i == IPV4_ADDR_LEN)
-			break;
-		p = c;
-	}
-	return (i == IPV4_ADDR_LEN);
-}
-#endif	/* !BCMROMOFFLOAD_EXCLUDE_BCMUTILS_FUNCS */
-
+#endif /* !BCMROMOFFLOAD_EXCLUDE_BCMUTILS_FUNCS */
 
 #if defined(CONFIG_USBRNDIS_RETAIL) || defined(NDIS_MINIPORT_DRIVER)
 /* registry routine buffer preparation utility functions:
@@ -1191,29 +1169,7 @@ pktsetprio(void *pkt, bool update_vtag)
 	} else if (eh->ether_type == hton16(ETHER_TYPE_IP)) {
 		uint8 *ip_body = pktdata + sizeof(struct ether_header);
 		uint8 tos_tc = IP_TOS46(ip_body);
-		uint8 dscp = tos_tc >> IPV4_TOS_DSCP_SHIFT;
-		switch (dscp) {
-		case DSCP_EF:
-			priority = PRIO_8021D_VO;
-			break;
-		case DSCP_AF31:
-		case DSCP_AF32:
-		case DSCP_AF33:
-			priority = PRIO_8021D_CL;
-			break;
-		case DSCP_AF21:
-		case DSCP_AF22:
-		case DSCP_AF23:
-		case DSCP_AF11:
-		case DSCP_AF12:
-		case DSCP_AF13:
-			priority = PRIO_8021D_EE;
-			break;
-		default:
-			priority = (int)(tos_tc >> IPV4_TOS_PREC_SHIFT);
-			break;
-		}
-
+		priority = (int)(tos_tc >> IPV4_TOS_PREC_SHIFT);
 		rc |= PKTPRIO_DSCP;
 	}
 
@@ -1317,7 +1273,6 @@ bcm_iovar_lencheck(const bcm_iovar_t *vi, void *arg, int len, bool set)
 }
 
 #endif	/* BCMDRIVER */
-
 
 #if !defined(BCMROMOFFLOAD_EXCLUDE_BCMUTILS_FUNCS)
 /*******************************************************************************
@@ -1676,12 +1631,12 @@ bcm_parse_ordered_tlvs(void *buf, int buflen, uint key)
 	}
 	return NULL;
 }
-#endif	/* !BCMROMOFFLOAD_EXCLUDE_BCMUTILS_FUNCS */
+#endif /* !BCMROMOFFLOAD_EXCLUDE_BCMUTILS_FUNCS */
 
 #if defined(WLMSG_PRHDRS) || defined(WLMSG_PRPKT) || defined(WLMSG_ASSOC) || \
 	defined(DHD_DEBUG)
 int
-bcm_format_field(const bcm_bit_desc_ex_t *bd, uint32 flags, char* buf, int len)
+bcm_format_field(const bcm_bit_desc_ex_t * bd, uint32 flags, char *buf, int len)
 {
 	int i, slen = 0;
 	uint32 bit, mask;
@@ -1692,12 +1647,12 @@ bcm_format_field(const bcm_bit_desc_ex_t *bd, uint32 flags, char* buf, int len)
 
 	buf[0] = '\0';
 
-	for (i = 0;  (name = bd->bitfield[i].name) != NULL; i++) {
+	for (i = 0; (name = bd->bitfield[i].name) != NULL; i++) {
 		bit = bd->bitfield[i].bit;
 		if ((flags & mask) == bit) {
 			if (len > (int)strlen(name)) {
 				slen = strlen(name);
-				strncpy(buf, name, slen+1);
+				strncpy(buf, name, slen + 1);
 			}
 			break;
 		}
@@ -1706,7 +1661,7 @@ bcm_format_field(const bcm_bit_desc_ex_t *bd, uint32 flags, char* buf, int len)
 }
 
 int
-bcm_format_flags(const bcm_bit_desc_t *bd, uint32 flags, char* buf, int len)
+bcm_format_flags(const bcm_bit_desc_t * bd, uint32 flags, char *buf, int len)
 {
 	int i;
 	char* p = buf;
@@ -1818,10 +1773,19 @@ static const char *crypto_algo_names[] = {
 	"AES_CCM",
 	"AES_OCB_MSDU",
 	"AES_OCB_MPDU",
+#ifdef BCMCCX
+	"CKIP",
+	"CKIP_MMH",
+	"WEP_MMH",
 	"NALG"
+#else
+	"NALG" "UNDEF",
 	"UNDEF",
 	"UNDEF",
-	"UNDEF",
+#endif /* BCMCCX */
+#ifdef BCMWAPI_WPI
+	"WAPI",
+#endif /* BCMWAPI_WPI */
 	"UNDEF"
 };
 
@@ -2126,17 +2090,16 @@ bcm_print_bytes(const char *name, const uchar *data, int len)
 }
 
 /* Look for vendor-specific IE with specified OUI and optional type */
-bcm_tlv_t *
-find_vendor_ie(void *tlvs, int tlvs_len, const char *voui, uint8 *type, int type_len)
+bcm_tlv_t *find_vendor_ie(void *tlvs, int tlvs_len, const char *voui,
+			  uint8 * type, int type_len)
 {
 	bcm_tlv_t *ie;
 	uint8 ie_len;
 
-	ie = (bcm_tlv_t*)tlvs;
+	ie = (bcm_tlv_t *) tlvs;
 
 	/* make sure we are looking at a valid IE */
-	if (ie == NULL ||
-	    !bcm_valid_tlv(ie, tlvs_len))
+	if (ie == NULL || !bcm_valid_tlv(ie, tlvs_len))
 		return NULL;
 
 	/* Walk through the IEs looking for an OUI match */
@@ -2144,12 +2107,11 @@ find_vendor_ie(void *tlvs, int tlvs_len, const char *voui, uint8 *type, int type
 		ie_len = ie->len;
 		if ((ie->id == DOT11_MNG_PROPR_ID) &&
 		    (ie_len >= (DOT11_OUI_LEN + type_len)) &&
-		    !bcmp(ie->data, voui, DOT11_OUI_LEN))
-		{
+		    !bcmp(ie->data, voui, DOT11_OUI_LEN)) {
 			/* compare optional type */
 			if (type_len == 0 ||
 			    !bcmp(&ie->data[DOT11_OUI_LEN], type, type_len)) {
-				return (ie);		/* a match */
+				return (ie);	/* a match */
 			}
 		}
 	} while ((ie = bcm_next_tlv(ie, &tlvs_len)) != NULL);
@@ -2247,9 +2209,10 @@ process_nvram_vars(char *varbuf, unsigned int len)
 
 /* calculate a * b + c */
 void
-bcm_uint64_multiple_add(uint32* r_high, uint32* r_low, uint32 a, uint32 b, uint32 c)
+bcm_uint64_multiple_add(uint32 * r_high, uint32 * r_low, uint32 a, uint32 b,
+			uint32 c)
 {
-#define FORMALIZE(var) {cc += (var & 0x80000000) ? 1 : 0; var &= 0x7fffffff;}
+#define FORMALIZE(var) {cc += (var & 0x80000000) ? 1 : 0; var &= 0x7fffffff; }
 	uint32 r1, r0;
 	uint32 a1, a0, b1, b0, t, cc = 0;
 
@@ -2286,8 +2249,7 @@ bcm_uint64_multiple_add(uint32* r_high, uint32* r_low, uint32 a, uint32 b, uint3
 }
 
 /* calculate a / b */
-void
-bcm_uint64_divide(uint32* r, uint32 a_high, uint32 a_low, uint32 b)
+void bcm_uint64_divide(uint32 * r, uint32 a_high, uint32 a_low, uint32 b)
 {
 	uint32 a1 = a_high, a0 = a_low, r0 = 0;
 
@@ -2296,41 +2258,39 @@ bcm_uint64_divide(uint32* r, uint32 a_high, uint32 a_low, uint32 b)
 
 	while (a1 != 0) {
 		r0 += (0xffffffff / b) * a1;
-		bcm_uint64_multiple_add(&a1, &a0, ((0xffffffff % b) + 1) % b, a1, a0);
+		bcm_uint64_multiple_add(&a1, &a0, ((0xffffffff % b) + 1) % b,
+					a1, a0);
 	}
 
 	r0 += a0 / b;
 	*r = r0;
 }
 
-#ifndef setbit     /* As in the header file */
+#ifndef setbit			/* As in the header file */
 #ifdef BCMUTILS_BIT_MACROS_USE_FUNCS
 /* Set bit in byte array. */
-void
-setbit(void *array, uint bit)
+void setbit(void *array, uint bit)
 {
-	((uint8 *)array)[bit / NBBY] |= 1 << (bit % NBBY);
+	((uint8 *) array)[bit / NBBY] |= 1 << (bit % NBBY);
 }
 
 /* Clear bit in byte array. */
-void
-clrbit(void *array, uint bit)
+void clrbit(void *array, uint bit)
 {
-	((uint8 *)array)[bit / NBBY] &= ~(1 << (bit % NBBY));
+	((uint8 *) array)[bit / NBBY] &= ~(1 << (bit % NBBY));
 }
 
 /* Test if bit is set in byte array. */
-bool
-isset(const void *array, uint bit)
+bool isset(const void *array, uint bit)
 {
 	return (((const uint8 *)array)[bit / NBBY] & (1 << (bit % NBBY)));
 }
 
 /* Test if bit is clear in byte array. */
-bool
-isclr(const void *array, uint bit)
+bool isclr(const void *array, uint bit)
 {
-	return ((((const uint8 *)array)[bit / NBBY] & (1 << (bit % NBBY))) == 0);
+	return ((((const uint8 *)array)[bit / NBBY] & (1 << (bit % NBBY))) ==
+		0);
 }
 #endif /* BCMUTILS_BIT_MACROS_USE_FUNCS */
 #endif /* setbit */

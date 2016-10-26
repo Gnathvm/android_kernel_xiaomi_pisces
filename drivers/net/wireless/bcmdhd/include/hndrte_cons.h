@@ -22,7 +22,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: hndrte_cons.h 383834 2013-02-07 23:21:51Z $
+ * $Id: hndrte_cons.h 300516 2011-12-04 17:39:44Z $
  */
 #ifndef	_HNDRTE_CONS_H
 #define	_HNDRTE_CONS_H

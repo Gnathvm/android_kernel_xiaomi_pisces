@@ -3,6 +3,7 @@
  * of the SiliconBackplane-based Broadcom chips.
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -22,16 +23,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: hndpmu.c 414368 2013-07-24 15:00:23Z $
- */
-
-/*
- * Note: this file contains PLL/FLL related functions. A chip can contain multiple PLLs/FLLs.
- * However, in the context of this file the baseband ('BB') PLL/FLL is referred to.
- *
- * Throughout this code, the prefixes 'pmu0_', 'pmu1_' and 'pmu2_' are used.
- * They refer to different revisions of the PMU (which is at revision 18 @ Apr 25, 2012)
- * pmu2_ marks the transition from PLL to ADFLL (Digital Frequency Locked Loop)
+ * $Id: hndpmu.c 385540 2013-02-15 23:14:50Z $
  */
 
 #include <bcm_cfg.h>
@@ -123,8 +115,8 @@ static const sdiod_drive_str_t sdiod_drive_strength_tab6_1v8[] = {
 	{3, 0x3},
 	{2, 0x2},
 	{1, 0x1},
-	{0, 0x0} };
-
+	{0, 0x0}
+};
 
 /*
  * SDIO Drive Strength to sel value table for 43143 PMU Rev 17, see Confluence 43143 Toplevel
@@ -138,8 +130,9 @@ static const sdiod_drive_str_t sdiod_drive_strength_tab7_3v3[] = {
 	/* note: for 14, 10, 6 and 2mA hw timing is not met according to rtl team */
 	{16, 0x7},
 	{12, 0x5},
-	{8,  0x3},
-	{4,  0x1} }; /* note: 43143 does not support tristate */
+	{8, 0x3},
+	{4, 0x1}
+};				/* note: 43143 does not support tristate */
 
 #else
 
@@ -147,8 +140,9 @@ static const sdiod_drive_str_t sdiod_drive_strength_tab7_1v8[] = {
 	/* note: for 7, 5, 3 and 1mA hw timing is not met according to rtl team */
 	{8, 0x7},
 	{6, 0x5},
-	{4,  0x3},
-	{2,  0x1} }; /* note: 43143 does not support tristate */
+	{4, 0x3},
+	{2, 0x1}
+};				/* note: 43143 does not support tristate */
 
 #endif /* BCM_SDIO_VDDIO */
 
@@ -163,16 +157,15 @@ static const sdiod_drive_str_t sdiod_drive_strength_tab7_1v8[] = {
  * 'drivestrength': desired pad drive strength in mA. Drive strength of 0 requests tri-state (if
  *		    hardware supports this), if no hw support drive strength is not programmed.
  */
-void
-si_sdiod_drive_strength_init(si_t *sih, osl_t *osh, uint32 drivestrength)
+void si_sdiod_drive_strength_init(si_t * sih, osl_t * osh, uint32 drivestrength)
 {
 	chipcregs_t *cc;
 	uint origidx, intr_val = 0;
 	sdiod_drive_str_t *str_tab = NULL;
-	uint32 str_mask = 0;	/* only alter desired bits in PMU chipcontrol 1 register */
+	uint32 str_mask = 0;
 	uint32 str_shift = 0;
-	uint32 str_ovr_pmuctl = PMU_CHIPCTL0; /* PMU chipcontrol register containing override bit */
-	uint32 str_ovr_pmuval = 0;            /* position of bit within this register */
+	uint32 str_ovr_pmuctl = PMU_CHIPCTL0;	/* PMU chipcontrol register containing override bit */
+	uint32 str_ovr_pmuval = 0;	/* position of bit within this register */
 
 	if (!(sih->cccaps & CC_CAP_PMU)) {
 		return;
@@ -222,12 +215,18 @@ si_sdiod_drive_strength_init(si_t *sih, osl_t *osh, uint32 drivestrength)
 		break;
 	case SDIOD_DRVSTR_KEY(BCM43143_CHIP_ID, 17):
 #if !defined(BCM_SDIO_VDDIO) || BCM_SDIO_VDDIO == 33
-		if (drivestrength >=  ARRAYLAST(sdiod_drive_strength_tab7_3v3)->strength) {
-			str_tab = (sdiod_drive_str_t *)&sdiod_drive_strength_tab7_3v3;
+		if (drivestrength >=
+		    ARRAYLAST(sdiod_drive_strength_tab7_3v3)->strength) {
+			str_tab =
+				(sdiod_drive_str_t *) &
+				sdiod_drive_strength_tab7_3v3;
 		}
 #else
-		if (drivestrength >=  ARRAYLAST(sdiod_drive_strength_tab7_1v8)->strength) {
-			str_tab = (sdiod_drive_str_t *)&sdiod_drive_strength_tab7_1v8;
+		if (drivestrength >=
+		    ARRAYLAST(sdiod_drive_strength_tab7_1v8)->strength) {
+			str_tab =
+				(sdiod_drive_str_t *) &
+				sdiod_drive_strength_tab7_1v8;
 		}
 #endif /* BCM_SDIO_VDDIO */
 		str_mask = 0x00000007;
@@ -236,6 +235,7 @@ si_sdiod_drive_strength_init(si_t *sih, osl_t *osh, uint32 drivestrength)
 	default:
 		PMU_MSG(("No SDIO Drive strength init done for chip %s rev %d pmurev %d\n",
 		         bcm_chipname(sih->chip, chn, 8), sih->chiprev, sih->pmurev));
+
 		break;
 	}
 
@@ -257,8 +257,8 @@ si_sdiod_drive_strength_init(si_t *sih, osl_t *osh, uint32 drivestrength)
 		cc_data_temp &= ~str_mask;
 		cc_data_temp |= str_tab[i].sel << str_shift;
 		W_REG(osh, &cc->chipcontrol_data, cc_data_temp);
-		if (str_ovr_pmuval) { /* enables the selected drive strength */
-			W_REG(osh,  &cc->chipcontrol_addr, str_ovr_pmuctl);
+		if (str_ovr_pmuval) {	/* enables the selected drive strength */
+			W_REG(osh, &cc->chipcontrol_addr, str_ovr_pmuctl);
 			OR_REG(osh, &cc->chipcontrol_data, str_ovr_pmuval);
 		}
 		PMU_MSG(("SDIO: %dmA drive strength requested; set to %dmA\n",
@@ -267,4 +267,4 @@ si_sdiod_drive_strength_init(si_t *sih, osl_t *osh, uint32 drivestrength)
 
 	/* Return to original core */
 	si_restore_core(sih, origidx, intr_val);
-} /* si_sdiod_drive_strength_init */
+}

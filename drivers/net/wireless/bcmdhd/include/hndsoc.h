@@ -2,6 +2,7 @@
  * Broadcom HND chip & on-chip-interconnect-related definitions.
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -47,7 +48,7 @@
 #define SI_WRAP_BASE    	0x18100000	/* Wrapper space base */
 #define SI_CORE_SIZE    	0x1000		/* each core gets 4Kbytes for registers */
 
-#define	SI_MAXCORES		32		/* NorthStar has more cores */
+#define	SI_MAXCORES		32	/* NorthStar has more cores */
 
 #define	SI_FASTRAM		0x19000000	/* On-chip RAM on chips that also have DDR */
 #define	SI_FASTRAM_SWAPPED	0x19800000
@@ -152,20 +153,20 @@
 						 */
 
 #define CC_4706_CORE_ID		0x500		/* chipcommon core */
-#define NS_PCIEG2_CORE_ID	0x501		/* PCIE Gen 2 core */
-#define NS_DMA_CORE_ID		0x502		/* DMA core */
-#define NS_SDIO3_CORE_ID	0x503		/* SDIO3 core */
-#define NS_USB20_CORE_ID	0x504		/* USB2.0 core */
-#define NS_USB30_CORE_ID	0x505		/* USB3.0 core */
-#define NS_A9JTAG_CORE_ID	0x506		/* ARM Cortex A9 JTAG core */
-#define NS_DDR23_CORE_ID	0x507		/* Denali DDR2/DDR3 memory controller */
-#define NS_ROM_CORE_ID		0x508		/* ROM core */
-#define NS_NAND_CORE_ID		0x509		/* NAND flash controller core */
-#define NS_QSPI_CORE_ID		0x50a		/* SPI flash controller core */
-#define NS_CCB_CORE_ID		0x50b		/* ChipcommonB core */
+#define NS_PCIEG2_CORE_ID	0x501	/* PCIE Gen 2 core */
+#define NS_DMA_CORE_ID		0x502	/* DMA core */
+#define NS_SDIO3_CORE_ID	0x503	/* SDIO3 core */
+#define NS_USB20_CORE_ID	0x504	/* USB2.0 core */
+#define NS_USB30_CORE_ID	0x505	/* USB3.0 core */
+#define NS_A9JTAG_CORE_ID	0x506	/* ARM Cortex A9 JTAG core */
+#define NS_DDR23_CORE_ID	0x507	/* Denali DDR2/DDR3 memory controller */
+#define NS_ROM_CORE_ID		0x508	/* ROM core */
+#define NS_NAND_CORE_ID		0x509	/* NAND flash controller core */
+#define NS_QSPI_CORE_ID		0x50a	/* SPI flash controller core */
+#define NS_CCB_CORE_ID		0x50b	/* ChipcommonB core */
 #define SOCRAM_4706_CORE_ID	0x50e		/* internal memory core */
 #define NS_SOCRAM_CORE_ID	SOCRAM_4706_CORE_ID
-#define	ARMCA9_CORE_ID		0x510		/* ARM Cortex A9 core (ihost) */
+#define	ARMCA9_CORE_ID		0x510	/* ARM Cortex A9 core (ihost) */
 #define	NS_IHOST_CORE_ID	ARMCA9_CORE_ID	/* ARM Cortex A9 core (ihost) */
 #define GMAC_COMMON_4706_CORE_ID	0x5dc		/* Gigabit MAC core */
 #define GMAC_4706_CORE_ID	0x52d		/* Gigabit MAC core */
@@ -272,6 +273,6 @@
 #ifndef _LANGUAGE_ASSEMBLY
 int soc_boot_dev(void *sih);
 int soc_knl_dev(void *sih);
-#endif	/* _LANGUAGE_ASSEMBLY */
+#endif /* _LANGUAGE_ASSEMBLY */
 
 #endif /* _HNDSOC_H */

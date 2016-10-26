@@ -3,6 +3,7 @@
  * This supports the following chips: BCM42xx, 44xx, 47xx .
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -266,7 +267,6 @@ typedef volatile struct {
 #define D64_DEF_USBBURSTLEN     2
 #define D64_DEF_SDIOBURSTLEN    1
 
-
 #ifndef D64_USBBURSTLEN
 #define D64_USBBURSTLEN	DMA_BL_64
 #endif
@@ -296,7 +296,7 @@ typedef volatile struct {
 
 /* transmit channel status */
 #define	D64_XS0_CD_MASK		(di->d64_xs0_cd_mask)	/* current descriptor pointer */
-#define	D64_XS0_XS_MASK		0xf0000000     	/* transmit state */
+#define	D64_XS0_XS_MASK		0xf0000000	/* transmit state */
 #define	D64_XS0_XS_SHIFT		28
 #define	D64_XS0_XS_DISABLED	0x00000000	/* disabled */
 #define	D64_XS0_XS_ACTIVE	0x10000000	/* active */
@@ -305,7 +305,7 @@ typedef volatile struct {
 #define	D64_XS0_XS_SUSP		0x40000000	/* suspend pending */
 
 #define	D64_XS1_AD_MASK		(di->d64_xs1_ad_mask)	/* active descriptor */
-#define	D64_XS1_XE_MASK		0xf0000000     	/* transmit errors */
+#define	D64_XS1_XE_MASK		0xf0000000	/* transmit errors */
 #define	D64_XS1_XE_SHIFT		28
 #define	D64_XS1_XE_NOERR	0x00000000	/* no error */
 #define	D64_XS1_XE_DPE		0x10000000	/* descriptor protocol error */
@@ -322,7 +322,7 @@ typedef volatile struct {
 #define	D64_RC_SH		0x00000200	/* separate rx header descriptor enable */
 #define	D64_RC_OC		0x00000400	/* overflow continue */
 #define	D64_RC_PD		0x00000800	/* parity check disable */
-#define D64_RC_GE		0x00004000	/* Glom enable */
+#define	D64_RC_GE		0x00004000	/* Glom enable */
 #define	D64_RC_AE		0x00030000	/* address extension bits */
 #define	D64_RC_AE_SHIFT		16
 #define D64_RC_BL_MASK		0x001C0000	/* BurstLen bits */
@@ -345,7 +345,7 @@ typedef volatile struct {
 
 /* receive channel status */
 #define	D64_RS0_CD_MASK		(di->d64_rs0_cd_mask)	/* current descriptor pointer */
-#define	D64_RS0_RS_MASK		0xf0000000     	/* receive state */
+#define	D64_RS0_RS_MASK		0xf0000000	/* receive state */
 #define	D64_RS0_RS_SHIFT		28
 #define	D64_RS0_RS_DISABLED	0x00000000	/* disabled */
 #define	D64_RS0_RS_ACTIVE	0x10000000	/* active */

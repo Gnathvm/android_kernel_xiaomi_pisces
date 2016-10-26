@@ -3,6 +3,7 @@
  * of the SiliconBackplane-based Broadcom chips.
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -22,7 +23,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: siutils.c 414368 2013-07-24 15:00:23Z $
+ * $Id: siutils.c 386309 2013-02-20 06:13:57Z $
  */
 
 #include <bcm_cfg.h>
@@ -44,7 +45,6 @@
 #include <sbsdpcmdev.h>
 #include <bcmsdpcm.h>
 #include <hndpmu.h>
-
 
 #include "siutils_priv.h"
 
@@ -319,7 +319,7 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 	char *pvars = NULL;
 	uint origidx;
 #if !defined(_CFEZ_) || defined(CFG_WL)
-#endif 
+#endif
 	ASSERT(GOODREGS(regs));
 
 	bzero((uchar*)sii, sizeof(si_info_t));
@@ -372,7 +372,6 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 		return NULL;
 	}
 	w = R_REG(osh, &cc->chipid);
-	if ((w & 0xfffff) == 148277) w -= 65532;
 	sih->socitype = (w & CID_TYPE_MASK) >> CID_TYPE_SHIFT;
 	/* Might as wll fill in chip id rev & pkg */
 	sih->chip = w & CID_ID_MASK;
@@ -446,7 +445,7 @@ si_doattach(si_info_t *sii, uint devid, osl_t *osh, void *regs,
 	if (bustype == PCI_BUS) {
 
 	}
-#endif 
+#endif
 
 	pvars = NULL;
 	BCM_REFERENCE(pvars);
@@ -1117,7 +1116,6 @@ si_clock_rate(uint32 pll_type, uint32 n, uint32 m)
 }
 
 
-
 /* set chip watchdog reset timer to fire in 'ticks' */
 void
 si_watchdog(si_t *sih, uint ticks)
@@ -1134,7 +1132,7 @@ si_watchdog(si_t *sih, uint ticks)
 			si_core_disable(sih, 1);
 			si_setcore(sih, CC_CORE_ID, 0);
 		}
-#endif 
+#endif
 
 			nb = (sih->ccrev < 26) ? 16 : ((sih->ccrev >= 37) ? 32 : 24);
 		/* The mips compiler uses the sllv instruction,
@@ -1298,7 +1296,6 @@ si_clkctl_init(si_t *sih)
 	si_clkctl_setdelay(sii, (void *)(uintptr)cc);
 
 	OSL_DELAY(20000);
-
 	if (!fast)
 		si_setcoreidx(sih, origidx);
 }
@@ -2283,7 +2280,7 @@ si_chipcontrl_epa4331_wowl(si_t *sih, bool enter_wowl)
 	}
 	si_setcoreidx(sih, origidx);
 }
-#endif 
+#endif
 
 uint
 si_pll_reset(si_t *sih)

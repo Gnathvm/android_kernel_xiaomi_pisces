@@ -24,7 +24,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: dhd_proto.h 390836 2013-03-13 23:43:53Z $
+ * $Id: dhd_proto.h 364579 2012-10-24 17:56:37Z $
  */
 
 #ifndef _dhd_proto_h_
@@ -53,7 +53,7 @@ extern void dhd_prot_detach(dhd_pub_t *dhdp);
 extern int dhd_prot_init(dhd_pub_t *dhdp);
 
 /* Stop protocol: sync w/dongle state. */
-extern void dhd_prot_stop(dhd_pub_t *dhdp);
+extern void dhd_prot_stop(dhd_pub_t * dhdp);
 
 /* Add any protocol-specific data header.
  * Caller must reserve prot_hdrlen prepend space.

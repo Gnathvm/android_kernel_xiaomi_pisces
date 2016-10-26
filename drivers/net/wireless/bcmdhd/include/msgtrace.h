@@ -2,6 +2,7 @@
  * Trace messages sent over HBUS
  *
  * Copyright (C) 1999-2013, Broadcom Corporation
+ * Copyright (C) 2016 XiaoMi, Inc.
  * 
  *      Unless you and Broadcom execute a separate written software license
  * agreement governing use of this software, this software is licensed to you
@@ -40,7 +41,7 @@
 /* Message trace header */
 typedef BWL_PRE_PACKED_STRUCT struct msgtrace_hdr {
 	uint8	version;
-	uint8   trace_type;
+	uint8 trace_type;
 #define MSGTRACE_HDR_TYPE_MSG 0
 #define MSGTRACE_HDR_TYPE_LOG 1
 	uint16	len;	/* Len of the trace */
