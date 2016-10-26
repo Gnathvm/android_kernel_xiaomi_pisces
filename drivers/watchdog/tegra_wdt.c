@@ -430,14 +430,16 @@ static const struct file_operations tegra_wdt_fops = {
 
 void watchdog_enable(void)
 {
-	tegra_wdt_enable(tegra_wdt[0]);
+	if (tegra_wdt[0])
+		tegra_wdt_enable(tegra_wdt[0]);
 }
 
 EXPORT_SYMBOL_GPL(watchdog_enable);
 
 void watchdog_disable(void)
 {
-	tegra_wdt_disable(tegra_wdt[0]);
+	if (tegra_wdt[0])
+		tegra_wdt_disable(tegra_wdt[0]);
 }
 
 EXPORT_SYMBOL_GPL(watchdog_disable);
