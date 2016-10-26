@@ -5,7 +5,7 @@
  *	Colin Cross <ccross@android.com>
  *	Erik Gilling <ccross@android.com>
  *
- * Copyright (C) 2010-2012 NVIDIA Corporation.
+ * Copyright (C) 2010-2013 NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -167,6 +167,10 @@ extern struct platform_device tegra_cec_device;
 #ifdef CONFIG_ARCH_TEGRA_HAS_CL_DVFS
 extern struct platform_device tegra_cl_dvfs_device;
 #endif
+extern struct platform_device tegra_fuse_device;
+
+extern struct platform_device etb_device;
+extern struct platform_device ptm_device;
 
 void __init tegra_init_debug_uart_rate(void);
 

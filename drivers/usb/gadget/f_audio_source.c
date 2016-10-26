@@ -783,7 +783,6 @@ int audio_source_bind_config(struct usb_configuration *c,
 	config->card = -1;
 	config->device = -1;
 
-
 	audio = &_audio_dev;
 
 	err = snd_card_create(SNDRV_DEFAULT_IDX1, SNDRV_DEFAULT_STR1,
