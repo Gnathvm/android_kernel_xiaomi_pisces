@@ -527,6 +527,8 @@ static int bcm2079x_reset(struct i2c_client *client)
 		gpio_set_value(bcm2079x_dev->en_gpio, 1);
 		msleep(50);
 	}
+
+	return 0;
 }
 #endif
 
