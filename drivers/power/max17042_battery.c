@@ -1090,6 +1090,12 @@ static int max17042_init_depletion(struct max17042_chip *chip)
 	}
 
 	c = chip->pdata->edp_client;
+	if (!c) {
+		dev_info(&chip->client->dev,
+				"no edp client, skipping depletion process\n");
+		return -ENODEV;
+	}
+
 	chip->rbat_lastgood = RBAT_INIT;
 	chip->edp_req = c->num_states;
 	chip->chgin_ilim = 0;
