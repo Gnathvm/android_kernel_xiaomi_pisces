@@ -2593,6 +2593,7 @@ static int finish_port_resume(struct usb_device *udev)
 		/* If a normal resume failed, try doing a reset-resume */
 		if (status && !udev->reset_resume && udev->persist_enabled) {
 			dev_err(&udev->dev, "retry with reset-resume\n");
+#ifdef CONFIG_ISSP
 			if (udev->quirks &
 				USB_QUIRK_RESET_DEVICE_ON_RESUME_FAIL) {
 				extern void issp_start_recovery_work(void);
@@ -2601,7 +2602,9 @@ static int finish_port_resume(struct usb_device *udev)
 				issp_start_recovery_work();
 				/* device is gone after we reset it */
 				status = -ENODEV;
-			} else {
+			} else
+#endif
+			{
 				udev->reset_resume = 1;
 				goto retry_reset_resume;
 			}
@@ -3264,12 +3267,14 @@ fail:
 	}
 	mutex_unlock(&usb_address0_mutex);
 
+#ifdef CONFIG_ISSP
 	if (udev->quirks & USB_QUIRK_RESET_DEVICE_ON_RESUME_FAIL) {
 		dev_err(&udev->dev, "Reset device-failure to recover from err\n");
 		extern void issp_start_recovery_work(void);
 		issp_start_recovery_work();
 		retval = 0;
 	}
+#endif
 	return retval;
 }
 
