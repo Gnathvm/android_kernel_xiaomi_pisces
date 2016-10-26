@@ -449,7 +449,7 @@ static ssize_t regulator_state_set(struct device *dev,
 		   struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct regulator_dev *rdev = dev_get_drvdata(dev);
-	int ret, delay;
+	int ret, delay = 0;
 	bool enabled;
 
 	if ((*buf == 'E') || (*buf == 'e'))
@@ -465,7 +465,6 @@ static ssize_t regulator_state_set(struct device *dev,
 
 	mutex_lock(&rdev->mutex);
 	if (enabled) {
-		int delay = 0;
 		if (!rdev->desc->ops->enable) {
 			ret = -EINVAL;
 			goto end;
@@ -477,12 +476,6 @@ static ssize_t regulator_state_set(struct device *dev,
 		if (ret < 0) {
 			rdev_warn(rdev, "enable() failed: %d\n", ret);
 			goto end;
-		}
-		if (delay >= 1000) {
-			mdelay(delay / 1000);
-			udelay(delay % 1000);
-		} else if (delay) {
-			udelay(delay);
 		}
 	} else {
 		if (!rdev->desc->ops->disable) {
@@ -497,12 +490,13 @@ static ssize_t regulator_state_set(struct device *dev,
 			rdev_warn(rdev, "disable() failed: %d\n", ret);
 			goto end;
 		}
-		if (delay >= 1000) {
-			mdelay(delay / 1000);
-			udelay(delay % 1000);
-		} else if (delay) {
-			udelay(delay);
-		}
+	}
+
+	if (delay >= 1000) {
+		mdelay(delay / 1000);
+		udelay(delay % 1000);
+	} else if (delay) {
+		udelay(delay);
 	}
 
 end:
