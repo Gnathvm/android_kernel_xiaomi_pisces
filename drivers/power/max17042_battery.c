@@ -320,7 +320,8 @@ void max17042_update_status(int status)
 	tmp_chip->status = status;
 	power_supply_changed(&tmp_chip->battery);
 	if (IS_ENABLED(CONFIG_EDP_FRAMEWORK) &&
-			tmp_chip->chgin_ilim != status) {
+			tmp_chip->chgin_ilim != status &&
+			tmp_chip->pdata->edp_client) {
 		tmp_chip->chgin_ilim = status;
 		schedule_delayed_work(&tmp_chip->depl_work, 0);
 		flush_delayed_work_sync(&tmp_chip->depl_work);
@@ -1079,20 +1080,17 @@ static void max17042_update_depletion(struct work_struct *work)
 static int max17042_init_depletion(struct max17042_chip *chip)
 {
 	struct edp_manager *m;
-	struct edp_client *c;
+	struct edp_client *c = chip->pdata->edp_client;
 	int r;
+
+	if (!c) {
+		return 0;
+	}
 
 	m = edp_get_manager("battery");
 	if (!m) {
 		dev_err(&chip->client->dev,
 				"could not get the battery EDP manager\n");
-		return -ENODEV;
-	}
-
-	c = chip->pdata->edp_client;
-	if (!c) {
-		dev_info(&chip->client->dev,
-				"no edp client, skipping depletion process\n");
 		return -ENODEV;
 	}
 
@@ -1460,6 +1458,10 @@ static void max17042_shutdown(struct i2c_client *client)
 static int max17042_suspend(struct device *dev)
 {
 	struct max17042_chip *chip = dev_get_drvdata(dev);
+	struct edp_client *c = chip->pdata->edp_client;
+	if (!c) {
+		return 0;
+	}
 
 	max17042_suspend_depletion_mon(chip);
 
@@ -1478,6 +1480,10 @@ static int max17042_suspend(struct device *dev)
 static int max17042_resume(struct device *dev)
 {
 	struct max17042_chip *chip = dev_get_drvdata(dev);
+	struct edp_client *c = chip->pdata->edp_client;
+	if (!c) {
+		return 0;
+	}
 
 	max17042_resume_depletion_mon(chip);
 
