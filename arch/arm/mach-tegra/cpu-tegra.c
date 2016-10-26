@@ -218,11 +218,12 @@ static unsigned int edp_predict_limit(unsigned int cpus)
 static void edp_update_limit(void)
 {
 	unsigned int limit = edp_predict_limit(cpumask_weight(&edp_cpumask));
+	unsigned int i;
+
 	BUG_ON(!mutex_is_locked(&tegra_cpu_lock));
 #ifdef CONFIG_TEGRA_EDP_EXACT_FREQ
 	edp_limit = limit;
 #else
-	unsigned int i;
 	for (i = 0; freq_table[i].frequency != CPUFREQ_TABLE_END; i++) {
 		if (freq_table[i].frequency > limit) {
 			break;
@@ -877,7 +878,7 @@ static int __init tegra_cpufreq_init(void)
 	return cpufreq_register_driver(&tegra_cpufreq_driver);
 }
 
-#if CONFIG_TEGRA_CPU_FREQ_GOVERNOR_EARLY_INIT
+#ifdef CONFIG_TEGRA_CPU_FREQ_GOVERNOR_EARLY_INIT
 static int __init tegra_cpufreq_governor_init(void)
 {
 	/*
