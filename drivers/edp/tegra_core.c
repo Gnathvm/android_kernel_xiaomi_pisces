@@ -136,11 +136,12 @@ static void apply_caps(struct tegra_sysedp_devcap *devcap)
 	new.gpu = forced_caps.gpu ?: core_policy.gpu;
 	new.emc = forced_caps.emc ?: core_policy.emc;
 
-	if (new.cpu != cur_caps.cpu)
+	if (new.cpu != cur_caps.cpu) {
 		if (online_cpu_count == 4)
-			pr_info("sysedp: %d %d %d\n", gpu_busy,
+			pr_debug("sysedp: %d %d %d\n", gpu_busy,
 					devcap->cpu_power + cpu_power_offset, new.cpu);
-	pm_qos_update_request(&cpufreq_qos, new.cpu);
+		pm_qos_update_request(&cpufreq_qos, new.cpu);
+	}
 
 	if (new.emc != cur_caps.emc) {
 		r = clk_set_rate(emc_cap_clk, new.emc * 1000);
