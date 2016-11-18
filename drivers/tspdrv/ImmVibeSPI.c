@@ -591,7 +591,9 @@ static void drv2604_poll_go_bit(void)
 		schedule_timeout_interruptible(msecs_to_jiffies
 					(GO_BIT_POLL_INTERVAL));
 }
+#endif
 
+#if DRV2604_USE_RTP_MODE
 static void drv2604_set_rtp_val(char value)
 {
 	char rtp_val[] = { REAL_TIME_PLAYBACK_REG, value };
@@ -708,13 +710,27 @@ static void vibrator_work(struct work_struct *work)
 	mutex_unlock(&vibdata.lock);
 }
 
-static int drv2604_dbg_get(void *data, u64 * val)
+static unsigned char g_dbg_reg = 0;
+static int drv2604_dbg_get(void *data, u64 *val)
 {
 	*val = g_nDeviceID;
+	drv2604_read_reg(g_dbg_reg);
 	return 0;
 }
 
-DEFINE_SIMPLE_ATTRIBUTE(drv2604_dbg, drv2604_dbg_get, NULL, "%llu\n");
+static int drv2604_dbg_set(void *data, u64 val)
+{
+	unsigned char v = val & 0xFF;
+	g_dbg_reg = (val & 0xFF00) >> 8;
+
+	if(v == 0xFF) return 0;
+
+	i2c_smbus_write_byte_data(g_pTheClient, g_dbg_reg, val);
+	pr_info("drv2604 dbg write 0x%02x 0x%02x", g_dbg_reg, v);
+	return 0;
+}
+
+DEFINE_SIMPLE_ATTRIBUTE(drv2604_dbg, drv2604_dbg_get, drv2604_dbg_set, "%llu\n");
 
 #if SUPPORT_WRITE_PAT
 static void drv2604_pat_work(struct work_struct *work)
@@ -752,12 +768,11 @@ static void drv2604_pat_work(struct work_struct *work)
 }
 #endif
 
+#if SUPPORT_WRITE_PAT
 static ssize_t drv2604_write_pattern(struct file *filp, struct kobject *kobj,
 				struct bin_attribute *attr,
 				char *buffer, loff_t offset, size_t count)
 {
-#if SUPPORT_TIMED_OUTPUT
-#if SUPPORT_WRITE_PAT
 	mutex_lock(&vibdata.lock);
 	wake_lock(&vibdata.wklock);
 	pr_debug("%s count:%d [%d %d %d %d %d %d %d %d %d ]", __func__,
@@ -778,10 +793,9 @@ static ssize_t drv2604_write_pattern(struct file *filp, struct kobject *kobj,
 	queue_work(vibdata.hap_wq, &vibdata.pat_work);
 
 	mutex_unlock(&vibdata.lock);
-#endif
-#endif
 	return 0;
 }
+#endif
 
 static struct timed_output_dev to_dev = {
 	.name = "vibrator",
@@ -789,13 +803,16 @@ static struct timed_output_dev to_dev = {
 	.enable = vibrator_enable,
 };
 
+#if SUPPORT_WRITE_PAT
 static struct bin_attribute drv2604_bin_attrs = {
 	.attr = {
 		 .name = "pattern",
-		 .mode = 0644},
+		 .mode = 0644
+	},
 	.write = drv2604_write_pattern,
 	.size = PAT_MAX_LEN + 1,
 };
+#endif
 
 static int drv2604_probe(struct i2c_client *client,
 			 const struct i2c_device_id *id);
@@ -814,9 +831,9 @@ static int drv2604_reset(struct i2c_client *client)
 {
 	pr_info("drv2604 i2c reset +++");
 	pwm_duty_enable(vibdata.pwm_dev, 0);
-	gpio_direction_output(GPIO_PORT, GPIO_LEVEL_LOW);
+	gpio_direction_output(GPIO_VIBTONE_EN1, GPIO_LEVEL_LOW);
 	mdelay(5);
-	gpio_direction_output(GPIO_PORT, GPIO_LEVEL_HIGH);
+	gpio_direction_output(GPIO_VIBTONE_EN1, GPIO_LEVEL_HIGH);
 	pr_info("drv2604 i2c reset ---");
 	return 0;
 }
@@ -831,7 +848,7 @@ static struct i2c_driver drv2604_driver = {
 #endif
 	.driver = {
 		 .name = DRV2604_BOARD_NAME,
-		 },
+	},
 };
 
 /* From Xiaomi */
@@ -850,7 +867,7 @@ static int drv2604_probe(struct i2c_client *client,
 	}
 
 	/* Enable power to the chip */
-	gpio_direction_output(GPIO_PORT, GPIO_LEVEL_HIGH);
+	gpio_direction_output(GPIO_VIBTONE_EN1, GPIO_LEVEL_HIGH);
 
 	/* Wait 30 us */
 	udelay(30);
@@ -1119,11 +1136,13 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 		return VIBE_E_FAIL;
 	}
 
+#if SUPPORT_WRITE_PAT
 	if (device_create_bin_file(to_dev.dev, &drv2604_bin_attrs)) {
 		printk(KERN_ALERT
 			"drv2604: fail to create timed output dev: pattern\n");
 		return VIBE_E_FAIL;
 	}
+#endif
 
 	hrtimer_init(&vibdata.timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	vibdata.timer.function = vibrator_timer_func;
