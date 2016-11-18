@@ -675,7 +675,12 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 #if DRV2604_USE_PWM_MODE
 			/* Only change the mode if not already in PWM mode */
 			if (mode != MODE_PWM_OR_ANALOG_INPUT) {
-				pwm_duty_enable(vibdata.pwm_dev, 0);
+				int duty = REAL_TIME_PLAYBACK_CALIBRATION_STRENGTH;
+				if (duty > 126)
+					duty = 256;
+				else
+					duty += 128;
+				pwm_duty_enable(vibdata.pwm_dev, duty);
 				drv2604_change_mode(MODE_PWM_OR_ANALOG_INPUT);
 				vibrator_is_playing = YES;
 				g_bAmpEnabled = true;
