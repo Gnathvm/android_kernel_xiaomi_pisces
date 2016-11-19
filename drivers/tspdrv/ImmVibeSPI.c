@@ -654,6 +654,8 @@ static void vibrator_off(void)
 #if SUPPORT_TIMED_OUTPUT
 	if (vibrator_is_playing) {
 		vibrator_is_playing = NO;
+		if (vibdata.pwm_dev->clk_enb)
+			pwm_disable(vibdata.pwm_dev);
 		drv2604_change_mode(MODE_STANDBY);
 		/* Added by Ken on 20120531 */
 		g_bAmpEnabled = false;
@@ -778,7 +780,8 @@ static void drv2604_pat_work(struct work_struct *work)
 			msleep(time);
 		} else {
 			if ((time == 0) || (i + 2 >= vibdata.pat_len)) {	/* the end */
-				pwm_disable(vibdata.pwm_dev);
+				if (vibdata.pwm_dev->clk_enb)
+					pwm_disable(vibdata.pwm_dev);
 				drv2604_change_mode(MODE_STANDBY);
 				pr_debug("drv2604 vib len:%d time:%d",
 					 vibdata.pat_len, time);
@@ -1007,6 +1010,8 @@ static void autotune_brake_complete(struct work_struct *work)
 		return;
 
 #if USE_DRV2604_STANDBY
+	if (vibdata.pwm_dev->clk_enb)
+		pwm_disable(vibdata.pwm_dev);
 	/* Put hardware in standby */
 	drv2604_change_mode(MODE_STANDBY);
 #endif
@@ -1057,6 +1062,8 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpDisable(VibeUInt8
 #endif
 		{
 #if USE_DRV2604_STANDBY
+			if (vibdata.pwm_dev->clk_enb)
+				pwm_disable(vibdata.pwm_dev);
 			/* Put hardware in standby via i2c */
 			drv2604_change_mode(MODE_STANDBY);
 #endif
