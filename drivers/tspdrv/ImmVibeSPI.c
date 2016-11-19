@@ -436,7 +436,7 @@ static bool g_bNeedToRestartPlayBack = false;
 
 #define PWM_CH_ID 3
 
-static int vibe_strength;
+static int vibe_strength = LRA_RTP_STRENGTH;
 
 struct pwm_device {
 	struct list_head node;
@@ -768,7 +768,7 @@ static void drv2604_pat_work(struct work_struct *work)
 	for (i = 1; i < vibdata.pat_len; i += 2) {
 		time = (u8) vibdata.pat[i + 1];
 		if (vibdata.pat[i] != 0) {
-			value = (vibdata.pat[i] > 0) ? (vibdata.pat[i]) : 0;
+			value = (vibdata.pat[i] > 0) ? (vibe_strength * vibdata.pat[i] / LRA_RTP_STRENGTH) : 0;
 			if (value > 126)
 				value = 256;
 			else
@@ -1121,7 +1121,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 	g_bAmpEnabled = true;	/* to force ImmVibeSPI_ForceOut_AmpDisable disabling the amp */
 
 /* From Xiaomi start*/
-	vibe_strength = REAL_TIME_PLAYBACK_CALIBRATION_STRENGTH;
+	vibe_strength = LRA_RTP_STRENGTH;
 	if (gpio_request(GPIO_VIBTONE_EN1, "vibrator-en") < 0) {
 		printk(KERN_ALERT "drv2604: error requesting gpio\n");
 		return VIBE_E_FAIL;
@@ -1240,8 +1240,9 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8
 							VibeInt8 *
 							pForceOutputBuffer)
 {
-#ifdef GUARANTEE_AUTOTUNE_BRAKE_TIME
 	VibeInt8 force = pForceOutputBuffer[0];
+
+#ifdef GUARANTEE_AUTOTUNE_BRAKE_TIME
 	if (force > 0 && g_lastForce <= 0) {
 		g_brake = false;
 
@@ -1256,17 +1257,14 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8
 		/* AmpDisable sets force to zero, so need to here */
 #if DRV2604_USE_RTP_MODE
 		if (force > 0)
-			drv2604_set_rtp_val(pForceOutputBuffer[0]);
+			drv2604_set_rtp_val(vibe_strength * force / LRA_RTP_STRENGTH);
 #endif
 #if DRV2604_USE_PWM_MODE
 		/* From Xiaomi start */
 		/* Xiaomi would like to use the PWM mode to change output level */
 		u32 uForce;
-		if (pForceOutputBuffer[0] != 0) {
-			uForce =
-			    (pForceOutputBuffer[0] >
-			     0) ? (pForceOutputBuffer[0]) : 0;
-
+		if (force != 0) {
+			uForce = (force > 0) ? (vibe_strength * force / LRA_RTP_STRENGTH) : 0;
 
 			DbgOut((DBL_VERBOSE,
 				"ImmVibeSPI_ForceOut_SetSamples(%d)\n",
@@ -1290,15 +1288,14 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8
 	}
 #else
 #if DRV2604_USE_RTP_MODE
-	drv2604_set_rtp_val(pForceOutputBuffer[0]);
+	drv2604_set_rtp_val(vibe_strength * force / LRA_RTP_STRENGTH);
 #endif
 #if DRV2604_USE_PWM_MODE
 	/* From Xiaomi start */
 	/* Xiaomi would like to use the PWM mode to change output level */
 	u32 uForce;
-	if (pForceOutputBuffer[0] != 0) {
-		uForce =
-		    (pForceOutputBuffer[0] > 0) ? (pForceOutputBuffer[0]) : 0;
+	if (force != 0) {
+		uForce = (force > 0) ? (vibe_strength * force / LRA_RTP_STRENGTH) : 0;
 
 
 		DbgOut((DBL_VERBOSE, "SetSamples(%d)\n", uForce));
