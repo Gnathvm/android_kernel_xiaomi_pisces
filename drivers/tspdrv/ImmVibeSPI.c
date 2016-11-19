@@ -844,7 +844,7 @@ static struct bin_attribute drv2604_bin_attrs = {
 		 .mode = 0222
 	},
 	.write = drv2604_write_pattern,
-	.size = PAT_MAX_LEN + 1,
+	.size = 0,
 };
 #endif
 
