@@ -32,7 +32,7 @@
 
 /* Constants */
 #define MODULE_NAME                         "tspdrv"
-#define TSPDRV                              "/dev/"MODULE_NAME
+#define TSPDRV                              "/dev/" MODULE_NAME
 #define TSPDRV_MAGIC_NUMBER                 0x494D4D52
 #define TSPDRV_IOCTL_GROUP                  0x52
 #define TSPDRV_STOP_KERNEL_TIMER            _IO(TSPDRV_IOCTL_GROUP, 1)	/* obsolete, may be removed in future */
