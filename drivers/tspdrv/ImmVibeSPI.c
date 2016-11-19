@@ -806,15 +806,15 @@ static ssize_t drv2604_write_pattern(struct file *filp, struct kobject *kobj,
 		return -EINVAL;
 	}
 
-	mutex_lock(&vibdata.lock);
-	wake_lock(&vibdata.wklock);
+	vibdata.pat_len = 0;
+	cancel_work_sync(&vibdata.pat_work);
+
 	pr_debug("%s count:%d [%d %d %d %d %d %d %d %d %d ]", __func__,
 		 count, buffer[0], buffer[1], buffer[2], buffer[3],
 		 buffer[4], buffer[5], buffer[6], buffer[7], buffer[8]);
 
-	vibdata.pat_len = 0;
-	cancel_work_sync(&vibdata.pat_work);
-
+	mutex_lock(&vibdata.lock);
+	wake_lock(&vibdata.wklock);
 	vibdata.pat_mode = pattern[0];
 
 	memcpy(pattern, buffer + 1, count - 1);
