@@ -436,6 +436,8 @@ static bool g_bNeedToRestartPlayBack = false;
 
 #define PWM_CH_ID 3
 
+static int vibe_strength;
+
 struct pwm_device {
 	struct list_head node;
 	struct platform_device *pdev;
@@ -610,6 +612,26 @@ static void drv2604_change_mode(char mode)
 	usleep_range(4000, 5000);	/* Added by Xiaomi */
 }
 
+static ssize_t pwm_show(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+	size_t count = 0;
+	count += sprintf(buf, "%d\n", vibe_strength);
+	return count;
+}
+
+static ssize_t pwm_store(struct device *dev,
+                struct device_attribute *attr, const char *buf, size_t count)
+{
+	int vs = 0;
+	sscanf(buf, "%d ",&vs);
+	if (vs < 0 || vs > 127) vs = 100;
+	vibe_strength = vs;
+	return count;
+}
+
+static DEVICE_ATTR(pwm, (S_IWUSR|S_IRUGO), pwm_show, pwm_store);
+
 /* - Xiaomi - timed output interface -------------------------------------------------------------------------------- */
 #define YES 1
 #define NO  0
@@ -665,8 +687,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 #if DRV2604_USE_RTP_MODE
 			/* Only change the mode if not already in RTP mode; RTP input already set at init */
 			if (mode != MODE_REAL_TIME_PLAYBACK) {
-				drv2604_set_rtp_val
-				    (REAL_TIME_PLAYBACK_CALIBRATION_STRENGTH);
+				drv2604_set_rtp_val(vibe_strength);
 				drv2604_change_mode(MODE_REAL_TIME_PLAYBACK);
 				vibrator_is_playing = YES;
 				g_bAmpEnabled = true;
@@ -675,7 +696,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 #if DRV2604_USE_PWM_MODE
 			/* Only change the mode if not already in PWM mode */
 			if (mode != MODE_PWM_OR_ANALOG_INPUT) {
-				int duty = REAL_TIME_PLAYBACK_CALIBRATION_STRENGTH;
+				int duty = vibe_strength;
 				if (duty > 126)
 					duty = 256;
 				else
@@ -1100,6 +1121,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 	g_bAmpEnabled = true;	/* to force ImmVibeSPI_ForceOut_AmpDisable disabling the amp */
 
 /* From Xiaomi start*/
+	vibe_strength = REAL_TIME_PLAYBACK_CALIBRATION_STRENGTH;
 	if (gpio_request(GPIO_VIBTONE_EN1, "vibrator-en") < 0) {
 		printk(KERN_ALERT "drv2604: error requesting gpio\n");
 		return VIBE_E_FAIL;
@@ -1148,6 +1170,9 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Initialize(void)
 		return VIBE_E_FAIL;
 	}
 #endif
+
+	if (device_create_file(to_dev.dev, &dev_attr_pwm))
+		DbgOut((DBL_VERBOSE, "drv2604: vibrator creat fail.\n"));
 
 	hrtimer_init(&vibdata.timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	vibdata.timer.function = vibrator_timer_func;
