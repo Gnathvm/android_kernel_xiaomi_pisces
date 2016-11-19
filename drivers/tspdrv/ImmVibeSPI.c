@@ -467,13 +467,12 @@ static struct vibrator {
 	struct workqueue_struct *hap_wq;
 	signed char *pat;
 	int pat_len;
-	int pat_i;
 	int pat_mode;
 #endif
 } vibdata;
 
 #if SUPPORT_WRITE_PAT
-static signed char pattern[PAT_MAX_LEN];
+static signed char pattern[PAT_MAX_LEN + 2];
 #endif
 
 static const unsigned char LRA_autocal_sequence[] = {
@@ -672,6 +671,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 	cancel_work_sync(&vibdata.work);
 
 #if SUPPORT_WRITE_PAT
+	vibdata.pat_len = 0;
 	cancel_work_sync(&vibdata.pat_work);
 #endif
 	mutex_lock(&vibdata.lock);
@@ -765,7 +765,8 @@ static void drv2604_pat_work(struct work_struct *work)
 	u32 value = 0;
 	u32 time = 0;
 
-	for (i = 1; i < vibdata.pat_len; i += 2) {
+	vibrator_is_playing = YES;
+	for (i = 0; i < vibdata.pat_len; i += 2) {
 		time = (u8) vibdata.pat[i + 1];
 		if (vibdata.pat[i] != 0) {
 			value = (vibdata.pat[i] > 0) ? (vibe_strength * vibdata.pat[i] / LRA_RTP_STRENGTH) : 0;
@@ -790,6 +791,8 @@ static void drv2604_pat_work(struct work_struct *work)
 		pr_debug("%s: %d vib:%d time:%d value:%u", __func__, i,
 			 vibdata.pat[i], time, value);
 	}
+	vibdata.pat_len = 0;
+	vibrator_is_playing = NO;
 	wake_unlock(&vibdata.wklock);
 }
 #endif
@@ -799,6 +802,10 @@ static ssize_t drv2604_write_pattern(struct file *filp, struct kobject *kobj,
 				struct bin_attribute *attr,
 				char *buffer, loff_t offset, size_t count)
 {
+	if (count == 0 || count > sizeof(pattern) + 1) {
+		return -EINVAL;
+	}
+
 	mutex_lock(&vibdata.lock);
 	wake_lock(&vibdata.wklock);
 	pr_debug("%s count:%d [%d %d %d %d %d %d %d %d %d ]", __func__,
@@ -808,18 +815,19 @@ static ssize_t drv2604_write_pattern(struct file *filp, struct kobject *kobj,
 	vibdata.pat_len = 0;
 	cancel_work_sync(&vibdata.pat_work);
 
-	memcpy(pattern, buffer, count);
-	pattern[count] = 0;
-	pattern[count + 1] = 0;
 	vibdata.pat_mode = pattern[0];
-	vibdata.pat_len = count + 2;
-	vibdata.pat_i = 1;
+
+	memcpy(pattern, buffer + 1, count - 1);
+	vibdata.pat_len = count - 1;
+
+	pattern[vibdata.pat_len++] = 0;
+	pattern[vibdata.pat_len++] = 0;
 
 	drv2604_change_mode(MODE_PWM_OR_ANALOG_INPUT);
 	queue_work(vibdata.hap_wq, &vibdata.pat_work);
 
 	mutex_unlock(&vibdata.lock);
-	return 0;
+	return count;
 }
 #endif
 
@@ -833,7 +841,7 @@ static struct timed_output_dev to_dev = {
 static struct bin_attribute drv2604_bin_attrs = {
 	.attr = {
 		 .name = "pattern",
-		 .mode = 0644
+		 .mode = 0222
 	},
 	.write = drv2604_write_pattern,
 	.size = PAT_MAX_LEN + 1,
