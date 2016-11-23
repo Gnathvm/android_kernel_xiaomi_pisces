@@ -428,7 +428,9 @@
 static int g_nDeviceID = -1;
 static struct i2c_client *g_pTheClient = NULL;
 static bool g_bAmpEnabled = false;
+#ifdef GUARANTEE_AUTOTUNE_BRAKE_TIME
 static bool g_brake = false;
+#endif
 static bool g_bNeedToRestartPlayBack = false;
 
 #define MAX_TIMEOUT 10000	/* 10s */
@@ -611,6 +613,96 @@ static void drv2604_change_mode(char mode)
 	usleep_range(4000, 5000);	/* Added by Xiaomi */
 }
 
+/* helper functions */
+extern int pwm_duty_enable(struct pwm_device *pwm, u32 duty);
+
+static void drv2604_set_force(int force)
+{
+#if DRV2604_USE_RTP_MODE
+	drv2604_set_rtp_val(force * vibe_strength / LRA_RTP_STRENGTH);
+#else
+	u32 uForce;
+	if (force != 0) {
+		uForce = (force > 0) ? (force * vibe_strength / LRA_RTP_STRENGTH) : 0;
+
+		DbgOut((DBL_VERBOSE, "drv2604_set_force(%d)\n", uForce));
+
+		if (uForce > 126)
+			uForce = 256;
+		else
+			uForce += 128;
+		pwm_duty_enable(vibdata.pwm_dev, uForce);
+	} else {
+		DbgOut((DBL_VERBOSE, "drv2604_set_force(%d)\n", 0));
+
+		pwm_duty_enable(vibdata.pwm_dev, 0);
+	}
+#endif
+}
+
+#ifdef GUARANTEE_AUTOTUNE_BRAKE_TIME
+static VibeInt8 g_lastForce = 0;
+IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpEnable(VibeUInt8 nActuatorIndex);
+IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpDisable(VibeUInt8 nActuatorIndex);
+#endif
+
+static void drv2604_amp_force(VibeInt8 actuator, VibeInt8 force)
+{
+#ifdef GUARANTEE_AUTOTUNE_BRAKE_TIME
+	if (g_lastForce != force) {
+		if (force > 0 && g_lastForce <= 0) {
+			g_brake = false;
+			ImmVibeSPI_ForceOut_AmpEnable(actuator);
+		} else if (force <= 0 && g_lastForce > 0) {
+			g_brake = force < 0;
+			ImmVibeSPI_ForceOut_AmpDisable(actuator);
+		}
+
+		/* AmpDisable sets force to zero, so need to here */
+		if (force > 0)
+			drv2604_set_force(force);
+
+		g_lastForce = force;
+	}
+#else
+	drv2604_set_force(force);
+#endif
+
+	g_bNeedToRestartPlayBack = false;
+
+}
+
+static void drv2604_change_mode_working(void)
+{
+#if DRV2604_USE_RTP_MODE
+	drv2604_change_mode(MODE_REAL_TIME_PLAYBACK);
+#else
+	drv2604_change_mode(MODE_PWM_OR_ANALOG_INPUT);
+#endif
+}
+
+static void drv2604_wakeup(void)
+{
+#if USE_DRV2604_STANDBY
+	drv2604_change_mode_working();
+#else
+	drv2604_set_en(true);
+#endif
+}
+
+static void drv2604_standby(void)
+{
+#if USE_DRV2604_STANDBY
+	if (vibdata.pwm_dev->clk_enb)
+		pwm_disable(vibdata.pwm_dev);
+	/* Put hardware in standby */
+	drv2604_change_mode(MODE_STANDBY);
+#else
+	/* Disable hardware via pin */
+	drv2604_set_en(false);
+#endif
+}
+
 static ssize_t pwm_show(struct device *dev,
                 struct device_attribute *attr, char *buf)
 {
@@ -632,13 +724,6 @@ static ssize_t pwm_store(struct device *dev,
 static DEVICE_ATTR(pwm, (S_IWUSR|S_IRUGO), pwm_show, pwm_store);
 
 /* - Xiaomi - timed output interface -------------------------------------------------------------------------------- */
-#define YES 1
-#define NO  0
-
-extern int pwm_duty_enable(struct pwm_device *pwm, u32 duty);
-
-static int vibrator_is_playing = NO;
-
 static int vibrator_get_time(struct timed_output_dev *dev)
 {
 	if (hrtimer_active(&vibdata.timer)) {
@@ -652,15 +737,10 @@ static int vibrator_get_time(struct timed_output_dev *dev)
 static void vibrator_off(void)
 {
 #if SUPPORT_TIMED_OUTPUT
-	if (vibrator_is_playing) {
-		vibrator_is_playing = NO;
-		if (vibdata.pwm_dev->clk_enb)
-			pwm_disable(vibdata.pwm_dev);
-		drv2604_change_mode(MODE_STANDBY);
-		/* Added by Ken on 20120531 */
-		g_bAmpEnabled = false;
-	}
-
+#ifdef GUARANTEE_AUTOTUNE_BRAKE_TIME
+	g_brake = true;
+#endif
+	drv2604_amp_force(0, 0);
 	wake_unlock(&vibdata.wklock);
 #endif
 }
@@ -668,7 +748,6 @@ static void vibrator_off(void)
 static void vibrator_enable(struct timed_output_dev *dev, int value)
 {
 #if SUPPORT_TIMED_OUTPUT
-	char mode;
 	hrtimer_cancel(&vibdata.timer);
 	cancel_work_sync(&vibdata.work);
 
@@ -682,34 +761,7 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 		wake_lock(&vibdata.wklock);
 		drv2604_read_reg(STATUS_REG);
 
-		/* Added by Ken on 20120531 */
-		if (!g_bAmpEnabled) {
-			mode = drv2604_read_reg(MODE_REG) & DRV2604_MODE_MASK;
-			/* Modified by Ken on 20120530 */
-#if DRV2604_USE_RTP_MODE
-			/* Only change the mode if not already in RTP mode; RTP input already set at init */
-			if (mode != MODE_REAL_TIME_PLAYBACK) {
-				drv2604_set_rtp_val(vibe_strength);
-				drv2604_change_mode(MODE_REAL_TIME_PLAYBACK);
-				vibrator_is_playing = YES;
-				g_bAmpEnabled = true;
-			}
-#endif
-#if DRV2604_USE_PWM_MODE
-			/* Only change the mode if not already in PWM mode */
-			if (mode != MODE_PWM_OR_ANALOG_INPUT) {
-				int duty = vibe_strength;
-				if (duty > 126)
-					duty = 256;
-				else
-					duty += 128;
-				pwm_duty_enable(vibdata.pwm_dev, duty);
-				drv2604_change_mode(MODE_PWM_OR_ANALOG_INPUT);
-				vibrator_is_playing = YES;
-				g_bAmpEnabled = true;
-			}
-#endif
-		}
+		drv2604_amp_force(0, LRA_RTP_STRENGTH);
 
 		if (value > 0) {
 			if (value > MAX_TIMEOUT)
@@ -764,38 +816,24 @@ DEFINE_SIMPLE_ATTRIBUTE(drv2604_dbg, drv2604_dbg_get, drv2604_dbg_set, "%llu\n")
 static void drv2604_pat_work(struct work_struct *work)
 {
 	int i;
-	u32 value = 0;
-	u32 time = 0;
+	VibeInt8 force;
+	u32 duration = 0;
+	u32 time;
 
-	vibrator_is_playing = YES;
-	for (i = 0; i < vibdata.pat_len; i += 2) {
+	for (i = 0; i + 1< vibdata.pat_len; i += 2) {
+		force = vibdata.pat[i];
 		time = (u8) vibdata.pat[i + 1];
-		if (vibdata.pat[i] != 0) {
-			value = (vibdata.pat[i] > 0) ? (vibe_strength * vibdata.pat[i] / LRA_RTP_STRENGTH) : 0;
-			if (value > 126)
-				value = 256;
-			else
-				value += 128;
-			pwm_duty_enable(vibdata.pwm_dev, value);
-			msleep(time);
-		} else {
-			if ((time == 0) || (i + 2 >= vibdata.pat_len)) {	/* the end */
-				if (vibdata.pwm_dev->clk_enb)
-					pwm_disable(vibdata.pwm_dev);
-				drv2604_change_mode(MODE_STANDBY);
-				pr_debug("drv2604 vib len:%d time:%d",
-					 vibdata.pat_len, time);
-				break;
-			} else {
-				pwm_duty_enable(vibdata.pwm_dev, 0);
-				msleep(time);
-			}
+
+		duration += time;
+		pr_debug("%s: %d -- vib:%d time:%u", __func__, i, force, time);
+		drv2604_amp_force(0, force);
+		if (time) {
+			msleep_interruptible(time);
 		}
-		pr_debug("%s: %d vib:%d time:%d value:%u", __func__, i,
-			 vibdata.pat[i], time, value);
 	}
+	pr_debug("drv2604 vib finished len:%u time:%u", vibdata.pat_len, duration);
+
 	vibdata.pat_len = 0;
-	vibrator_is_playing = NO;
 	wake_unlock(&vibdata.wklock);
 }
 #endif
@@ -816,18 +854,21 @@ static ssize_t drv2604_write_pattern(struct file *filp, struct kobject *kobj,
 		 count, buffer[0], buffer[1], buffer[2], buffer[3],
 		 buffer[4], buffer[5], buffer[6], buffer[7], buffer[8]);
 
-	mutex_lock(&vibdata.lock);
-	wake_lock(&vibdata.wklock);
-	vibdata.pat_mode = pattern[0];
+	if (count > 1) {
+		mutex_lock(&vibdata.lock);
+		wake_lock(&vibdata.wklock);
+		vibdata.pat_mode = pattern[0];
 
-	memcpy(pattern, buffer + 1, count - 1);
-	vibdata.pat_len = count - 1;
+		memcpy(pattern, buffer + 1, count - 1);
+		vibdata.pat_len = count - 1;
 
-	pattern[vibdata.pat_len++] = 0;
-	pattern[vibdata.pat_len++] = 0;
+		pattern[vibdata.pat_len++] = 0;
+		pattern[vibdata.pat_len++] = 0;
 
-	drv2604_change_mode(MODE_PWM_OR_ANALOG_INPUT);
-	queue_work(vibdata.hap_wq, &vibdata.pat_work);
+		queue_work(vibdata.hap_wq, &vibdata.pat_work);
+	} else {
+		drv2604_amp_force(0, 0);
+	}
 
 	mutex_unlock(&vibdata.lock);
 	return count;
@@ -896,7 +937,6 @@ static int drv2604_probe(struct i2c_client *client,
 #if SKIP_LRA_AUTOCAL == 0
 	int nCalibrationCount = 0;
 #endif
-	unsigned char tmp[] = { MODE_REG, MODE_STANDBY };
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		DbgOut((DBL_ERROR, "drv2604 on M3 probe failed"));
@@ -958,15 +998,16 @@ static int drv2604_probe(struct i2c_client *client,
 		break;
 	}
 
-#if USE_DRV2604_STANDBY
-	/* Put hardware in standby */
-	drv2604_write_reg_val(tmp, sizeof(tmp));
-#elif USE_DRV2604_EN_PIN
+#if USE_DRV2604_EN_PIN
 	/* enable RTP mode that will be toggled on/off with EN pin */
 	drv2604_change_mode(MODE_REAL_TIME_PLAYBACK);
 #endif
 
-#if USE_DRV2604_EN_PIN
+#if USE_DRV2604_STANDBY
+	/* don't use drv2604_standby(); as pwm may not initialized yet */
+	/* Put hardware in standby */
+	drv2604_change_mode(MODE_STANDBY);
+#else
 	/* turn off chip */
 	drv2604_set_en(false);
 #endif
@@ -1001,24 +1042,14 @@ static int drv2604_remove(struct i2c_client *client)
 
 #define AUTOTUNE_BRAKE_TIME 25
 
-static VibeInt8 g_lastForce = 0;
-
 static void autotune_brake_complete(struct work_struct *work)
 {
 	/* new nForce value came in before workqueue terminated */
 	if (g_lastForce > 0)
 		return;
 
-#if USE_DRV2604_STANDBY
-	if (vibdata.pwm_dev->clk_enb)
-		pwm_disable(vibdata.pwm_dev);
-	/* Put hardware in standby */
-	drv2604_change_mode(MODE_STANDBY);
-#endif
-
-#if USE_DRV2604_EN_PIN
-	drv2604_set_en(false);
-#endif
+	DbgOut((DBL_VERBOSE, "drv2604 brake_complete\n"));
+	drv2604_standby();
 }
 
 DECLARE_DELAYED_WORK(g_brake_complete, autotune_brake_complete);
@@ -1040,15 +1071,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpDisable(VibeUInt8
 	if (g_bAmpEnabled) {
 		DbgOut((DBL_VERBOSE, "ImmVibeSPI_ForceOut_AmpDisable.\n"));
 
-		/* Set the force to 0 */
-#if DRV2604_USE_RTP_MODE
-		drv2604_set_rtp_val(0);
-#endif
-#if DRV2604_USE_PWM_MODE
-		/* From Xiaomi start */
-		pwm_duty_enable(vibdata.pwm_dev, 0);
-		/* From Xiaomi end */
-#endif
+		drv2604_set_force(0);
 
 #ifdef GUARANTEE_AUTOTUNE_BRAKE_TIME
 		/* if a brake signal arrived from daemon, let the chip stay on
@@ -1061,16 +1084,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpDisable(VibeUInt8
 		} else		/* disable immediately (smooth effect style) */
 #endif
 		{
-#if USE_DRV2604_STANDBY
-			if (vibdata.pwm_dev->clk_enb)
-				pwm_disable(vibdata.pwm_dev);
-			/* Put hardware in standby via i2c */
-			drv2604_change_mode(MODE_STANDBY);
-#endif
-#if USE_DRV2604_EN_PIN
-			/* Disable hardware via pin */
-			drv2604_set_en(false);
-#endif
+			drv2604_standby();
 		}
 		g_bAmpEnabled = false;
 	}
@@ -1088,21 +1102,8 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpEnable(VibeUInt8 nActuatorIndex)
 		cancel_delayed_work_sync(&g_brake_complete);
 #endif
 
-#if USE_DRV2604_EN_PIN
-		drv2604_set_en(true);
-#endif
-
-#if USE_DRV2604_STANDBY
-#if DRV2604_USE_RTP_MODE
-		drv2604_change_mode(MODE_REAL_TIME_PLAYBACK);
-#endif
-#if DRV2604_USE_PWM_MODE
-		/* From Xiaomi start */
-		pwm_duty_enable(vibdata.pwm_dev, 0);
-		drv2604_change_mode(MODE_PWM_OR_ANALOG_INPUT);
-		/* From Xiaomi end */
-#endif
-#endif
+		drv2604_set_force(0);
+		drv2604_wakeup();
 		usleep_range(1000, 1000);
 
 		/* Workaround for power issue in the DRV2604 */
@@ -1255,83 +1256,7 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8
 							VibeInt8 *
 							pForceOutputBuffer)
 {
-	VibeInt8 force = pForceOutputBuffer[0];
-
-#ifdef GUARANTEE_AUTOTUNE_BRAKE_TIME
-	if (force > 0 && g_lastForce <= 0) {
-		g_brake = false;
-
-		ImmVibeSPI_ForceOut_AmpEnable(nActuatorIndex);
-	} else if (force <= 0 && g_lastForce > 0) {
-		g_brake = force < 0;
-
-		ImmVibeSPI_ForceOut_AmpDisable(nActuatorIndex);
-	}
-
-	if (g_lastForce != force) {
-		/* AmpDisable sets force to zero, so need to here */
-#if DRV2604_USE_RTP_MODE
-		if (force > 0)
-			drv2604_set_rtp_val(vibe_strength * force / LRA_RTP_STRENGTH);
-#endif
-#if DRV2604_USE_PWM_MODE
-		/* From Xiaomi start */
-		/* Xiaomi would like to use the PWM mode to change output level */
-		u32 uForce;
-		if (force != 0) {
-			uForce = (force > 0) ? (vibe_strength * force / LRA_RTP_STRENGTH) : 0;
-
-			DbgOut((DBL_VERBOSE,
-				"ImmVibeSPI_ForceOut_SetSamples(%d)\n",
-				uForce));
-
-			if (uForce > 126)
-				uForce = 256;
-			else
-				uForce += 128;
-			pwm_duty_enable(vibdata.pwm_dev, uForce);
-		} else {
-
-			DbgOut((DBL_VERBOSE,
-				"ImmVibeSPI_ForceOut_SetSamples(0)\n"));
-
-			pwm_duty_enable(vibdata.pwm_dev, 0);
-		}
-		/* From Xiaomi end */
-#endif
-		g_lastForce = force;
-	}
-#else
-#if DRV2604_USE_RTP_MODE
-	drv2604_set_rtp_val(vibe_strength * force / LRA_RTP_STRENGTH);
-#endif
-#if DRV2604_USE_PWM_MODE
-	/* From Xiaomi start */
-	/* Xiaomi would like to use the PWM mode to change output level */
-	u32 uForce;
-	if (force != 0) {
-		uForce = (force > 0) ? (vibe_strength * force / LRA_RTP_STRENGTH) : 0;
-
-
-		DbgOut((DBL_VERBOSE, "SetSamples(%d)\n", uForce));
-
-		if (uForce > 126)
-			uForce = 256;
-		else
-			uForce += 128;
-		pwm_duty_enable(vibdata.pwm_dev, uForce);
-	} else {
-
-
-		DbgOut((DBL_VERBOSE, "SetSamples(0)\n"));
-
-		pwm_duty_enable(vibdata.pwm_dev, 0);
-	}
-	/* From Xiaomi end */
-#endif
-#endif
-
-	g_bNeedToRestartPlayBack = false;
+	drv2604_amp_force(nActuatorIndex, pForceOutputBuffer[0]);
 
 	return VIBE_S_SUCCESS;
 }
