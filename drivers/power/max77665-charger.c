@@ -127,6 +127,7 @@ static struct notifier_block force_fast_charge_nb;
 /* The maximum usb input allowed by usb connector is 1800mA */
 static unsigned int usb_max_current = 1800;
 static unsigned int usb_target_ma;
+static unsigned int usb_target_ma_detecting;
 /* Charger control for factory test */
 static int charging_disabled;
 /* Indicate if the usb is charging */
@@ -437,8 +438,12 @@ static int max77665_set_charger_mode(struct max77665_charger *charger,
 	if (mode == CHARGER)
 		/* enable charging and charging watchdog */
 		flags = CHARGER_ON_OTG_OFF_BUCK_ON_BOOST_OFF | WDTEN;
-	else if (mode == OTG)
-		flags = CHARGER_OFF_OTG_ON_BUCK_OFF_BOOST_ON;
+	else if (mode == OTG) {
+		if (1 == 1)
+			flags = CHARGER_ON_OTG_ON_BUCK_OFF_BOOST_ON;
+		else
+			flags = CHARGER_OFF_OTG_ON_BUCK_OFF_BOOST_ON;
+	}
 
 	ret = max77665_write_reg(charger, MAX77665_CHG_CNFG_00, flags);
 	if (ret < 0)
@@ -598,38 +603,45 @@ static int max77665_enable_charger(struct max77665_charger *charger,
 		charger->plat_data->update_status(0);
 
 	mode = CHARGER;
-	if (true == extcon_get_cable_state(edev, "USB-Host")) {
-		mode = OTG;
-		charger->max_current_mA = 0;
-	} else if (force_fast_charge == FAST_CHARGE_FORCE_AC) {
-		mode = CHARGER;
+	usb_target_ma_detecting = 0;
+	if (force_fast_charge == FAST_CHARGE_FORCE_AC) {
+		mode = (true == extcon_get_cable_state(edev, "USB-Host")) ? OTG : CHARGER;
 		charger->ac_online = 1;
-		charger->max_current_mA = 2200;
+		if (mode == OTG || true == extcon_get_cable_state(edev, "USB")) {
+			charger->usb_online = 1;
+		}
+		usb_target_ma = 2200;
+		usb_target_ma_detecting = 1;
+	} else if (true == extcon_get_cable_state(edev, "USB-Host")) {
+		mode = OTG;
+		charger->usb_online = 1;
 	} else if (true == extcon_get_cable_state(edev, "USB")) {
 		mode = CHARGER;
 		charger->usb_online = 1;
-		charger->max_current_mA = 500;
+		usb_target_ma = 500;
 	} else if (true == extcon_get_cable_state(edev, "Charge-downstream")) {
 		mode = CHARGER;
 		charger->usb_online = 1;
-		charger->max_current_mA = 1500;
+		usb_target_ma = 1500;
 	} else if (true == extcon_get_cable_state(edev, "TA")) {
 		mode = CHARGER;
 		charger->ac_online = 1;
-		charger->max_current_mA = 2000;
+		usb_target_ma = 2000;
+		usb_target_ma_detecting = 1;
 	} else if (true == extcon_get_cable_state(edev, "Fast-charger")) {
 		mode = CHARGER;
 		charger->ac_online = 1;
-		charger->max_current_mA = 2200;
+		usb_target_ma = 2200;
+		usb_target_ma_detecting = 1;
 	} else if (true == extcon_get_cable_state(edev, "Slow-charger")) {
 		mode = CHARGER;
 		charger->ac_online = 1;
-		charger->max_current_mA = 500;
+		usb_target_ma = 500;
 	} else if (usb_cable_is_present) {
 		/* Invalid charger */
 		mode = CHARGER;
 		charger->usb_online = 1;
-		charger->max_current_mA = 500;
+		usb_target_ma = 500;
 	} else {
 		/* no cable connected */
 		mode = OFF;
@@ -643,22 +655,24 @@ static int max77665_enable_charger(struct max77665_charger *charger,
 
 	usb_cable_is_online = 1;
 
-	if (charger->max_current_mA > (force_fast_charge ? 2200 : usb_max_current)) {
+	if (usb_target_ma > (force_fast_charge ? 2200 : usb_max_current)) {
 		dev_info(charger->dev, "%d exceed maximum, revert to %d\n",
-			 charger->max_current_mA, (force_fast_charge ? 2200 : usb_max_current));
-		charger->max_current_mA = (force_fast_charge ? 2200 : usb_max_current);
+			 usb_target_ma, (force_fast_charge ? 2200 : usb_max_current));
+		usb_target_ma = (force_fast_charge ? 2200 : usb_max_current);
 	}
 
-	if (charger->ac_online)
-		usb_target_ma = charger->max_current_mA;
-	if (usb_target_ma > USB_WALL_THRESHOLD_MA)
+	charger->max_current_mA = usb_target_ma;
+	if (usb_target_ma_detecting && charger->max_current_mA > USB_WALL_THRESHOLD_MA) {
 		charger->max_current_mA = USB_WALL_THRESHOLD_MA;
+	}
 
 	ret = max77665_set_charger_mode(charger, mode);
 	if (ret < 0) {
 		dev_err(charger->dev, "failed to set device to charger mode\n");
 		goto done;
 	}
+
+	dev_info(charger->dev, "usb=%d ac=%d otg=%d current=%d target=%d force=%d\n", charger->usb_online, charger->ac_online, mode == OTG, charger->max_current_mA, usb_target_ma, force_fast_charge);
 
 	/* Charging process monitor */
 	schedule_delayed_work(&charger->charger_monitor_work,
@@ -802,7 +816,7 @@ static int charger_pmu_extcon_notifier(struct notifier_block *self,
 	if (!the_charger)
 		return NOTIFY_BAD;
 
-	if (extcon_get_cable_state(the_charger->pmu_edev, "USB"))
+	if (true == extcon_get_cable_state(the_charger->pmu_edev, "USB"))
 		usb_cable_is_present = 1;
 	else
 		usb_cable_is_present = 0;
@@ -1024,7 +1038,7 @@ static void unplug_check_worker(struct work_struct *work)
 		return;
 	}
 
-	if (charger->usb_online) {
+	if (!usb_target_ma_detecting) {
 		dev_info(charger->dev, "usb enumerated, exit\n");
 		mutex_unlock(&charger->current_limit_mutex);
 		return;
@@ -1042,9 +1056,8 @@ static void unplug_check_worker(struct work_struct *work)
 	} else if (!charging_ok && mA > 200) {
 		modified = 0;
 		changed = 1;
-		charger->max_current_mA = mA = mA - 20;
+		usb_target_ma = charger->max_current_mA = mA = mA - 20;
 		max77665_set_max_input_current(charger, mA);
-		usb_target_ma = charger->max_current_mA;
 		dev_info(charger->dev, "reduce current %d target %d\n",
 				charger->max_current_mA, usb_target_ma);
 	} else if (modified == 0 &&
@@ -1079,7 +1092,7 @@ static void unplug_check_worker(struct work_struct *work)
 	/* schedule to check again later */
 	schedule_delayed_work(&charger->unplug_check_work,
 				round_jiffies_relative(msecs_to_jiffies
-				(UNPLUG_CHECK_WAIT_PERIOD_MS)));
+				(changed ? UNPLUG_CHECK_WAIT_PERIOD_MS : UNPLUG_CHECK_WAIT_PERIOD_MS * 2)));
 }
 
 static ssize_t max77665_set_bat_oc_threshold(struct device *dev,
